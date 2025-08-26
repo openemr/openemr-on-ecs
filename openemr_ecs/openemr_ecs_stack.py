@@ -36,6 +36,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 import hashlib
+import string
 
 class OpenemrEcsStack(Stack):
 
@@ -48,8 +49,8 @@ class OpenemrEcsStack(Stack):
         self.valkey_port = 6379
         self.container_port = 443
         self.number_of_days_to_regenerate_ssl_materials = 2
-        self.emr_serverless_release_label = "emr-7.8.0"
-        self.aurora_mysql_engine_version = rds.AuroraMysqlEngineVersion.VER_3_08_1
+        self.emr_serverless_release_label = "emr-7.9.0"
+        self.aurora_mysql_engine_version = rds.AuroraMysqlEngineVersion.VER_3_10_0
         self.openemr_version = "7.0.3"
         self.lambda_python_runtime = _lambda.Runtime.PYTHON_3_13
 
@@ -214,14 +215,33 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_password(self):
+
+        # Keep only these very safe special characters available for passwords.
+        safe_specials = "!()<>^{}~"
+
+        # Exclude every other punctuation character (shell/JSON troublemakers and others that could cause bugs).
+        # string.punctuation is: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+        exclude_chars = ''.join(ch for ch in string.punctuation if ch not in safe_specials)
+
         self.password = secretsmanager.Secret(
             self,
             "Password",
             generate_secret_string=secretsmanager.SecretStringGenerator(
+                secret_string_template='{"username":"admin"}',
+                generate_string_key="password",
+
+                # Password is 16 characters long
+                password_length=16,
+
+                # No spaces as these can cause errors
                 include_space=False,
-                secret_string_template='{"username": "admin"}',
-                generate_string_key="password"
-            )
+
+                # Require at least one of each type (lower/upper/digit/special)
+                require_each_included_type=True,
+
+                # Exclude shell/JSON-problematic punctuation; keep a safe allowlist
+                exclude_characters=exclude_chars,
+            ),
         )
 
     def _create_security_groups(self):
@@ -391,14 +411,14 @@ class OpenemrEcsStack(Stack):
                             scope=self,
                             id="portal-onsite-two-address",
                             parameter_name="portal_onsite_two_address",
-                            string_value='https://' + self.alb.dns_name + '/portal/'
+                            string_value='https://' + self.alb.load_balancer_dns_name + '/portal/'
                         )
                     else:
                         self.portal_onsite_two_address = ssm.StringParameter(
                             scope=self,
                             id="portal-onsite-two-address",
                             parameter_name="portal_onsite_two_address",
-                            string_value='https://' + self.alb.dns_name + '/portal/'
+                            string_value='https://' + self.alb.load_balancer_dns_name + '/portal/'
                         )
 
             # Other parameters
@@ -965,7 +985,7 @@ class OpenemrEcsStack(Stack):
             # Create cluster
             self.ecs_cluster = ecs.Cluster(self, "ecs-cluster",
                                            vpc=self.vpc,
-                                           container_insights=True,
+                                           container_insights_v2=ecs.ContainerInsights.ENHANCED,
                                            enable_fargate_capacity_providers=True,
                                            execute_command_configuration=ecs.ExecuteCommandConfiguration(
                                                kms_key=self.kms_key,
