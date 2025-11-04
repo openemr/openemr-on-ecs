@@ -52,7 +52,7 @@ class OpenemrEcsStack(Stack):
         self.emr_serverless_release_label = "emr-7.10.0"
         self.aurora_mysql_engine_version = rds.AuroraMysqlEngineVersion.VER_3_10_1
         self.openemr_version = "7.0.3"
-        self.lambda_python_runtime = _lambda.Runtime.PYTHON_3_13
+        self.lambda_python_runtime = _lambda.Runtime.PYTHON_3_14
 
         # build infrastructure
         self._create_vpc()
