@@ -1,3 +1,5 @@
+"""CDK stack definitions for the OpenEMR on AWS Fargate deployment."""
+
 from aws_cdk import (
     Stack,
     aws_sagemaker as sagemaker,
@@ -39,42 +41,135 @@ import hashlib
 import string
 
 class OpenemrEcsStack(Stack):
+    """Provision the full OpenEMR reference architecture using CDK and AWS Fargate."""
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
+        """Initialise stack defaults and trigger creation of all managed resources."""
         super().__init__(scope, construct_id, **kwargs)
 
-        # initialize variables
+        ##########################################################
+        # These variables describe constants that can be changed.
+        ##########################################################
+
+        ## 1.
+        ## THIS CAN BE CHANGED
+        ## VALUE: Takes valid AWS VPC CIDR values as described here: https://docs.aws.amazon.com/vpc/latest/userguide/vpc-cidr-blocks.html
         self.cidr = "10.0.0.0/16"
-        self.mysql_port = 3306
-        self.valkey_port = 6379
-        self.container_port = 443
+
+        # Describes the network CIDR that will be used by the VPC that will host the infrastructure for our architecture.
+
+        # This is especially important because the number of available I.P.s determines the upper limit of how many \
+        # serverless Fargate containers our ECS cluster can make.
+
+        # The goal when picking this value should be
+        # - 1. To not conflict with any CIDR block you or your organization is currently using or may use in the future.
+        # - 2. To ensure you have sufficient I.P. addresses to spin up sufficient capacity when needed to serve demand.
+
+        ## 2.
+        ## THIS CAN BE CHANGED
+        ## VALUE: Number of days between executions as a positive non-zero integer.
         self.number_of_days_to_regenerate_ssl_materials = 2
+
+        # Note:
+
+        # The value above does not relate in anyway to the SSL certificate that can (and should) be configured to encrypt \
+        # network traffic between the user and the application load balancer. This value is for the function that \
+        # creates the SSL materials that the architecture uses to encrypt traffic between the Application Load \
+        # Balancer and the Fargate containers using HTTPS.
+
+        ##########################################################################
+        # These variables describe constants that cannot or should not be changed.
+        ##########################################################################
+
+        ## 1.
+        ## THIS CANNOT BE CHANGED
+        self.mysql_port = 3306     # This needs to be set to the port for MySQL (3306) and should not be changed.
+
+        ## 2.
+        ## THIS CANNOT BE CHANGED
+        self.valkey_port = 6379    # This needs to be set to the default port for Valkey/Redis (6379) and should not be changed.
+
+        ## 3.
+        ## THIS CANNOT BE CHANGED
+        self.container_port = 443  # This needs to be set to the port for HTTPS (443) and should not be changed.
+
+        ###################################################################################################################################################################
+        # The following variables should be set to whatever the most recent versions are in the most recent version of aws-cdk-lib (https://pypi.org/project/aws-cdk-lib/)
+        ###################################################################################################################################################################
+
+        # AWS EMR Serverless release label version
         self.emr_serverless_release_label = "emr-7.10.0"
+
+        # The version of the Aurora Serverless v2 MySQL engine used for storing database data for OpenEMR.
         self.aurora_mysql_engine_version = rds.AuroraMysqlEngineVersion.VER_3_10_1
-        self.openemr_version = "7.0.3"
+
+        # The Lambda runtime version used to run our Python functions.
         self.lambda_python_runtime = _lambda.Runtime.PYTHON_3_14
 
-        # build infrastructure
+        # Use the second-latest tagged version for the "openemr/openemr" docker container (this is the stable version).
+        self.openemr_version = "7.0.3"
+
+        ###############################################################################################
+        # The following are functions that create AWS resources that will be managed by CloudFormation
+        ###############################################################################################
+
+        # Creates the VPC used by our architecture for infrastructure.
         self._create_vpc()
+
+        # Creates (some of) the security groups used by our architecture.
         self._create_security_groups()
+
+        # Creates and configures a S3 bucket to receive logs from our ALB.
         self._create_elb_log_bucket()
+
+        # Sets up event logging with AWS CloudTrail for your acct to be stored in a S3 bucket.
         self._create_cloudtrail_logging_bucket()
+
+        # Creates a L7 AWS Application Load Balancer for the architecture.
         self._create_alb()
+
+        # Manages route53 DNS and certificates for the architecture.
         self._create_and_configure_dns_and_certificates()
+
+        # Creates and configures email sending/receiving for OpenEMR with AWS SES.
         self._configure_ses()
+
+        # Creates an AWS WAF v2 web application firewall.
         self._create_waf()
+
+        # Creates environment variable values for our containers.
         self._create_environment_variables()
+
+        # Creates the username and password for the OpenEMR admin acct.
         self._create_password()
+
+        # Creates a high-availability Aurora Serverless v2 SQL database.
         self._create_db_instance()
+
+        # Creates a serverless Elasticache Valkey cluster for caching.
         self._create_valkey_cluster()
+
+        # Creates an EFS for our OpenEMR "sites" directory
         self._create_efs_volume()
+
+        # Creates an AWS Backup volume for our RDS and EFS
         self._create_backup()
+
+        # Creates the ECS cluster for our OpenEMR containers
         self._create_ecs_cluster()
+
+        # Uses Lambda to create SSL materials for our containers to use to encrypt traffic between the application and the ALB.
         self._create_and_maintain_tls_materials()
+
+        # Creates an OpenEMR ECS service in ECS using serverless Fargate containers.
         self._create_openemr_service()
+
+        # Creates a integrated serverless analytics environment consisting of SageMaker Studio, EMR Serverless, and serverless file transfer and RDS export functions.
+        # This environment can be used to train AI/ML models with and to conduct inference on the files and database data stored in OpenEMR.
         self._create_serverless_analytics_environment()
 
     def _create_vpc(self):
+        """Create the networking foundation including subnets, flow logs, and permissions."""
         vpc_flow_role = iam.Role(
             self, 'Flow-Log-Role',
             assumed_by=iam.ServicePrincipal('vpc-flow-logs.amazonaws.com')
@@ -114,6 +209,7 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_elb_log_bucket(self):
+        """Provision an S3 bucket that stores Application Load Balancer access logs."""
         self.elb_log_bucket = s3.Bucket(
             self,
             "elb-logs-bucket",
@@ -134,6 +230,7 @@ class OpenemrEcsStack(Stack):
         self.elb_log_bucket.add_to_resource_policy(policy_statement)
 
     def _create_cloudtrail_logging_bucket(self):
+        """Optionally configure long-term CloudTrail logging and encryption."""
 
         if self.node.try_get_context("enable_long_term_cloudtrail_monitoring") == "true":
 
@@ -189,6 +286,7 @@ class OpenemrEcsStack(Stack):
             )
 
     def _create_backup(self):
+        """Build the AWS Backup plan that protects RDS and EFS resources."""
         plan = backup.BackupPlan.daily_weekly_monthly7_year_retention(self, "Plan")
         plan.apply_removal_policy(RemovalPolicy.DESTROY)
         plan.add_selection(
@@ -201,6 +299,7 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_environment_variables(self):
+        """Persist reusable application settings in Parameter Store for ECS tasks."""
         self.swarm_mode = ssm.StringParameter(
             self,
             "swarm-mode",
@@ -215,6 +314,7 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_password(self):
+        """Generate the OpenEMR admin secret with a safe character set."""
 
         # Keep only these very safe special characters available for passwords.
         safe_specials = "!()<>^{}~"
@@ -245,6 +345,7 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_security_groups(self):
+        """Create tightly scoped security groups for each network-facing component."""
         self.db_sec_group = ec2.SecurityGroup(
             self,
             "db-sec-group",
@@ -309,6 +410,7 @@ class OpenemrEcsStack(Stack):
                 )
 
     def _create_alb(self):
+        """Deploy the public Application Load Balancer and optional Global Accelerator."""
         self.alb = elb.ApplicationLoadBalancer(
             self,
             "Load-Balancer",
@@ -493,6 +595,7 @@ class OpenemrEcsStack(Stack):
                         )
 
     def _create_and_configure_dns_and_certificates(self):
+        """Set up Route 53 records and ACM certificates when domain context is supplied."""
 
         if self.node.try_get_context("route53_domain"):
 
@@ -527,6 +630,7 @@ class OpenemrEcsStack(Stack):
                 )
 
     def _configure_ses(self):
+        """Configure Amazon SES receipt rules and identities for inbound/outbound mail."""
 
         if self.node.try_get_context("route53_domain") and self.node.try_get_context("configure_ses") == 'true':
             # Define the hosted zone in Route 53
@@ -802,6 +906,7 @@ class OpenemrEcsStack(Stack):
             )
 
     def _create_db_instance(self):
+        """Assemble database secrets, parameter groups, and the Aurora cluster itself."""
         db_secret = secretsmanager.Secret(
             self,
             "db-secret",
@@ -934,6 +1039,7 @@ class OpenemrEcsStack(Stack):
             )
 
     def _create_valkey_cluster(self):
+        """Provision the Valkey serverless cache and publish connection metadata."""
         private_subnets_ids = [ps.subnet_id for ps in self.vpc.private_subnets]
 
         self.valkey_cluster = elasticache.CfnServerlessCache(
@@ -960,6 +1066,7 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_ecs_cluster(self):
+        """Create the ECS cluster along with optional Exec support and CloudWatch insights."""
         if self.node.try_get_context("enable_ecs_exec") == "true":
 
             # Create a key and give cloudwatch logs and s3 permissions to use it
@@ -1020,6 +1127,7 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_efs_volume(self):
+        """Set up EFS file systems and volume configs for shared site and SSL assets."""
         # Create EFS for sites folder
         self.file_system_for_sites_folder = efs.FileSystem(
             self,
@@ -1051,6 +1159,7 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_and_maintain_tls_materials(self):
+        """Define tasks, lambdas, and schedules that refresh internal TLS materials."""
 
         # Create generate SSL materials task definition
         create_ssl_materials_task = ecs.FargateTaskDefinition(
@@ -1177,6 +1286,7 @@ class OpenemrEcsStack(Stack):
         self.one_time_create_ssl_materials_lambda.add_environment('SECURITY_GROUPS', security_group_id)
 
     def _create_openemr_service(self):
+        """Create the OpenEMR task definition, service, and integrations with supporting services."""
 
         # Test for user supplied certificate
         if self.node.try_get_context("certificate_arn"):
@@ -1455,6 +1565,7 @@ class OpenemrEcsStack(Stack):
         )
 
     def _create_waf(self):
+        """Create the WAFv2 web ACL and connect it to the load balancer with logging."""
         web_acl = wafv2.CfnWebACL(
             self,
             "web-acl",
@@ -1521,6 +1632,7 @@ class OpenemrEcsStack(Stack):
         web_acl.node.add_dependency(self.alb)
 
     def _create_serverless_analytics_environment(self):
+        """Provision optional analytics tooling (SageMaker Studio, EMR Serverless, and exports)."""
 
         if self.node.try_get_context("create_serverless_analytics_environment") == "true":
 
