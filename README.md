@@ -4,6 +4,8 @@
 
 *This deployment provides a production-ready OpenEMR system on Amazon ECS with Fargate for serverless compute, automatic container orchestration, elastic scaling, and an integrated monitoring, security, and observability stack.*
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../blob/main/LICENSE)
+
 </div>
 
 > **⚠️ HIPAA Compliance Notice**: No matter what you're deploying to AWS full HIPAA compliance requires ...
