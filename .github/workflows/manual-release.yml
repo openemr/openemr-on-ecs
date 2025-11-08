@@ -1,0 +1,194 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Semantic version bump to apply"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      release_notes:
+        description: "Release notes (markdown supported)"
+        required: true
+        type: string
+      dry_run:
+        description: "Simulate the release without pushing changes"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  PYTHON_VERSION: "3.14"
+  SEMVER_VERSION: "3.0.4"
+
+jobs:
+  create-release:
+    name: Create Manual Release
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify repository state
+        run: |
+          if [ ! -f VERSION ]; then
+            echo "::error::Missing VERSION file in repository root."
+            exit 1
+          fi
+
+      - name: Determine change scope
+        id: changes
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            CHANGES=$(git rev-list --count HEAD)
+          else
+            CHANGES=$(git log --oneline "$LAST_TAG..HEAD" | wc -l | tr -d ' ')
+          fi
+
+          if [ "$CHANGES" -gt 0 ]; then
+            STATUS=true
+          else
+            STATUS=false
+          fi
+
+          echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+          echo "has_changes=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "change_count=$CHANGES" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install semantic version tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install "semver==${{ env.SEMVER_VERSION }}"
+
+      - name: Calculate next version
+        id: version
+        run: |
+          python <<'PYTHON'
+          import os
+          from pathlib import Path
+          import semver
+
+          version_file = Path("VERSION")
+          current = version_file.read_text(encoding="utf-8").strip()
+          bump = os.environ["RELEASE_TYPE"]
+
+          try:
+              parsed = semver.Version.parse(current)
+          except ValueError as exc:
+              raise SystemExit(f"Invalid version in VERSION file: {current}") from exc
+
+          if bump == "major":
+              new_version = parsed.bump_major()
+          elif bump == "minor":
+              new_version = parsed.bump_minor()
+          elif bump == "patch":
+              new_version = parsed.bump_patch()
+          else:
+              raise SystemExit(f"Unsupported release type: {bump}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"current={current}\n")
+              fh.write(f"next={new_version}\n")
+          PYTHON
+        env:
+          RELEASE_TYPE: ${{ github.event.inputs.release_type }}
+
+      - name: Show release plan
+        run: |
+          echo "Current version: ${{ steps.version.outputs.current }}"
+          echo "Requested bump: ${{ github.event.inputs.release_type }}"
+          echo "Next version:    ${{ steps.version.outputs.next }}"
+          if [ "${{ steps.changes.outputs.has_changes }}" != "true" ]; then
+            echo "No new commits since last release. Release will be skipped."
+          fi
+
+      - name: Update VERSION file
+        if: steps.changes.outputs.has_changes == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          echo "${{ steps.version.outputs.next }}" > VERSION
+
+      - name: Commit version bump
+        if: steps.changes.outputs.has_changes == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "chore: release v${{ steps.version.outputs.next }}" \
+                     -m "Release type: ${{ github.event.inputs.release_type }}"
+
+      - name: Tag release
+        if: steps.changes.outputs.has_changes == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          git tag "v${{ steps.version.outputs.next }}"
+
+      - name: Push changes and tags
+        if: steps.changes.outputs.has_changes == 'true' && github.event.inputs.dry_run != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git push origin HEAD:main
+          git push origin "v${{ steps.version.outputs.next }}"
+
+      - name: Create GitHub release
+        id: create_release
+        if: steps.changes.outputs.has_changes == 'true' && github.event.inputs.dry_run != 'true'
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ steps.version.outputs.next }}
+          name: v${{ steps.version.outputs.next }}
+          body: ${{ github.event.inputs.release_notes }}
+
+      - name: Dry run summary
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          {
+            echo "# 📦 Manual Release Dry Run"
+            echo ""
+            echo "- Current version: ${{ steps.version.outputs.current }}"
+            echo "- Requested bump:  ${{ github.event.inputs.release_type }}"
+            echo "- Next version:    ${{ steps.version.outputs.next }}"
+            echo "- Changes detected: ${{ steps.changes.outputs.has_changes }}"
+            echo ""
+            echo "No commits, tags, or releases were created."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Release skipped summary
+        if: steps.changes.outputs.has_changes != 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          {
+            echo "# ⏭️ Release Skipped"
+            echo ""
+            echo "No new commits were found since the last tag."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Release summary
+        if: steps.changes.outputs.has_changes == 'true' && github.event.inputs.dry_run != 'true'
+        run: |
+          {
+            echo "# ✅ Release Created"
+            echo ""
+            echo "- Version: v${{ steps.version.outputs.next }}"
+            echo "- Release notes supplied."
+            if [ "${{ steps.create_release.outcome }}" = "success" ]; then
+              echo "- GitHub release published."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
