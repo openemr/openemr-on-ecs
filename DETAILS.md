@@ -28,8 +28,9 @@
 - [REST and FHIR APIs](#rest-and-fhir-apis)
 - [Using AWS Global Accelerator](#using-aws-global-accelerator)
 - [Regarding Security](#regarding-security)
-    + [Using cdk_nag](#using-cdk-nag)
+    + [Using cdk_nag](#using-cdk_nag)
     + [Container Vulnerabilities](#container-vulnerabilities)
+- [CI/CD Automation](#cicd-automation)
 - [Useful commands](#useful-commands)
 
 # Disclaimers
@@ -524,6 +525,23 @@ We recommend periodically scanning the container image used in this project. The
 
 1. Upload the container image to ECR and enable scanning
 2. You can use [trivy](https://github.com/aquasecurity/trivy)
+
+# CI/CD Automation
+
+## CI Validation workflow (`.github/workflows/ci.yml`)
+- **Purpose:** Runs the unit test suite and synthesizes the CDK application on every push and pull request targeting `main` or `develop`.
+- **Key behavior:** Pins Node.js 24.x (a JSII-supported release) and Python 3.14, installs project dependencies, executes `pytest`, then performs `cdk synth --no-lookups` with mocked AWS credentials (`AWS_ACCESS_KEY_ID=fake`, etc.) so the pipeline never needs real secrets.
+- **Manual execution:** Available via the "Run workflow" button in GitHub Actions for quick regression checks before merging large infrastructure changes.
+
+## Monthly Version Check workflow (`.github/workflows/monthly-version-check.yml`)
+- **Purpose:** Provides automated dependency awareness. On the first of every month (or when manually dispatched) it audits pinned Python packages, the Aurora MySQL engine constant, the Lambda runtime, EMR Serverless release labels, and the pinned `openemr/openemr` container tag.
+- **Outputs:** Generates a Markdown summary, uploads artifacts, and, when updates are detected, opens a GitHub Issue detailing available updates.
+- **Manual execution:** Trigger `workflow_dispatch` from the Actions tab to verify upgrades after changing dependencies or before scheduled maintenance windows.
+
+## Manual Release workflow (`.github/workflows/manual-release.yml`)
+- **Purpose:** Implements a controlled semantic version release process for the ECS project, mirroring the EKS repository.
+- **Key behavior:** Accepts `major|minor|patch` selections, bumps the `VERSION` file, tags the release, publishes GitHub release notes, and supports a dry-run mode that previews changes without pushing.
+- **Manual execution:** Launch from GitHub Actions when you are ready to promote a new deployment guide or code change set. Provide curated release notes in Markdown to populate the published release body.
 
 # Useful commands
 

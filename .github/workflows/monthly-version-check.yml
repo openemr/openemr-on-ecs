@@ -1,0 +1,489 @@
+name: Monthly Version Check
+
+on:
+  schedule:
+    - cron: "0 9 1 * *"
+  workflow_dispatch:
+    inputs:
+      create_issue:
+        description: "Create a GitHub Issue when updates are detected"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  PYTHON_VERSION: "3.14"
+
+jobs:
+  version-audit:
+    name: Audit Dependency Versions
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Configure report metadata
+        id: metadata
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            TITLE="Monthly Dependency Update Report - $(date -u '+%B %Y')"
+          else
+            TITLE="On-Demand Dependency Update Report - $(date -u '+%Y-%m-%d %H:%M UTC')"
+          fi
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+          echo "timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Collect version data
+        id: collect
+        run: |
+          python <<'PYTHON'
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+          from pathlib import Path
+
+          import requests
+          from aws_cdk import aws_lambda as _lambda
+          from aws_cdk import aws_rds as rds
+
+          requirements_files = [
+              Path("requirements.txt"),
+              Path("requirements-dev.txt"),
+          ]
+
+          tracked_packages = {}
+          for req_path in requirements_files:
+              if not req_path.exists():
+                  continue
+              for raw_line in req_path.read_text().splitlines():
+                  line = raw_line.split("#", 1)[0].strip()
+                  if not line:
+                      continue
+                  match = re.split(r"[<>=!~]", line, maxsplit=1)[0].strip()
+                  if match:
+                      tracked_packages[match.lower()] = {
+                          "name": match,
+                          "source": str(req_path),
+                          "line": raw_line.strip(),
+                      }
+
+          result = subprocess.run(
+              [sys.executable, "-m", "pip", "list", "--outdated", "--format=json"],
+              check=True,
+              capture_output=True,
+              text=True,
+          )
+          outdated_all = json.loads(result.stdout or "[]")
+
+          outdated = []
+          for entry in outdated_all:
+              key = entry["name"].lower()
+              if key in tracked_packages:
+                  package_info = tracked_packages[key]
+                  outdated.append(
+                      {
+                          "name": entry["name"],
+                          "current_version": entry["version"],
+                          "latest_version": entry["latest_version"],
+                          "latest_filetype": entry.get("latest_filetype"),
+                          "requirement_file": package_info["source"],
+                          "requirement_line": package_info["line"],
+                      }
+                  )
+
+          stack_path = Path("openemr_ecs/openemr_ecs_stack.py")
+          stack_source = stack_path.read_text()
+
+          def extract_value(pattern: str, source: str) -> str | None:
+              match_obj = re.search(pattern, source)
+              return match_obj.group(1) if match_obj else None
+
+          current_emr_label = extract_value(
+              r'self\.emr_serverless_release_label\s*=\s*"([^"]+)"',
+              stack_source,
+          )
+
+          aurora_attr_fragment = extract_value(
+              r"AuroraMysqlEngineVersion\.VER_([0-9_]+)",
+              stack_source,
+          )
+
+          lambda_attr_name = extract_value(
+              r"_lambda\.Runtime\.([A-Z0-9_]+)",
+              stack_source,
+          )
+
+          current_openemr_version = extract_value(
+              r'self\.openemr_version\s*=\s*"([^"]+)"',
+              stack_source,
+          )
+
+          def parse_numeric_parts(value: str | None) -> tuple[int, ...]:
+              if not value:
+                  return ()
+              return tuple(int(part) for part in re.findall(r"\d+", str(value)))
+
+          def aurora_display_and_order(attr_name: str | None) -> tuple[str | None, tuple[int, ...]]:
+              if not attr_name:
+                  return None, ()
+              version_obj = getattr(rds.AuroraMysqlEngineVersion, attr_name, None)
+              if version_obj is None:
+                  fragment = attr_name.replace("VER_", "")
+                  return fragment.replace("_", ".") if fragment else None, ()
+
+              display_candidates = [
+                  getattr(version_obj, "mysql_full_version", None),
+                  getattr(version_obj, "version", None),
+                  getattr(version_obj, "mysql_version", None),
+              ]
+              display = next((value for value in display_candidates if value), None)
+              if display is None:
+                  fragment = attr_name.replace("VER_", "")
+                  display = fragment.replace("_", ".") if fragment else None
+
+              parts = attr_name.replace("VER_", "").split("_")
+              major = int(parts[0]) if parts and parts[0].isdigit() else None
+
+              base_priority = 10
+              priority_map = {5: 0, 2: 5, 3: 6}
+              priority = priority_map.get(major, base_priority)
+
+              order_parts = [priority]
+              order_parts.extend(int(part) for part in parts[1:] if part.isdigit())
+
+              return display, tuple(order_parts)
+
+          def attr_key(attr_name: str) -> tuple[int, ...]:
+              return tuple(int(part) for part in re.findall(r"\d+", attr_name))
+
+          current_attr = f"VER_{aurora_attr_fragment}" if aurora_attr_fragment else None
+          current_version, current_order = aurora_display_and_order(current_attr)
+
+          available_attrs = [
+              attr
+              for attr in dir(rds.AuroraMysqlEngineVersion)
+              if attr.startswith("VER_")
+          ]
+
+          aurora_options = [
+              (attr, *aurora_display_and_order(attr))
+              for attr in available_attrs
+          ]
+
+          latest_attr, latest_version, latest_order = max(
+              aurora_options,
+              key=lambda item: item[2],
+          )
+
+          aurora_update_available = (
+              current_version is not None
+              and latest_version is not None
+              and latest_order > current_order
+          )
+
+          emr_latest_label = None
+          emr_error = None
+          emr_sources = [
+              (
+                  "https://docs.aws.amazon.com/emr/latest/EMR-Serverless-UserGuide/release-versions.html",
+                  r"EMR Serverless\s+(\d+\.\d+\.\d+)",
+              ),
+          ]
+
+          for url, pattern in emr_sources:
+              try:
+                  response = requests.get(url, timeout=30)
+                  response.raise_for_status()
+                  match = re.search(pattern, response.text)
+                  if match:
+                      label = match.group(1)
+                      if not label.startswith("emr-"):
+                          label = f"emr-{label}"
+                      emr_latest_label = label
+                      emr_error = None
+                      break
+              except Exception as exc:  # pylint: disable=broad-except
+                  emr_error = f"Failed to fetch latest label ({exc})"
+
+          if emr_latest_label is None and emr_error is None:
+              emr_error = "Unable to determine latest release label"
+
+          emr_update_available = (
+              emr_latest_label is not None
+              and current_emr_label is not None
+              and emr_latest_label != current_emr_label
+          )
+
+          lambda_latest_attr = None
+          lambda_latest_runtime = None
+          if lambda_attr_name and hasattr(_lambda.Runtime, lambda_attr_name):
+              current_lambda_runtime = getattr(
+                  _lambda.Runtime,
+                  lambda_attr_name,
+              ).name
+          else:
+              current_lambda_runtime = None
+
+          python_lambda_runtimes = []
+          for attr in dir(_lambda.Runtime):
+              if not attr.startswith("PYTHON_"):
+                  continue
+              runtime_obj = getattr(_lambda.Runtime, attr)
+              if isinstance(runtime_obj, _lambda.Runtime):
+                  python_lambda_runtimes.append((attr, runtime_obj))
+
+          if python_lambda_runtimes:
+              lambda_latest_attr, lambda_runtime_obj = max(
+                  python_lambda_runtimes,
+                  key=lambda item: attr_key(item[0]),
+              )
+              lambda_latest_runtime = lambda_runtime_obj.name
+
+          lambda_update_available = (
+              lambda_latest_attr is not None
+              and lambda_attr_name is not None
+              and lambda_latest_attr != lambda_attr_name
+          )
+
+          openemr_latest_tag = None
+          openemr_stable_tag = None
+          openemr_error = None
+          try:
+              response = requests.get(
+                  "https://hub.docker.com/v2/repositories/openemr/openemr/tags?page_size=50&ordering=-last_updated",
+                  timeout=30,
+              )
+              response.raise_for_status()
+              data = response.json()
+              tags = []
+              for entry in data.get("results", []):
+                  tag_name = entry.get("name")
+                  if not tag_name or not re.fullmatch(r"\d+\.\d+\.\d+", tag_name):
+                      continue
+                  tags.append(
+                      (
+                          tag_name,
+                          entry.get("last_updated") or "",
+                      )
+                  )
+              tags.sort(key=lambda item: item[1], reverse=True)
+              if tags:
+                  openemr_latest_tag = tags[0][0]
+                  openemr_stable_tag = tags[1][0] if len(tags) > 1 else tags[0][0]
+              else:
+                  openemr_error = "No semantic version tags found"
+          except Exception as exc:  # pylint: disable=broad-except
+              openemr_error = str(exc)
+
+          openemr_update_available = (
+              openemr_stable_tag is not None
+              and current_openemr_version is not None
+              and openemr_stable_tag != current_openemr_version
+          )
+
+          report = {
+              "generated_at": os.environ.get("GITHUB_RUN_ID"),
+              "timestamp": os.environ.get("REPORT_TIMESTAMP", ""),
+              "python_outdated_dependencies": outdated,
+              "aurora_engine": {
+                  "current_attribute": current_attr,
+                  "current_version": current_version,
+                  "latest_attribute": latest_attr,
+                  "latest_version": latest_version,
+                  "definition_file": str(stack_path),
+                  "update_available": aurora_update_available,
+              },
+              "emr_release_label": {
+                  "current_label": current_emr_label,
+                  "latest_label": emr_latest_label,
+                  "update_available": emr_update_available,
+                  "definition_file": str(stack_path),
+                  "error": emr_error,
+              },
+              "lambda_runtime": {
+                  "current_attribute": lambda_attr_name,
+                  "current_runtime": current_lambda_runtime,
+                  "latest_attribute": lambda_latest_attr,
+                  "latest_runtime": lambda_latest_runtime,
+                  "update_available": lambda_update_available,
+              },
+              "openemr_container": {
+                  "current_version": current_openemr_version,
+                  "latest_tag": openemr_latest_tag,
+                  "stable_tag": openemr_stable_tag,
+                  "update_available": openemr_update_available,
+                  "definition_file": str(stack_path),
+                  "error": openemr_error,
+              },
+          }
+
+          output_path = Path("version-check-report.json")
+          output_path.write_text(json.dumps(report, indent=2))
+
+          component_rows = []
+
+          def append_component(name: str, current: str | None, latest: str | None, update: bool, error: str | None = None, note: str | None = None) -> None:
+              if error:
+                  status = f"⚠️ {error}"
+              elif update:
+                  status = "Update available"
+                  if note:
+                      status = f"{status} ({note})"
+              else:
+                  status = "Up to date"
+                  if note:
+                      status = f"{status} ({note})"
+              component_rows.append(
+                  (
+                      name,
+                      current or "Unknown",
+                      latest or "Unknown",
+                      status,
+                  )
+              )
+
+          append_component(
+              "Aurora MySQL Engine",
+              current_version,
+              latest_version,
+              aurora_update_available,
+          )
+
+          append_component(
+              "EMR Serverless Release Label",
+              current_emr_label,
+              emr_latest_label,
+              emr_update_available,
+              error=emr_error,
+              note="Latest label published by AWS",
+          )
+
+          append_component(
+              "Lambda Python Runtime",
+              current_lambda_runtime,
+              lambda_latest_runtime,
+              lambda_update_available,
+              note=lambda_latest_attr,
+          )
+
+          append_component(
+              "OpenEMR Container",
+              current_openemr_version,
+              openemr_stable_tag,
+              openemr_update_available,
+              error=openemr_error,
+              note=f"Latest tag: {openemr_latest_tag}" if openemr_latest_tag else None,
+          )
+
+          dependency_rows = [
+              (
+                  pkg["name"],
+                  pkg["current_version"],
+                  pkg["latest_version"],
+                  pkg["requirement_file"],
+              )
+              for pkg in outdated
+          ]
+
+          summary_path = Path("version-check-summary.md")
+          with summary_path.open("w", encoding="utf-8") as summary_fp:
+              summary_fp.write(f"# Dependency Update Summary\n\n")
+              summary_fp.write(f"- Generated at: {os.environ.get('REPORT_TIMESTAMP', 'N/A')}\n")
+              summary_fp.write(f"- Outdated Python packages: {len(outdated)}\n")
+              summary_fp.write(
+                  f"- Aurora MySQL engine update available: {'Yes' if aurora_update_available else 'No'}\n"
+              )
+              summary_fp.write(
+                  f"- EMR release label update available: {'Yes' if emr_update_available else 'No'}\n"
+              )
+              summary_fp.write(
+                  f"- Lambda runtime update available: {'Yes' if lambda_update_available else 'No'}\n"
+              )
+              summary_fp.write(
+                  f"- OpenEMR container update available: {'Yes' if openemr_update_available else 'No'}\n\n"
+              )
+
+              summary_fp.write("## Monitored Platform Components\n\n")
+              summary_fp.write("| Component | Current | Latest | Status |\n")
+              summary_fp.write("|-----------|---------|--------|--------|\n")
+              for row in component_rows:
+                  summary_fp.write(
+                      f"| {row[0]} | {row[1]} | {row[2]} | {row[3]} |\n"
+                  )
+
+              summary_fp.write("\n## Python Dependencies\n\n")
+              if dependency_rows:
+                  summary_fp.write("| Package | Current | Latest | File |\n")
+                  summary_fp.write("|---------|---------|--------|------|\n")
+                  for pkg_row in dependency_rows:
+                      summary_fp.write(
+                          f"| {pkg_row[0]} | {pkg_row[1]} | {pkg_row[2]} | {pkg_row[3]} |\n"
+                      )
+              else:
+                  summary_fp.write("All pinned Python dependencies are up to date.\n")
+
+          updates_found = bool(
+              outdated
+              or aurora_update_available
+              or emr_update_available
+              or lambda_update_available
+              or openemr_update_available
+          )
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+              fh.write(f"updates_found={'true' if updates_found else 'false'}\n")
+              fh.write(f"report_path={output_path}\n")
+              fh.write(f"summary_path={summary_path}\n")
+              fh.write(f"outdated_count={len(outdated)}\n")
+              fh.write(f"aurora_update={'true' if aurora_update_available else 'false'}\n")
+          PYTHON
+        env:
+          REPORT_TIMESTAMP: ${{ steps.metadata.outputs.timestamp }}
+
+      - name: Upload version report
+        uses: actions/upload-artifact@v4
+        with:
+          name: version-check-${{ github.run_id }}
+          path: |
+            version-check-report.json
+            version-check-summary.md
+          retention-days: 30
+
+      - name: Publish run summary
+        run: |
+          cat version-check-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create GitHub Issue
+        if: steps.collect.outputs.updates_found == 'true' && (github.event_name == 'schedule' || github.event.inputs.create_issue == 'true')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('version-check-summary.md', 'utf8');
+            const title = `${{ toJson(steps.metadata.outputs.title) }}`;
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['dependencies', 'maintenance', 'version-check']
+            });
+            core.info(`Created issue: ${issue.data.html_url}`);
+

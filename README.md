@@ -2,9 +2,11 @@
 
 <img src="logo/openemr_on_ecs_logo.png" alt="OpenEMR on ECS Logo" width="600">
 
-*This deployment provides a production-ready OpenEMR system on Amazon ECS with Fargate for serverless compute, automatic container orchestration, elastic scaling, and an integrated monitoring, security, and observability stack.*
-
+[![CI/CD Tests](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../blob/main/LICENSE)
+[![Version](https://img.shields.io/github/v/release/openemr/openemr-on-ecs?label=version&color=blue)](../../releases)
+
+*This deployment provides a production-ready OpenEMR system on Amazon ECS with Fargate for serverless compute, automatic container orchestration, elastic scaling, and an integrated monitoring, security, and observability stack.*
 
 </div>
 
@@ -28,6 +30,7 @@
 - [Access OpenEMR](#access-openemr)
 - [Clean Up](#clean-up)
 - [Need Help?](#need-help)
+- [Automation & Maintenance](#automation--maintenance)
 - [Additional Resources](#additional-resources)
 
 ## Value Proposition
@@ -188,6 +191,13 @@ Manual cleanup items:
 - [Full documentation in DETAILS.md](DETAILS.md)
 - Submit issues on GitHub: https://github.com/openemr/host-openemr-on-aws-fargate
 - Join the OpenEMR community: https://community.open-emr.org/
+
+## Automation & Maintenance
+- **CI Validation (`.github/workflows/ci.yml`)** – Runs unit tests and tests synthesizing the CDK application on every PR and push. Uses mocked AWS credentials with `cdk synth --no-lookups` to keep the pipeline credential-free.
+- **Monthly Version Check (`.github/workflows/monthly-version-check.yml`)** – Scheduled on the first of each month (and manually runnable) to scan pinned Python packages, Aurora engine versions, EMR Serverless releases, Lambda runtimes, and container tags. Creates an issue when updates are detected.
+- **Manual Release (`.github/workflows/manual-release.yml`)** – Provides a guided `workflow_dispatch` release process with semantic version bumps, tag/release creation, and optional dry run. See `docs/MANUAL_RELEASES.md` in the EKS project for process parity.
+
+Detailed usage notes and manual trigger instructions are available in [DETAILS.md](DETAILS.md#cicd-automation).
 
 ## Additional Resources
 - [Detailed Architecture Documentation](DETAILS.md#architecture)
