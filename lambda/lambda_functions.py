@@ -1,3 +1,5 @@
+"""Lambda utility functions that support maintenance workflows for OpenEMR."""
+
 import boto3
 import os
 import hmac
@@ -10,7 +12,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
+
 def generate_ssl_materials(event, context):
+    """Kick off a dedicated ECS task that refreshes the internal TLS materials."""
 
     #Create ECS client
     ecs_client = boto3.client('ecs')
@@ -54,6 +58,7 @@ def generate_ssl_materials(event, context):
     }
 
 def generate_smtp_credential(event, context):
+    """Derive and store the SES SMTP password from the IAM secret material."""
 
     # Define Helper functions
     # See here for documentation: https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html
@@ -106,6 +111,7 @@ def generate_smtp_credential(event, context):
     }
 
 def send_email(event, context):
+    """Relay inbound SES messages to the forward-to address with original content."""
 
     # Pull message id from S3 and create file dictionary
     message_id = event['Records'][0]['ses']['mail']['messageId']
@@ -180,6 +186,7 @@ def send_email(event, context):
     }
 
 def make_ruleset_active(event, context):
+    """Ensure the SES receipt rule set created by the stack is the active one."""
     # Initialize client
     ses_client = boto3.client("ses")
 
@@ -197,6 +204,7 @@ def make_ruleset_active(event, context):
     }
 
 def export_from_rds_to_s3(event, context):
+    """Trigger an Aurora snapshot export into the analytics S3 bucket."""
     # Initialize client
     client = boto3.client('rds')
 
@@ -211,6 +219,7 @@ def export_from_rds_to_s3(event, context):
     return response
 
 def sync_efs_to_s3(event, context):
+    """Launch an ECS task that mirrors the EFS content into S3 for analytics."""
     #Create ECS client
     ecs_client = boto3.client('ecs')
 

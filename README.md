@@ -1,4 +1,20 @@
-# OpenEMR on AWS Fargate - Quick Start Guide
+<div align="center">
+
+<img src="logo/openemr_on_ecs_logo.png" alt="OpenEMR on ECS Logo" width="600">
+
+*This deployment provides a production-ready OpenEMR system on Amazon ECS with Fargate for serverless compute, automatic container orchestration, elastic scaling, and an integrated monitoring, security, and observability stack.*
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](../../blob/main/LICENSE)
+
+</div>
+
+> **⚠️ HIPAA Compliance Notice**: No matter what you're deploying to AWS full HIPAA compliance requires ...
+>
+> - Executed Business Associate Agreement (BAA) with AWS
+> - Organizational policies and procedures
+> - Staff training and access controls
+> - Regular security audits and risk assessments
+
 ### Enterprise-Grade EHR System Starting at $214/month
 ## Table of Contents
 - [Value Proposition](#value-proposition)
@@ -151,13 +167,12 @@ This works out to a base cost of $214/month. The true value of this architecture
    ```bash
    cdk deploy
    ```
-
+   
 ## Access OpenEMR
 1. Use the URL provided in the deployment output
 2. Login credentials:
    - Username: `admin`
    - Password: Find in AWS Secrets Manager under "Password..."
-
 
 ## Clean Up
 When you have completed your testing you can clean up the deployed environment by running:
