@@ -107,7 +107,7 @@ class OpenemrEcsStack(Stack):
         self.lambda_python_runtime = _lambda.Runtime.PYTHON_3_14
 
         # Use the second-latest tagged version for the "openemr/openemr" docker container (this is the stable version).
-        self.openemr_version = "7.0.3"
+        self.openemr_version = "7.0.4"
 
         ###############################################################################################
         # The following are functions that create AWS resources that will be managed by CloudFormation
