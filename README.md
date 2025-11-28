@@ -18,6 +18,35 @@
 > - Regular security audits and risk assessments
 
 ### Enterprise-Grade EHR System Starting at $214/month
+
+---
+
+## ⚡ Quick Start
+
+```bash
+# Install
+pip install -r requirements.txt
+
+# Configure settings in cdk.json
+
+# Deploy (Duration: ~40 min)
+cdk deploy
+```
+
+**What you get:**
+- 🌐 OpenEMR URL (in terminal) and admin credentials (in secrets manager)
+- 🚀 Entirely serverless deployment (no server management)
+- 📈️ Configurable autoscaling (for any size deployment)
+
+!["Terminal output after running 'cdk deploy'"](./docs/cdk_deploy.png)
+
+```bash
+# When you're done
+cdk destroy
+```
+
+---
+
 ## Table of Contents
 - [Value Proposition](#value-proposition)
 - [Architecture](#architecture)
