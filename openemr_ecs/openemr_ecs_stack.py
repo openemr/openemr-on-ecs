@@ -98,10 +98,10 @@ class OpenemrEcsStack(Stack):
         ###################################################################################################################################################################
 
         # AWS EMR Serverless release label version
-        self.emr_serverless_release_label = "emr-7.10.0"
+        self.emr_serverless_release_label = "emr-7.12.0"
 
         # The version of the Aurora Serverless v2 MySQL engine used for storing database data for OpenEMR.
-        self.aurora_mysql_engine_version = rds.AuroraMysqlEngineVersion.VER_3_10_1
+        self.aurora_mysql_engine_version = rds.AuroraMysqlEngineVersion.VER_3_11_0
 
         # The Lambda runtime version used to run our Python functions.
         self.lambda_python_runtime = _lambda.Runtime.PYTHON_3_14
