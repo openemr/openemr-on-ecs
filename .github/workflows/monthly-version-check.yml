@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Configure report metadata
         id: metadata
@@ -458,7 +458,7 @@ jobs:
           REPORT_TIMESTAMP: ${{ steps.metadata.outputs.timestamp }}
 
       - name: Upload version report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: version-check-${{ github.run_id }}
           path: |
@@ -472,7 +472,7 @@ jobs:
 
       - name: Create GitHub Issue
         if: steps.collect.outputs.updates_found == 'true' && (github.event_name == 'schedule' || github.event.inputs.create_issue == 'true')
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
