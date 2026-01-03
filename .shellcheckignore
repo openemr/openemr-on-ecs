@@ -1,0 +1,8 @@
+# ShellCheck ignore file
+# Files/directories to exclude from shellcheck analysis
+
+# Generated files
+cdk.out/
+.venv/
+node_modules/
+

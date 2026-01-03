@@ -2,7 +2,8 @@ import boto3
 import json
 
 # Initialize AWS client for RDS Data API
-rds_client = boto3.client("rds-data", region_name="us-east-1")
+# Note: Update this region to match your deployment region
+rds_client = boto3.client("rds-data", region_name="us-west-2")
 
 # Variables for RDS Data API
 CLUSTER_ARN = ""

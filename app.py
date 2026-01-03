@@ -5,12 +5,12 @@ import os
 
 import aws_cdk as cdk
 
-from openemr_ecs.openemr_ecs_stack import OpenemrEcsStack
-# from cdk_nag import AwsSolutionsChecks, HIPAASecurityChecks
+from openemr_ecs.stack import OpenemrEcsStack
+from cdk_nag import AwsSolutionsChecks, HIPAASecurityChecks
 
 app = cdk.App()
-# cdk.Aspects.of(app).add(AwsSolutionsChecks(verbose=True))
-# cdk.Aspects.of(app).add(HIPAASecurityChecks(verbose=True))
+cdk.Aspects.of(app).add(AwsSolutionsChecks(verbose=True))
+cdk.Aspects.of(app).add(HIPAASecurityChecks(verbose=True))
 
 # Derive the deployment environment from the CLI defaults so one synth template
 # can target the account/region currently configured for the CDK user.

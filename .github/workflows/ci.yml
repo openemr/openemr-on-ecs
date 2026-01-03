@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -37,28 +37,53 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Execute pytest suite
+      - name: Execute pytest suite with coverage
         run: |
-          pytest tests --maxfail=1 --disable-warnings -q
+          pytest tests/ \
+            --cov=openemr_ecs \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-report=term-missing \
+            --cov-fail-under=10 \
+            --maxfail=1 \
+            --disable-warnings \
+            -m "not integration" \
+            -q
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Upload coverage HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
 
   cdk-synth:
-    name: Validate CDK Synth
+    name: CloudFormation Template Validation
     runs-on: ubuntu-24.04
     needs: unit-tests
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: "3.13"  # cfn-lint 1.43.1 requires Python < 3.14
 
       - name: Install Python dependencies
         run: |
@@ -73,7 +98,368 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: "fake"
           AWS_SECRET_ACCESS_KEY: "fake"
-          AWS_DEFAULT_REGION: "us-east-1"
+          AWS_DEFAULT_REGION: "us-west-2"
+          CDK_DEFAULT_REGION: "us-west-2"
         run: |
-          cdk synth --no-lookups
+          cdk synth --no-lookups -c certificate_arn=arn:aws:acm:us-west-2:123456789012:certificate/00000000-0000-0000-0000-000000000000
+
+      - name: Validate CloudFormation template with cfn-lint
+        run: |
+          pip install cfn-lint
+          cfn-lint cdk.out/*.template.json
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Format check (black)
+        run: black --check openemr_ecs/ tests/
+
+      - name: Lint (flake8)
+        run: flake8 openemr_ecs/ tests/ --max-line-length=120 --extend-ignore=E203,W503,E501
+
+      - name: Type check (mypy)
+        run: mypy openemr_ecs/ --ignore-missing-imports
+
+      - name: Import sorting (isort)
+        run: isort --check-only openemr_ecs/ tests/
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Security scan (bandit)
+        run: bandit -r openemr_ecs/ -ll
+
+  shellcheck:
+    name: Shell Script Validation
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck on scripts
+        run: |
+          echo "Running shellcheck on all scripts in scripts/ directory..."
+          echo "Excluding acceptable warnings: SC1090,SC1091,SC2015,SC2034,SC2059,SC2317"
+          failed=0
+          while IFS= read -r -d '' script; do
+            echo "Checking $script..."
+            if ! shellcheck -e SC1090,SC1091,SC2015,SC2034,SC2059,SC2317 "$script"; then
+              echo "❌ Shellcheck found issues in $script"
+              failed=1
+            fi
+          done < <(find scripts/ -name "*.sh" -type f -print0)
+          
+          if [ "$failed" -eq 1 ]; then
+            echo "❌ Shellcheck validation failed"
+            exit 1
+          else
+            echo "✅ All scripts passed shellcheck validation"
+          fi
+
+  go-tui-build:
+    name: Build Go TUI
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: scripts/backup-tui
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: scripts/backup-tui/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Build TUI binary
+        run: make build
+
+      - name: Check binary exists
+        run: |
+          if [ ! -f bin/backup-tui ]; then
+            echo "Error: Binary not found after build"
+            exit 1
+          fi
+          ls -lh bin/backup-tui
+
+  go-tui-lint:
+    name: Lint Go TUI
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: scripts/backup-tui
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: scripts/backup-tui/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run go fmt check
+        run: |
+          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+            echo "Error: Code is not formatted. Run 'go fmt ./...' to fix."
+            gofmt -s -d .
+            exit 1
+          fi
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
+          golangci-lint --version
+
+      - name: Run golangci-lint
+        run: |
+          set -e
+          golangci-lint run --verbose --timeout=5m ./... 2>&1
+
+  go-tui-test:
+    name: Test Go TUI
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: scripts/backup-tui
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: scripts/backup-tui/go.sum
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test ./... -v
+
+  docker-compose-tests:
+    name: Docker Compose Tests
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate basic configuration
+        run: |
+          echo "Validating basic Docker Compose configuration..."
+          cd compose
+          docker compose -f docker-compose.test.yml config > /dev/null || exit 1
+          echo "✅ Basic configuration is valid"
+
+      - name: Test basic container startup
+        timeout-minutes: 5
+        run: |
+          echo "Testing basic Docker Compose container startup..."
+          cd compose
+          set -e
+          # Start services in detached mode
+          echo "Starting containers..."
+          docker compose -f docker-compose.test.yml up -d
+          # Wait for MySQL to be ready (check logs for ready message)
+          echo "Waiting for MySQL to be ready..."
+          for i in {1..30}; do
+            if docker compose -f docker-compose.test.yml logs mysql-test | grep -qi "ready for connections\|mysqld.*ready"; then
+              echo "✅ MySQL is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ MySQL failed to start within timeout"
+              docker compose -f docker-compose.test.yml logs mysql-test
+              exit 1
+            fi
+            sleep 2
+          done
+          # Wait for Redis to be ready
+          echo "Waiting for Redis to be ready..."
+          for i in {1..30}; do
+            if docker compose -f docker-compose.test.yml exec -T redis-test redis-cli ping 2>/dev/null | grep -q "PONG"; then
+              echo "✅ Redis is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ Redis failed to start within timeout"
+              docker compose -f docker-compose.test.yml logs redis-test
+              exit 1
+            fi
+            sleep 2
+          done
+          # Wait for OpenEMR container startup script to complete (look for completion message)
+          echo "Waiting for OpenEMR container initialization..."
+          sleep 15  # Give it time to start
+          # Check container status
+          echo "Container status:"
+          docker compose -f docker-compose.test.yml ps
+          # Verify MySQL and Redis are running
+          if ! docker compose -f docker-compose.test.yml ps mysql-test | grep -q "Up"; then
+            echo "❌ MySQL container is not running"
+            docker compose -f docker-compose.test.yml logs mysql-test
+            exit 1
+          fi
+          if ! docker compose -f docker-compose.test.yml ps redis-test | grep -q "Up"; then
+            echo "❌ Redis container is not running"
+            docker compose -f docker-compose.test.yml logs redis-test
+            exit 1
+          fi
+          # Check OpenEMR container logs for startup completion (it should reach "Container initialization complete")
+          echo "OpenEMR container logs (last 50 lines):"
+          docker compose -f docker-compose.test.yml logs --tail=50 openemr-test || true
+          if docker compose -f docker-compose.test.yml logs openemr-test 2>&1 | grep -q "Container initialization complete"; then
+            echo "✅ OpenEMR container startup script completed successfully"
+          elif docker compose -f docker-compose.test.yml logs openemr-test 2>&1 | grep -qi "ERROR"; then
+            echo "❌ OpenEMR container startup script encountered errors"
+            docker compose -f docker-compose.test.yml logs openemr-test
+            exit 1
+          else
+            echo "⚠️  OpenEMR container may still be initializing (this is acceptable for CI test)"
+          fi
+          echo "✅ Basic container startup test passed"
+
+      - name: Cleanup basic test
+        if: always()
+        run: |
+          cd compose
+          docker compose -f docker-compose.test.yml down -v || true
+
+      - name: Validate SSL configuration
+        run: |
+          echo "Validating SSL Docker Compose configuration..."
+          cd compose
+          docker compose -f docker-compose.test-ssl.yml config > /dev/null || exit 1
+          echo "✅ SSL configuration is valid"
+
+      - name: Test SSL container startup
+        timeout-minutes: 5
+        run: |
+          echo "Testing SSL Docker Compose container startup..."
+          cd compose
+          set -e
+          # Start services in detached mode
+          echo "Starting containers..."
+          docker compose -f docker-compose.test-ssl.yml up -d
+          # Wait for MySQL to be ready
+          echo "Waiting for MySQL to be ready..."
+          for i in {1..30}; do
+            if docker compose -f docker-compose.test-ssl.yml logs mysql-test-ssl | grep -qi "ready for connections\|mysqld.*ready"; then
+              echo "✅ MySQL is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ MySQL failed to start within timeout"
+              docker compose -f docker-compose.test-ssl.yml logs mysql-test-ssl
+              exit 1
+            fi
+            sleep 2
+          done
+          # Wait for Redis to be ready (with TLS)
+          echo "Waiting for Redis to be ready..."
+          for i in {1..30}; do
+            if docker compose -f docker-compose.test-ssl.yml exec -T redis-test-ssl redis-cli --tls --cert /etc/redis/ssl/server-cert.pem --key /etc/redis/ssl/server-key.pem --cacert /etc/redis/ssl/ca-cert.pem -p 6380 ping 2>/dev/null | grep -q "PONG"; then
+              echo "✅ Redis is ready"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ Redis failed to start within timeout"
+              docker compose -f docker-compose.test-ssl.yml logs redis-test-ssl
+              exit 1
+            fi
+            sleep 2
+          done
+          # Wait for OpenEMR container startup script to complete
+          echo "Waiting for OpenEMR container initialization..."
+          sleep 15  # Give it time to start
+          # Check container status
+          echo "Container status:"
+          docker compose -f docker-compose.test-ssl.yml ps
+          # Verify MySQL and Redis are running
+          if ! docker compose -f docker-compose.test-ssl.yml ps mysql-test-ssl | grep -q "Up"; then
+            echo "❌ MySQL container is not running"
+            docker compose -f docker-compose.test-ssl.yml logs mysql-test-ssl
+            exit 1
+          fi
+          if ! docker compose -f docker-compose.test-ssl.yml ps redis-test-ssl | grep -q "Up"; then
+            echo "❌ Redis container is not running"
+            docker compose -f docker-compose.test-ssl.yml logs redis-test-ssl
+            exit 1
+          fi
+          # Check OpenEMR container logs for startup completion
+          echo "OpenEMR container logs (last 50 lines):"
+          docker compose -f docker-compose.test-ssl.yml logs --tail=50 openemr-test-ssl || true
+          if docker compose -f docker-compose.test-ssl.yml logs openemr-test-ssl 2>&1 | grep -q "Container initialization complete"; then
+            echo "✅ OpenEMR SSL container startup script completed successfully"
+          elif docker compose -f docker-compose.test-ssl.yml logs openemr-test-ssl 2>&1 | grep -qi "ERROR"; then
+            echo "❌ OpenEMR SSL container startup script encountered errors"
+            docker compose -f docker-compose.test-ssl.yml logs openemr-test-ssl
+            exit 1
+          else
+            echo "⚠️  OpenEMR SSL container may still be initializing (this is acceptable for CI test)"
+          fi
+          echo "✅ SSL container startup test passed"
+
+      - name: Cleanup SSL test
+        if: always()
+        run: |
+          cd compose
+          docker compose -f docker-compose.test-ssl.yml down -v || true
 

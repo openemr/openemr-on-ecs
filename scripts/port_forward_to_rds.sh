@@ -19,7 +19,7 @@ PORT="3306"
 task_arns=$(aws ecs list-tasks --cluster "$CLUSTER_NAME" --query "taskArns" --output text)
 
 # Convert the space-separated task ARNs into an array
-task_arn_array=($task_arns)
+read -ra task_arn_array <<< "$task_arns"
 
 # Get the length of the array
 num_tasks=${#task_arn_array[@]}
@@ -39,9 +39,9 @@ runtime_id="${runtime_id%\"}"
 runtime_id="${runtime_id#\"}"
 
 # Get task ID
-task_id=$(echo ${runtime_id} | cut -d '-' -f 1)
+task_id=$(echo "${runtime_id}" | cut -d '-' -f 1)
 
-echo $task_id
+echo "$task_id"
 
 # Generate target string
 TARGET="ecs:"
@@ -57,9 +57,9 @@ parameters=\'
 parameters+='{"host":['
 parameters+=$HOST
 parameters+='],"portNumber":['
-parameters+=$PORT
+parameters+="$PORT"
 parameters+='],"localPortNumber":['
-parameters+=$PORT
+parameters+="$PORT"
 parameters+=']}'
 
 echo "Starting SSM session on host $HOST with target $TARGET and port $PORT..."
