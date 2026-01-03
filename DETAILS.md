@@ -185,7 +185,7 @@ You'll pay for the AWS resources you use with this architecture but since that w
   - Includes: AWS Managed Common Rule Set, SQL Injection Protection, Known Bad Inputs, Rate Limiting (2000 req/5min/IP), and Suspicious User-Agent blocking
 - 1 KMS Key ($1/month) [(pricing docs)](https://aws.amazon.com/kms/pricing/)
 
-This works out to a base cost of ~$320/month (see [README.md Costs section](README.md#costs) for detailed breakdown). The Aurora always-on configuration adds ~$34/month compared to scaling to zero, but provides 100% availability and eliminates connection delays. See [docs/AURORA-CAPACITY-CONFIGURATION.md](docs/AURORA-CAPACITY-CONFIGURATION.md) for capacity tuning options.
+This works out to a base cost of ~$320/month (see [README.md Costs section](README.md#costs) for detailed breakdown). The Aurora always-on configuration adds ~$34/month compared to scaling to zero, but provides 100% availability and eliminates connection delays.
 
 The true value of this architecture is its ability to rapidly autoscale and support even very large organizations. For smaller organizations you may want to consider looking at some of [OpenEMR's offerings in the AWS Marketplace](https://aws.amazon.com/marketplace/seller-profile?id=bec33905-edcb-4c30-b3ae-e2960a9a5ef4) which are more affordable.
 

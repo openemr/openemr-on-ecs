@@ -47,7 +47,7 @@ This guide helps you diagnose and resolve common issues with the OpenEMR on AWS 
    - Database scaled down to completely stopped
    - Takes 3-5 minutes to scale back up
    - ECS container times out before database is available
-   - **Solution:** See [docs/AURORA-CAPACITY-CONFIGURATION.md](docs/AURORA-CAPACITY-CONFIGURATION.md)
+   - **Solution:** Set `serverless_v2_min_capacity=0.5` in `openemr_ecs/database.py` and redeploy
    - Run diagnostic: `./scripts/diagnose_db_connectivity.sh`
 
 2. **Security group rules blocking database access**

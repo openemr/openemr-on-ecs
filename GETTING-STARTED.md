@@ -466,13 +466,13 @@ Here's what each part does:
 
 See the [Costs section in README.md](README.md#costs). Rough estimate: ~$320/month for base deployment, but varies with usage.
 
-**Key cost note:** The database is configured to always run at minimum 0.5 ACU (~$44/month base) to ensure instant connections. This prevents 3-5 minute cold start delays but adds ~$34/month compared to scaling to zero. See [docs/AURORA-CAPACITY-CONFIGURATION.md](docs/AURORA-CAPACITY-CONFIGURATION.md) for details.
+**Key cost note:** The database is configured to always run at minimum 0.5 ACU (~$44/month base) to ensure instant connections. This prevents 3-5 minute cold start delays but adds ~$34/month compared to scaling to zero.
 
 ### "Can I turn it off when not using it?"
 
 The database and other resources continue running, so you'll pay even when not using it. To stop costs, you'll need to destroy the deployment (see Clean Up below).
 
-**Note:** The database is configured to always maintain a minimum capacity (0.5 ACU) to ensure instant connectivity. This costs ~$43/month base charge but prevents 3-5 minute connection delays. See [docs/AURORA-CAPACITY-CONFIGURATION.md](docs/AURORA-CAPACITY-CONFIGURATION.md) for details on adjusting capacity settings.
+**Note:** The database is configured to always maintain a minimum capacity (0.5 ACU) to ensure instant connectivity. This costs ~$43/month base charge but prevents 3-5 minute connection delays.
 
 ### "How do I update OpenEMR?"
 

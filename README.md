@@ -170,7 +170,7 @@ Key Assumptions:
 
 This works out to a base cost of $320/month. The true value of this architecture is its ability to rapidly autoscale and support even very large organizations. For smaller organizations you may want to consider looking at some of [OpenEMR's offerings in the AWS Marketplace](https://aws.amazon.com/marketplace/seller-profile?id=bec33905-edcb-4c30-b3ae-e2960a9a5ef4) which are more affordable.
 
-**Note on Aurora Serverless v2 Pricing:** The database is configured with `min_capacity=0.5` ACU to ensure instant connections with no cold start delays. This adds ~$34/month to the base cost compared to scaling to zero, but provides 100% availability and eliminates 3-5 minute connection delays. See [docs/AURORA-CAPACITY-CONFIGURATION.md](docs/AURORA-CAPACITY-CONFIGURATION.md) for details.
+**Note on Aurora Serverless v2 Pricing:** The database is configured with `min_capacity=0.5` ACU to ensure instant connections with no cold start delays. This adds ~$34/month to the base cost compared to scaling to zero, but provides 100% availability and eliminates 3-5 minute connection delays.
 
 ## Prerequisites
 
