@@ -150,7 +150,7 @@ jobs:
       - name: Create GitHub release
         id: create_release
         if: steps.changes.outputs.has_changes == 'true' && github.event.inputs.dry_run != 'true'
-        uses: ncipollo/release-action@v2
+        uses: ncipollo/release-action@v1
         with:
           tag: v${{ steps.version.outputs.next }}
           name: v${{ steps.version.outputs.next }}

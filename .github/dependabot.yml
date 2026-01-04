@@ -37,7 +37,7 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
-      day: "first monday"
+      day: "monday"
     labels:
       - "dependencies"
       - "docker"
