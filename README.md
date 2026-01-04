@@ -5,7 +5,6 @@
 [![CI/CD Tests](https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml/badge.svg)](https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/openemr/openemr-on-ecs?label=version&color=blue)](https://github.com/openemr/openemr-on-ecs/releases)
-[![codecov](https://codecov.io/gh/openemr/openemr-on-ecs/branch/main/graph/badge.svg)](https://codecov.io/gh/openemr/openemr-on-ecs)
 
 *This deployment provides a production-ready OpenEMR system on Amazon ECS with Fargate for serverless compute, automatic container orchestration, elastic scaling, and an integrated monitoring, security, and observability stack.*
 

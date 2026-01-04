@@ -151,6 +151,9 @@ jobs:
               except FileNotFoundError:
                   print("Warning: Go not found in PATH", file=sys.stderr)
 
+          constants_path = Path("openemr_ecs/constants.py")
+          constants_source = constants_path.read_text()
+          
           stack_path = Path("openemr_ecs/stack.py")
           stack_source = stack_path.read_text()
 
@@ -159,13 +162,13 @@ jobs:
               return match_obj.group(1) if match_obj else None
 
           current_emr_label = extract_value(
-              r'self\.emr_serverless_release_label\s*=\s*"([^"]+)"',
-              stack_source,
+              r'EMR_SERVERLESS_RELEASE_LABEL\s*=\s*"([^"]+)"',
+              constants_source,
           )
 
           aurora_attr_fragment = extract_value(
               r"AuroraMysqlEngineVersion\.VER_([0-9_]+)",
-              stack_source,
+              constants_source,
           )
 
           lambda_attr_name = extract_value(
@@ -174,8 +177,8 @@ jobs:
           )
 
           current_openemr_version = extract_value(
-              r'self\.openemr_version\s*=\s*"([^"]+)"',
-              stack_source,
+              r'OPENEMR_VERSION\s*=\s*"([^"]+)"',
+              constants_source,
           )
 
           def parse_numeric_parts(value: str | None) -> tuple[int, ...]:
