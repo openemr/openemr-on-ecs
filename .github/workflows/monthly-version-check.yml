@@ -39,7 +39,7 @@ jobs:
           echo "timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
           cache-dependency-path: scripts/backup-tui/go.sum
