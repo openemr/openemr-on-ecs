@@ -1,5 +1,7 @@
 # OpenEMR on AWS Fargate
 
+## Table of Contents
+
 - [OpenEMR on AWS Fargate](#openemr-on-aws-fargate)
 - [Disclaimers](#disclaimers)
     + [Third Party Packages](#third-party-packages)
@@ -150,23 +152,23 @@ Which will give access to only `31.89.197.141`.
 
 After we run `cdk deploy`, we will receive a url in the terminal. Going to that URL on our browser will take us to the OpenEMR authentication page.
 
-![alt text](./docs/OpenEMR_Auth.png)
+![alt text](./docs/images/OpenEMR_Auth.png)
 
 
 Username is `admin` and password can be retrieved from [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/). Navigate to the AWS console and go the Secrets Manager service. You will see a secret there which has a name that starts with `Password...`.
 
-![alt text](./docs/SecretsManager.png)
+![alt text](./docs/images/SecretsManager.png)
 
 
 After entering username and password we should be able to get access to the OpenEMR UI.
 
-![alt text](./docs/OpenEMR.png)
+![alt text](./docs/images/OpenEMR.png)
 
 # Architecture
 
 This solution uses a variety of AWS services including [Amazon ECS](https://aws.amazon.com/ecs/), [AWS Fargate](https://aws.amazon.com/fargate/), [AWS WAF](https://aws.amazon.com/waf/), [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/). For a full list you can review the cdk stack. Architecture diagram below shows how this solution comes together.
 
-![alt text](./docs/Architecture.png)
+![alt text](./docs/images/Architecture.png)
 
 # Cost
 
@@ -175,16 +177,66 @@ You'll pay for the AWS resources you use with this architecture but since that w
 - AWS Fargate ($0.079/hour base cost) [(pricing docs)](https://aws.amazon.com/fargate/pricing/)
 - 1 Application Load Balancer ($0.0225/hour base cost) [(pricing docs)](https://aws.amazon.com/elasticloadbalancing/pricing/)
 - 2 NAT Gateways ($0.09/hour base cost) [(pricing docs)](https://aws.amazon.com/vpc/pricing/#:~:text=contiguous%20IPv4%20block-,NAT%20Gateway%20Pricing,-If%20you%20choose)
+- Aurora Serverless v2 Database (min 0.5 ACU always-on, ~$44/month base) [(pricing docs)](https://aws.amazon.com/rds/aurora/pricing/)
+  - **Note:** Configured with `min_capacity=0.5` to ensure instant connections (no 3-5 minute cold starts)
 - Elasticache Serverless ($0.0084/hour base cost) [(pricing docs)](https://aws.amazon.com/elasticache/pricing/)
 - 2 Secrets Manager Secrets ($0.80/month) [(pricing docs)](https://aws.amazon.com/secrets-manager/pricing/)
-- 1 WAF ACL ($5/month) [(pricing docs)](https://aws.amazon.com/waf/pricing/)
+- 1 WAF ACL with enhanced rules ($5/month base + additional costs for managed rule groups) [(pricing docs)](https://aws.amazon.com/waf/pricing/)
+  - Includes: AWS Managed Common Rule Set, SQL Injection Protection, Known Bad Inputs, Rate Limiting (2000 req/5min/IP), and Suspicious User-Agent blocking
 - 1 KMS Key ($1/month) [(pricing docs)](https://aws.amazon.com/kms/pricing/)
 
-This works out to a base cost of $152.72/month. The true value of this architecture is its ability to rapidly autoscale and support even very large organizations. For smaller organizations you may want to consider looking at some of [OpenEMR's offerings in the AWS Marketplace](https://aws.amazon.com/marketplace/seller-profile?id=bec33905-edcb-4c30-b3ae-e2960a9a5ef4) which are more affordable.
+This works out to a base cost of ~$320/month (see [README.md Costs section](README.md#costs) for detailed breakdown). The Aurora always-on configuration adds ~$34/month compared to scaling to zero, but provides 100% availability and eliminates connection delays.
+
+The true value of this architecture is its ability to rapidly autoscale and support even very large organizations. For smaller organizations you may want to consider looking at some of [OpenEMR's offerings in the AWS Marketplace](https://aws.amazon.com/marketplace/seller-profile?id=bec33905-edcb-4c30-b3ae-e2960a9a5ef4) which are more affordable.
 
 # Load Testing
 
-We conducted our own load testing and got promising results. On a Mac the steps to reproduce would be:
+We conducted our own load testing and got promising results. The architecture can handle 4000+ requests/second with low resource utilization.
+
+## Automated Load Testing
+
+We've created an automated load testing script that makes it easy to verify your deployment's performance:
+
+### Using the Load Test Script
+
+**Basic Usage:**
+```bash
+# Load test with default settings (60s duration, 50 concurrent users, 100 RPS)
+./scripts/load-test.sh OpenemrEcsStack
+```
+
+**Custom Configuration:**
+```bash
+export DURATION=120                    # Test duration in seconds
+export CONCURRENT_USERS=100            # Number of concurrent users
+export REQUESTS_PER_SECOND=200         # Target requests per second
+./scripts/load-test.sh OpenemrEcsStack
+```
+
+The script automatically:
+- Retrieves the application URL from CloudFormation stack outputs
+- Waits for the application to be ready
+- Runs concurrent load tests with warmup period
+- Reports detailed performance metrics including:
+  - Success rate
+  - Response times (average, median, P95, P99)
+  - Requests per second
+  - Error summary
+
+**Requirements:**
+- Python 3 with `requests` library (automatically installed if missing)
+- AWS CLI configured with credentials
+- Deployed OpenEMR stack with `ApplicationURL` or `LoadBalancerDNS` output
+
+**Success Criteria:**
+- Success rate ≥ 95%
+- Actual RPS ≥ 80% of target RPS
+
+For detailed usage and configuration options, see [scripts/README.md](scripts/README.md#load-testsh).
+
+## Manual Load Testing
+
+On a Mac the steps to reproduce would be:
 - Install [homebrew](https://brew.sh/) by running `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 - `brew install watch`
 - `brew install siege`
@@ -195,31 +247,39 @@ CPU and memory utilization did increase while stress testing occurred but averag
 We did not notice any change in the responsiveness of the UI while testing occurred. Detailed tables for metrics can be found below.
 
 ALB Metrics:<br />
-![alt text](./docs/load_balancer_metrics.png)
-![alt text](./docs/load_balancer_metrics_2.png)
+![alt text](./docs/images/load_balancer_metrics.png)
+![alt text](./docs/images/load_balancer_metrics_2.png)
 
 CPU and Memory Application Utilization Metrics:<br />
-![alt text](./docs/load_testing_cpu_and_memory_metrics.png)
+![alt text](./docs/images/load_testing_cpu_and_memory_metrics.png)
 
 Redis on Elasticache Metrics:<br />
-![alt text](./docs/elasticache_metrics.png)
+![alt text](./docs/images/elasticache_metrics.png)
 
 RDS Metrics:<br />
-![alt text](./docs/rds_metrics.png)
+![alt text](./docs/images/rds_metrics.png)
 
 # Customizing Architecture Attributes
 
 There are some additional parameters you can set in `cdk.json` that you can use to customize some attributes of your architecture.
 
- * `security_group_ip_range_ipv4`       Set to a [IPV4 cidr](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#IPv4_CIDR_blocks) to allow access to a group of IVP4 addresses (i.e. "0.0.0.0/0"). Defaults to "null" which allows no access to any IPV4 addresses.
+ * `security_group_ip_range_ipv4`       Set to a [IPV4 cidr](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#IPv4_CIDR_blocks) to allow access to a group of IVP4 addresses (i.e. "0.0.0.0/0"), or set to "auto" to automatically detect and allow your current public IP address. Defaults to "auto" which restricts access to your current IP address only.
  * `security_group_ip_range_ipv6`       Set to a [IPV6 cidr](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing#IPv6_CIDR_blocks) to allow access to a group of IVP6 addresses (i.e. "::/0"). Defaults to "null" which allows no access to any IPV6 addresses.
  * `openemr_service_fargate_minimum_capacity`       Minimum number of fargate tasks running in your ECS cluster for your ECS service running OpenEMR. Defaults to 2.
  * `openemr_service_fargate_maximum_capacity`      Maximum number of fargate tasks running in your ECS cluster for your ECS service running OpenEMR. Defaults to 100.
+ * `openemr_service_fargate_cpu`       CPU units allocated to each Fargate task (1024 = 1 vCPU). Valid values: 256, 512, 1024, 2048, 4096. Defaults to 2048 (2 vCPU). Increase for CPU-intensive workloads, high-traffic scenarios, or when running complex queries/reports. Decrease for cost optimization if your workload is light.
+ * `openemr_service_fargate_memory`       Memory (in MiB) allocated to each Fargate task. Must be compatible with CPU selection (see [Fargate task sizing](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-cpu-memory-error.html)). Defaults to 4096 (4 GB). Increase for memory-intensive operations, large patient datasets, or when experiencing out-of-memory errors. Decrease for cost optimization if memory usage is consistently low.
  * `openemr_service_fargate_cpu_autoscaling_percentage`        Percent of average CPU utilization across your ECS cluster that will trigger an autoscaling event for your ECS service running OpenEMR. Defaults to 40.
  * `openemr_service_fargate_memory_autoscaling_percentage`        Percent of average memory utilization across your ECS cluster that will trigger an autoscaling event for your ECS service running OpenEMR. Defaults to 40.
+ * `openemr_resource_suffix`          A unique string appended to certain resource names (like EFS volumes, Valkey clusters, and IAM users) to avoid naming collisions when deploying multiple stacks in the same account/region. If not provided via context, a random 6-character alphanumeric suffix is generated at build time.
+ * `rds_deletion_protection`        Enable or disable Aurora deletion protection. Defaults to `false` so `cdk destroy` succeeds cleanly. Set to `true` to protect production databases from accidental deletion; when destroying with it set to true, also pass `-c disable_rds_deletion_protection_on_destroy=true`.
+ * `disable_rds_deletion_protection_on_destroy`        Helper flag for tear-down. Defaults to `false`. If you have `rds_deletion_protection=true` in `cdk.json`, supply this as `true` on the destroy command to temporarily disable protection: `cdk destroy -c disable_rds_deletion_protection_on_destroy=true`.
  * `enable_long_term_cloudtrail_monitoring`        By default the architecture comes with a Cloudtrail Trail that logs all events in the same region the architecture is deployed to and stores them in Cloudwatch Logs for 9 years in addition to storing them in S3 for 7 years. You can choose to disable this for testing but we would recommend leaving it enabled for production settings. Defaults to "true".
+ * `enable_monitoring_alarms`        Setting this value to `"true"` will enable CloudWatch alarms for ECS service health, ALB target health, and deployment failures. Alarms will send notifications to the email addresses specified in `monitoring_email` and `deployment_notification_email`. Defaults to "false".
+ * `monitoring_email`        Email address to receive CloudWatch alarm notifications for service health issues. Used when `enable_monitoring_alarms` is set to `"true"`. If not specified, falls back to `email_forwarding_address` if provided. Defaults to `null`.
+ * `deployment_notification_email`        Email address to receive deployment event notifications. Used when `enable_monitoring_alarms` is set to `"true"`. If not specified, falls back to `monitoring_email` if provided. Defaults to `null`.
  * `enable_ecs_exec`          Can be used to toggle ECS Exec functionality. Set to a value other than "true" to disable this functionality. Please note that this should generally be disabled and only enabled as needed. Defaults to "false".
- * `certificate_arn`          If specified will enable HTTPS for client to load balancer communications and will associate the specified certificate with the application load balancer for this architecture. This value, if specified, should be a string of an ARN in AWS Certificate Manager.
+ * `certificate_arn`          ARN of an existing AWS Certificate Manager (ACM) certificate to use for HTTPS. **Required if `route53_domain` is not provided.** The certificate must be a validated public certificate in the same region where you're deploying. If both `certificate_arn` and `route53_domain` are provided, `certificate_arn` takes precedence. **Note:** A certificate is required for deployment - either `route53_domain` or `certificate_arn` must be provided for HTTPS (end-to-end encryption).
  * `activate_openemr_apis`          Setting this value to `"true"` will enable both the [REST](https://github.com/openemr/openemr/blob/master/API_README.md) and [FHIR](https://github.com/openemr/openemr/blob/master/FHIR_README.md) APIs. You'll need to authorize and generate a token to use most of the functionality of both APIs. Documentation on how authorization works can be found [here](https://github.com/openemr/openemr/blob/master/API_README.md#authorization). When the OpenEMR APIs are activated the `"/apis/"` and `"/oauth2"` paths will be accessible. To disable the REST and FHIR APIs for OpenEMR set this value to something other than "true". For more information about this functionality see the `REST and FHIR APIs` section of this documention. Defaults to "false".
  * `enable_bedrock_integration`          Setting this value to `"true"` will enable the integration to [Aurora ML for Bedrock for MySQL](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/mysql-ml.html#using-amazon-bedrock). Some inspiration for what to use this integration for can be found [here](https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/mysql-ml.html#using-amazon-bedrock). More information about this integration can be found in the [Aurora ML for AWS Bedrock](#aurora-ml-for-aws-bedrock) section of this documentation. Defaults to "false".
  * `enable_data_api`          Setting this value to `"true"` will enable the [RDS Data API](https://docs.aws.amazon.com/rdsdataservice/latest/APIReference/Welcome.html) for our databases cluster. More information on the RDS Data API integration with our architecture can be found in the [RDS Data API](#rds-data_api) section of this documentation. Defaults to "false".
@@ -239,11 +299,11 @@ MySQL specific parameters:
 
 DNS specific parameters:
 
-The following parameters can be set to automate DNS management and email/SMTP setup.
+The following parameters can be set to automate DNS management, SSL certificate management, and email/SMTP setup.
 
- * `route53_domain`
- * `configure_ses`
- * `email_forwarding_address`
+ * `route53_domain`          Domain name in Route53 for automated DNS and SSL certificate management. **Required if `certificate_arn` is not provided.** When set, the architecture automatically: (1) issues an ACM certificate for `openemr.${route53_domain}`, (2) validates the certificate via DNS, (3) creates an A record pointing to the load balancer, and (4) manages certificate renewal. For more information, see the [Automating DNS Setup](#automating-dns-setup) and [Enabling HTTPS for Client to Load Balancer Communication](#enabling-https-for-client-to-load-balancer-communication) sections.
+ * `configure_ses`          Set to `"true"` to automatically configure AWS SES for email sending. Requires `route53_domain` to be set. See the [Automating DNS Setup](#automating-dns-setup) section for details.
+ * `email_forwarding_address`          External email address for email forwarding. Requires `route53_domain` and `configure_ses` to be set. See the [Automating DNS Setup](#automating-dns-setup) section for details.
 
 For documentation on how these parameters can be used see the [Automating DNS Setup](#automating-dns-setup) section of this guide.
 
@@ -253,24 +313,24 @@ In an ideal world operating an EMR would not only be cheap, it would be profitab
 
 Amazon Sagemaker is a [HIPAA eligible service](https://docs.aws.amazon.com/whitepapers/latest/architecting-hipaa-security-and-compliance-on-aws/amazon-sagemaker.html) and all data in SageMaker studio is [encrypted at rest by default](https://docs.aws.amazon.com/whitepapers/latest/sagemaker-studio-admin-best-practices/data-protection.html). Your entire SageMaker domain, any EFS file systems provisioned for your domain, and export S3 buckets are all encrypted with a unique customer-managed KMS key that's automatically provisioned for your AWS account.
 
-![alt text](./docs/sagemaker_studio_architecture.png)
+![alt text](./docs/images/sagemaker_studio_architecture.png)
 (credits to [this article](https://aws.amazon.com/blogs/machine-learning/use-langchain-with-pyspark-to-process-documents-at-massive-scale-with-amazon-sagemaker-studio-and-amazon-emr-serverless/) for the original version of the above diagram)
 
 In our architecture the Sagemaker domain exists within the same private subnets that host our application. The login page is accessed by navigating to `"https://<your-aws-region-here>.console.aws.amazon.com/sagemaker/home?region=<your-aws-region-here>#/studio-landing"` while logged into the console as a user with appropriate IAM permissions.
 
 When you navigate to the landing page you'll be greeted with the option to pick a user profile and get started. Select `"ServerlessAnalyticsUser"` from the dropdown and then click "Open Studio" to get started.
-![alt text](./docs/landing_page.png)
+![alt text](./docs/images/landing_page.png)
 
 Welcome to Sagemaker Studio! If you navigate to the `"Data"` section of the menu on the side you'll be able to see our EMRServerless cluster we can submit Spark jobs to.
-![alt text](./docs/emr_serverless_cluster.png)
+![alt text](./docs/images/emr_serverless_cluster.png)
 
 It's easiest to work with data in Sagemaker Studio when it's in an S3 bucket so there's two automated pipelines you can leverage to get data securely from OpenEMR into two S3 buckets accessible from Sagemaker Studio.
 
 You can export all of the files stored by the EMR to an S3 bucket you can read and write to from Sagemaker Studio. When the analytics environment is created there's a lambda made with the logical ID "EFStoS3ExportLambda" which when invoked will trigger a sync between the EFS and S3 with the logical ID "EFSExportBucket" and return an ECS task ID you can poll to monitor the state of the transfer. Your Sagemaker Studio profile has permissions to invoke the lambda, to describe the ECS task ID returned from the lambda and to read and write to/from the destination s3 bucket. 
-![alt text](./docs/efs_to_s3_export.png)
+![alt text](./docs/images/efs_to_s3_export.png)
 
 You can export all of the contents of OpenEMR's RDS Aurora Serverless v2 MySQL database to an S3 bucket you can read and write to from Sagemaker Studio. When the analytics environment is created there's a lambda made with the logical ID "RDStoS3ExportLambda" which when invoked will trigger a sync between the RDS and S3 with the logical ID "S3ExportBucket" and return a response object for the `"start_export_task"` API call which can be parsed to find (amongst other potentially useful information) an RDS export task you can poll to monitor the state of the transfer. Your Sagemaker Studio profile has permissions to invoke the lambda, to describe the RDS export task ID returned from the lambda and to read and write to/from the destination s3 bucket. 
-![alt text](./docs/rds_to_s3_export.png)
+![alt text](./docs/images/rds_to_s3_export.png)
 
 Both transfer jobs are idempotent and can be run while the system is live with no downtime. The whole environment costs no money unless you choose to provision and use compute resources in it; for as long as it sits idle you will incur zero costs. If you do choose to use it you can find SageMaker pricing documentation [here](https://aws.amazon.com/sagemaker/pricing/?p=pm&c=sm&z=2).
 
@@ -278,51 +338,51 @@ Both transfer jobs are idempotent and can be run while the system is live with n
 
 Start by invoking at least one of the export Lambdas mentioned above. For the purposes of this demo we're going to use the Lambda that exports the OpenEMR sites directory from EFS to S3. If you have permissions you can invoke it from the console. It will take around ~3-4 seconds to successfully complete.
 
-![alt text](./docs/successful_invocation.png)
+![alt text](./docs/images/successful_invocation.png)
 
 That will launch a tiny (0.25 vCPU; 0.5GB) graviton Fargate task that will run until all the data is copied over. Your SageMaker execution role has permissions to describe this ECS task and you can poll it if you'd like to get up to date reports on its status. This ECS task's runtime will depend on how much file storage your OpenEMR installation is using. When it's done you can see the contents have been copied to the S3 bucket.
 
-![alt text](./docs/contents_trasnferred_to_S3.png)
+![alt text](./docs/images/contents_trasnferred_to_S3.png)
 
 Your Sagemaker execution role has read and write access to both of the export S3 buckets (the one pictured above is for file exports from OpenEMR; the other one is for MySQL/RDS exports from OpenEMR which will appear as a bunch of [Apache Parquet](https://github.com/apache/parquet-format) files that are ready for you to run [Apache Spark](https://spark.apache.org/) jobs against with your EMRServerless cluster) and we now have many ways available to us to import data into Sagemaker for use in our applications. My preferred method is using [Data Wrangler](https://aws.amazon.com/sagemaker/data-wrangler/), which is accessible in the Sagemaker Canvas console, because then you can use a UI and then just click on the S3 bucket and the items you want to download but you could also do this programmatically from a Jupyterlab notebook or a number of other ways with other apps.
 
-![alt text](./docs/data_wrangler.png)
+![alt text](./docs/images/data_wrangler.png)
 
 ### Jupyterlab with Persistent Storage
 
 As someone who has professionally managed a Jupyterhub server in the past I can confidently say that my favorite Sagemaker feature is its Jupyterlab app. It comes setup by default and has persistent storage via a shared EFS volume and comes ready with a bunch of coding tools you can use to get started doing data analysis. To get started let's log in to Sagemaker Studio; then in the home screen click on the Jupyterlab app in the upper left hand corner of the screen.
 
-![alt text](./docs/jupyterlab_app_location.png)
+![alt text](./docs/images/jupyterlab_app_location.png)
 
 Next click on "Create Jupyterlab Space" in the upper right-hand corner of the console.
 
-![alt text](./docs/create_jupyterlab_space.png)
+![alt text](./docs/images/create_jupyterlab_space.png)
 
 You'll have the option to create either a private or a public space. The only difference is that a private space gets allocated an EFS that only your user can access while a public space gets allocated an EFS that multiple users can access at the same time. Having said that this architecture will only provision a single user profile called "ServerlessAnalyticsUser". If you're planning to make any additional Sagemaker user profiles and wanted to share things between them I'd recommend using a public space. Otherwise, it doesn't matter what you choose here.
 
-![alt text](./docs/space_settings.png)
+![alt text](./docs/images/space_settings.png)
 
 On the next screen allocate as much as you'd like for storage space and then push the "run space" button.
 
-![alt text](./docs/running_the_space.png)
+![alt text](./docs/images/running_the_space.png)
 
 Now an update box on the bottom will appear saying "Creating Jupyterlab application for space: `$YOUR_SPACE_NAME_HERE`" and then will change to "Successfully created Jupyterlab app for space: `$YOUR_SPACE_NAME_HERE`". This should take around 3 or 4 minutes.
 
-![alt text](./docs/creating_jupyterlab_application.png)
+![alt text](./docs/images/creating_jupyterlab_application.png)
 
-![alt text](./docs/successfully_created_jupyterlab_application.png)
+![alt text](./docs/images/successfully_created_jupyterlab_application.png)
 
 Once that's done you'll have the ability to open up Jupyterlab from the main Jupyterlab menu by clicking on the "Open" button.
 
-![alt text](./docs/opening_jupyterlab.png)
+![alt text](./docs/images/opening_jupyterlab.png)
 
 When the app first starts it can take up to 4-5 minutes to boot. This occurs while the kernel app is still booting and doing other things in the background. After around 30 minutes or so I find that it generally is quicker to open up a Jupyter notebook. Once it loads you'll see the screen below.
 
-![alt text](./docs/jupyterlab_notebook.png)
+![alt text](./docs/images/jupyterlab_notebook.png)
 
 Your automatically set home directory is on a shared customer-key owned KMS encrypted EFS volume that will autoscale up and down and persist data between sessions and as multiple people write to it. You can prove that this is the case by opening up a terminal in Jupyterlab and running "`printf "My home directory is on the EFS and here's proof:\n" && df -h``"; the output of which can be seen below.
 
-![alt text](./docs/home_directory_on_shared_encrypted_efs.png)
+![alt text](./docs/images/home_directory_on_shared_encrypted_efs.png)
 
 ### Other Apps
 
@@ -330,16 +390,16 @@ While Jupyterlab is my favorite app in Sagemaker you have access to the full sui
 
 On the upper left-hand corner of the home screen in Sagemaker Studio you can see the 6 default apps you'll have available when you provision the environment. For reference these apps are:
 
-![alt text](./docs/default_applications.png)
+![alt text](./docs/images/default_applications.png)
 
 They are (in-order) ... :
 
-1. Jupyterlab<br />![alt text](./docs/jupyterlab.png)
-2. Rstudio (requires you to [purchase an RStudio license](https://docs.aws.amazon.com/sagemaker/latest/dg/rstudio-license.html) from RStudio PBC to use)<br />![alt text](./docs/rstudio.png)
-3. Canvas (where the Data Wrangler functionality I showed earlier is located)<br />![alt text](./docs/canvas.png)
-4. Code Editor<br />![alt text](./docs/code_editor.png)
-5. Studio Classic (will reach end of maintenance on December 31st 2024)<br />![alt text](./docs/studio_classic.png)
-6. MLFlow<br />![alt text](./docs/MLFlow.png)
+1. Jupyterlab<br />![alt text](./docs/images/jupyterlab.png)
+2. Rstudio (requires you to [purchase an RStudio license](https://docs.aws.amazon.com/sagemaker/latest/dg/rstudio-license.html) from RStudio PBC to use)<br />![alt text](./docs/images/rstudio.png)
+3. Canvas (where the Data Wrangler functionality I showed earlier is located)<br />![alt text](./docs/images/canvas.png)
+4. Code Editor<br />![alt text](./docs/images/code_editor.png)
+5. Studio Classic (will reach end of maintenance on December 31st 2024)<br />![alt text](./docs/images/studio_classic.png)
+6. MLFlow<br />![alt text](./docs/images/MLFlow.png)
 
 ### Administering Access to the Environment
 
@@ -351,17 +411,25 @@ Note: to use SES with OpenEMR to send emails you will need to follow [the docume
 
 If you want to get started as quickly as possible I'd recommend purchasing a route53 domain by following [these instructions](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/domain-register.html#domain-register-procedure-section).
 
-If `route53_domain` is set to the domain of a public hosted zone in the same AWS account the architecture will automate the setup and maintenance of SSL materials. A certificate with auto-renewal enabled will be generated for HTTPS and an alias record accessible from a web browser will be created at https://openemr.${domain_name} (i.e. https://openemr.emr-testing.com).
+If `route53_domain` is set to the domain of a public hosted zone in the same AWS account, the architecture will automate the setup and maintenance of SSL certificates and DNS records:
+
+- **Automatic certificate issuance**: AWS Certificate Manager (ACM) automatically issues a certificate for `openemr.${route53_domain}`
+- **Automatic DNS validation**: ACM automatically validates the certificate by creating DNS validation records in your Route53 hosted zone
+- **Automatic DNS record**: An A record is created at `openemr.${route53_domain}` pointing to the Application Load Balancer
+- **Automatic certificate renewal**: ACM automatically renews the certificate before expiration
+- **Zero maintenance**: No manual certificate or DNS management required
+
+The application will be accessible at `https://openemr.${route53_domain}` (e.g., `https://openemr.emr-testing.com`).
 
 if `route53_domain` is set and `configure_ses` is set to "true" then the architecture will automatically configure SES for you and encode functioning SMTP credentials that can be used to send email into your OpenEMR installation. The email address will be notifications@services.${route53_domain} (i.e. notifications@services.emr-testing.com). To test that your SMTP setup is properly functioning there's an awesome testmail.php script from Sherwin Gaddis (if you're reading this thanks Sherwin!) that you [can read more about and download for free here](https://community.open-emr.org/t/how-do-i-actually-send-an-email-to-my-client-from-within-openemr/20647/9).
 
 Note: if you configure SES you will need to activate your SMTP credentials in the OpenEMR console. Log in as the admin user and then click on "Config" in the "Admin" tab followed by "Notifications" in the sidebar followed by the "Save" button. No need to change any of the default values; they'll be set for you.
 
-![alt text](./docs/activating_email_credentials.png)
+![alt text](./docs/images/activating_email_credentials.png)
 
 Once you get your SMTP credentials functioning and you follow the instructions linked to above for setting up testmail.php you should be able to navigate to https://openemr.${domain_name}/interface/testmail.php and see something like this.
 
-![alt text](./docs/testemail.php_output.png)
+![alt text](./docs/images/testemail.php_output.png)
 
 if `route53_domain` is set and `configure_ses` is set to "true" and `email_forwarding_address` is changed from null to an external email address you'd like to forward email to (i.e. target-email@example.com) the architecture will set up an email that you can use to forward email to that address. The email address will be help@${route53.domain} (i.e. help@emr-testing.com) and emailing it will archive the message in an encrypted S3 bucket and forward a copy to the external email specified.
 
@@ -375,13 +443,65 @@ Using these services will incur extra costs. See here for pricing information on
 
 # Enabling HTTPS for Client to Load Balancer Communication
 
-If the value for `certificate_arn` is specified to be a string referring to the ARN of a certificate in AWS Certificate Manager this will enable HTTPS on the load balancer.
+**Certificate Required for HTTPS:** This architecture requires end-to-end encryption and always uses HTTPS. A certificate is **required** for deployment. HTTP is never exposed.
 
-Incoming requests on port 80 will be automatically redirected to port 443 and port 443 will be accepting HTTPS traffic and the load balancer will be associated with the certificate specified.
+## Certificate Configuration Options
 
-The certificate used must be a public certificate. For documentation on how to issue and manage certificates with AWS Certificate Manager see [here](https://docs.aws.amazon.com/acm/latest/userguide/gs.html). For documentation on how to import certificates to AWS Certificate Manager see [here](https://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html).
+You have two options for providing a certificate:
 
-One of the advantages of issuing a certificate from AWS Certificate Manager is that AWS Certificate Manager provides managed renewal for AWS issued TLS/SSL certificates. For documentation on managed renewal in AWS Certificate Manager see [here](https://docs.aws.amazon.com/acm/latest/userguide/managed-renewal.html).
+### Option 1: Automated Certificate Management (Recommended)
+
+Set `route53_domain` in `cdk.json` to a domain name that you own in Route53:
+
+```json
+"route53_domain": "example.com"
+```
+
+**Benefits:**
+- **Automatic certificate issuance**: AWS Certificate Manager (ACM) automatically issues a certificate for `openemr.${route53_domain}`
+- **Automatic validation**: ACM automatically validates the certificate using DNS validation
+- **Automatic renewal**: ACM automatically renews the certificate before it expires
+- **Zero maintenance**: No manual certificate management required
+
+**Requirements:**
+- You must have a Route53 hosted zone for the domain
+- The hosted zone must be in the same AWS account where you're deploying
+- DNS validation records are automatically created in your hosted zone
+
+**What gets created:**
+- A certificate in ACM for `openemr.${route53_domain}`
+- An A record in Route53 pointing `openemr.${route53_domain}` to the Application Load Balancer
+- The certificate is automatically associated with the Application Load Balancer
+
+For more information about this automated setup, see the [Automating DNS Setup](#automating-dns-setup) section.
+
+### Option 2: Use an Existing ACM Certificate
+
+If you already have a certificate in AWS Certificate Manager, you can specify its ARN:
+
+```json
+"certificate_arn": "arn:aws:acm:us-east-1:123456789012:certificate/12345678-1234-1234-1234-123456789012"
+```
+
+**Requirements:**
+- The certificate must be a public certificate in AWS Certificate Manager
+- The certificate must be in the same region where you're deploying
+- The certificate must be validated (issued and not pending validation)
+- The certificate must cover the domain name you'll use to access OpenEMR
+
+For documentation on how to issue and manage certificates with AWS Certificate Manager, see [here](https://docs.aws.amazon.com/acm/latest/userguide/gs.html). For documentation on how to import certificates to AWS Certificate Manager, see [here](https://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html).
+
+**Certificate Renewal:** AWS Certificate Manager provides managed renewal for AWS-issued TLS/SSL certificates. For documentation on managed renewal in AWS Certificate Manager, see [here](https://docs.aws.amazon.com/acm/latest/userguide/managed-renewal.html).
+
+## End-to-End Encryption
+
+This architecture always uses HTTPS for all communications:
+
+- **Client to ALB**: HTTPS (port 443) using the certificate you provide
+- **ALB to Containers**: HTTPS (port 443) with self-signed certificates automatically generated and shared via EFS
+- **HTTP is never exposed**: Port 80 is never opened, ensuring all traffic is encrypted
+
+The OpenEMR containers always serve HTTPS on port 443. If you use `route53_domain`, the certificate is automatically managed. If you use `certificate_arn`, ensure your certificate is valid and covers your domain.
 
 # How AWS Backup is Used in this Architecture
 
@@ -411,21 +531,21 @@ aws ecs execute-command --cluster $name_of_ecs_cluster \
 
 Turning on ECS Exec allows you to grant secure access to the MySQL database using [AWS Systems Manager](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/systems-manager-automation-docs.html).
 
-The "port_forward_to_rds.sh" file found in the "scripts" can be used on any machine that can run bash to port forward your own port 3306 (default MySQL port) to port 3306 on the Fargate hosts running OpenEMR. 
+The `scripts/port_forward_to_rds.sh` file can be used on any machine that can run bash to port forward your own port 3306 (default MySQL port) to port 3306 on the Fargate hosts running OpenEMR. 
 
 This allows you to access the database securely from anywhere on Earth with an internet connection. This allows you to do something like download [MySQL Workbench](https://dev.mysql.com/downloads/workbench/) or your other preferred free GUI MySQL management tool and start managing the database and creating users. Once you have access to the database the sky's the limit; you could also run complex queries or use your whole EHR database for [RAG powered LLM queries](https://python.langchain.com/docs/tutorials/sql_qa/).  
 
 We'll now review some steps you can use to get started doing this.
 
 1. Enable ECS Exec for the architecture with the appropriate parameter. Note that you can toggle this functionality on or off at any time by toggling ECS Exec.
-2. Go to the CloudFormation console and find and click on the link that will take us to our Database in the RDS console: <br /> ![alt text](./docs/navigate_to_database.png) <br />
-3. Once in the RDS console note and copy down the hostname for our writer instance: <br /> ![alt text](./docs/RDS_console_writer_instance.png) <br />
-4. Go back to the CloudFormation console and find and copy the name of our ECS cluster: <br /> ![alt text](./docs/copy_name_of_ecs_cluster.png) <br />
-5. Run the "port_forward_to_rds.sh" script with the name of the ECS cluster as the first argument and the hostname of the writer instance as the second argument: <br /> ![alt text](./docs/run_port_forwarding_script.png) <br />
-6. You can now use the autogenerated database admin credentials stored in DBsecret to log in access the MySQL database as the admin: <br /> ![alt text](./docs/accessing_db_secret.png) <br />
-7. Click the "Retrieve Secret Value" button to reveal the admin database credentials: <br /> ![alt text](./docs/retrieve_secret_value.png) <br />
-8. Use the username and password to access the MySQL database as the admin user: <br /> ![alt text](./docs/username_and_password.png) <br />
-9. You can now securely access the OpenEMR database from anywhere on Earth! Here's a screenshot of me accessing the Database from my laptop using MySQL Workbench and then remotely creating a MySQL function that allows me to call the [Claude 3 Sonnet Foundation Model](https://aws.amazon.com/about-aws/whats-new/2024/03/anthropics-claude-3-sonnet-model-amazon-bedrock/) using the [AWS Bedrock service](https://aws.amazon.com/bedrock) from within MySQL: <br /> ![alt text](./docs/accessing_the_database_remotely.png) <br /> 
+2. Go to the CloudFormation console and find and click on the link that will take us to our Database in the RDS console: <br /> ![alt text](./docs/images/navigate_to_database.png) <br />
+3. Once in the RDS console note and copy down the hostname for our writer instance: <br /> ![alt text](./docs/images/RDS_console_writer_instance.png) <br />
+4. Go back to the CloudFormation console and find and copy the name of our ECS cluster: <br /> ![alt text](./docs/images/copy_name_of_ecs_cluster.png) <br />
+5. Run the `scripts/port_forward_to_rds.sh` script with the name of the ECS cluster as the first argument and the hostname of the writer instance as the second argument: <br /> ![alt text](./docs/images/run_port_forwarding_script.png) <br />
+6. You can now use the autogenerated database admin credentials stored in DBsecret to log in access the MySQL database as the admin: <br /> ![alt text](./docs/images/accessing_db_secret.png) <br />
+7. Click the "Retrieve Secret Value" button to reveal the admin database credentials: <br /> ![alt text](./docs/images/retrieve_secret_value.png) <br />
+8. Use the username and password to access the MySQL database as the admin user: <br /> ![alt text](./docs/images/username_and_password.png) <br />
+9. You can now securely access the OpenEMR database from anywhere on Earth! Here's a screenshot of me accessing the Database from my laptop using MySQL Workbench and then remotely creating a MySQL function that allows me to call the [Claude 3 Sonnet Foundation Model](https://aws.amazon.com/about-aws/whats-new/2024/03/anthropics-claude-3-sonnet-model-amazon-bedrock/) using the [AWS Bedrock service](https://aws.amazon.com/bedrock) from within MySQL: <br /> ![alt text](./docs/images/accessing_the_database_remotely.png) <br /> 
 
 Some Notes on Providing Secure Database Access:
 - SSL is [automatically enforced](https://aws.amazon.com/about-aws/whats-new/2022/08/amazon-rds-mysql-supports-ssl-tls-connections/) for all connections to the database. The SSL materials required for accessing the database can be downloaded for free [here](https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem). 
@@ -478,18 +598,22 @@ While this may assist with complying with certain aspects of HIPAA we make no cl
 
 OpenEMR has functionality for both [FHIR](https://github.com/openemr/openemr/blob/master/FHIR_README.md) and [REST](https://github.com/openemr/openemr/blob/master/API_README.md) APIs. We'll walk through step-by-step example of how to generate a token to make calls to the FHIR and REST APIs. The script we'll use for this walkthough is the "api_endpoint_test.py" file found in the "scripts" folder in this repository.
 
-To use the APIs you'll need to have HTTPS enabled for the communication from the client to the load balancer and to have the OpenEMR APIs turned on. As a result, before proceeding with the rest of this walkthrough make sure that in your `cdk.json` file you've specified an ACM certificate ARN for `certificate_arn` and that `activate_openemr_apis` is set to `"true"`.
+To use the APIs you'll need to have HTTPS enabled (which is required for all deployments) and to have the OpenEMR APIs turned on. As a result, before proceeding with the rest of this walkthrough make sure that in your `cdk.json` file you've either:
+- Set `route53_domain` to your domain (recommended - enables automated certificate management), or
+- Set `certificate_arn` to an existing ACM certificate ARN
 
-1. Wait for the `cdk deploy` command to finish and for the stack to build. Then obtain the value for the DNS name of our ALB from either the Cloudformation console <br /> ![alt text](./docs/ConsoleOutputALBDNS.png) <br /> or the terminal you ran `cdk deploy` in <br /> ![alt text](./docs/TerminalOutputALBDNS.png)
-2. Change directory to the `"scripts"` folder in this repository and run the "api_endpoint_test.py" script using the value obtained in part 1. That should look something like this <br /> ![alt text](./docs/RunningPythonScript.png) <br /> and yield an output that looks like this <br /> ![alt text](./docs/1stOutputFromScript.png) <br /> at the bottom of the output you should see a message instructing you to "Enable the client with the above ID". 
-3. To "Enable the client with the above ID" first copy the value in green below <br /> ![alt text](./docs/OutputFromScriptClientID.png) <br /> then log in to OpenEMR and navigate to the API Clients menu as shown below <br /> ![alt text](./docs/APIClientsMenu.png) <br /> then in the menu find the registration where the Client ID corresponds with the value noted above <br /> ![alt text](./docs/FindingCorrectClientID.png) <br /> and then click on the "edit" button next to that registration and in the following menu click the "Enable Client" button <br /> ![alt text](./docs/EnableClientButton.png) <br /> and if all goes well the client registration should now reflect that it is enabled like so <br /> ![alt text](./docs/ClientEnabled.png).
-4. Now that we've enabled our client let's go back to our script that's still running in our terminal and press enter to continue. We should get an output like this <br /> ![alt text](./docs/2ndOutputFromScript.png) <br /> and our script has generated a URL we should go to to authorize our application. 
-5. Before we navigate to that URL let's make a patient (in the event we didn't already have testing patient data imported) by going to the following menu <br /> ![alt text](./docs/AddNewPatient.png) <br /> and adding a fake patient for testing purposes with data and clicking the `"Create New Patient"` button like so <br /> ![alt text](./docs/CreateNewPatient.png)
-6. Now let's navigate to the URL obtained in part 4 in our webbrowser where we should be prompted to login and should look like this <br /> ![alt text](./docs/LoginPrompt.png). <br /> Log in with the admin user and password stored in secrets manager. 
+Also ensure that `activate_openemr_apis` is set to `"true"`.
+
+1. Wait for the `cdk deploy` command to finish and for the stack to build. Then obtain the value for the DNS name of our ALB from either the Cloudformation console <br /> ![alt text](./docs/images/ConsoleOutputALBDNS.png) <br /> or the terminal you ran `cdk deploy` in <br /> ![alt text](./docs/images/TerminalOutputALBDNS.png)
+2. Change directory to the `"scripts"` folder in this repository and run the "api_endpoint_test.py" script using the value obtained in part 1. That should look something like this <br /> ![alt text](./docs/images/RunningPythonScript.png) <br /> and yield an output that looks like this <br /> ![alt text](./docs/images/1stOutputFromScript.png) <br /> at the bottom of the output you should see a message instructing you to "Enable the client with the above ID". 
+3. To "Enable the client with the above ID" first copy the value in green below <br /> ![alt text](./docs/images/OutputFromScriptClientID.png) <br /> then log in to OpenEMR and navigate to the API Clients menu as shown below <br /> ![alt text](./docs/images/APIClientsMenu.png) <br /> then in the menu find the registration where the Client ID corresponds with the value noted above <br /> ![alt text](./docs/images/FindingCorrectClientID.png) <br /> and then click on the "edit" button next to that registration and in the following menu click the "Enable Client" button <br /> ![alt text](./docs/images/EnableClientButton.png) <br /> and if all goes well the client registration should now reflect that it is enabled like so <br /> ![alt text](./docs/images/ClientEnabled.png).
+4. Now that we've enabled our client let's go back to our script that's still running in our terminal and press enter to continue. We should get an output like this <br /> ![alt text](./docs/images/2ndOutputFromScript.png) <br /> and our script has generated a URL we should go to to authorize our application. 
+5. Before we navigate to that URL let's make a patient (in the event we didn't already have testing patient data imported) by going to the following menu <br /> ![alt text](./docs/images/AddNewPatient.png) <br /> and adding a fake patient for testing purposes with data and clicking the `"Create New Patient"` button like so <br /> ![alt text](./docs/images/CreateNewPatient.png)
+6. Now let's navigate to the URL obtained in part 4 in our webbrowser where we should be prompted to login and should look like this <br /> ![alt text](./docs/images/LoginPrompt.png). <br /> Log in with the admin user and password stored in secrets manager. 
 7. Keep in mind that the next three steps are time sensitive. We're going to obtain a code in steps 8 and 9 that is short lived and needs to be used relatively quickly to get back an access token which can then be used to make API calls over an extended period of time. I'd recommend reading ahead for steps 8-10 so that you can step through them reasonably fast.
-8. Then let's select our testing user <br /> ![alt text](./docs/SelectPatient.png) <br /> which should bring us to a screen that looks like this <br /> ![alt text](./docs/TopOfAuthorizationPage.png) <br /> and then scroll to the bottom of the page and click `"authorize"` <br /> ![alt text](./docs/ClickAuthorize.png)
-9. Now in our example you're going to get a `"403 Forbidden"` page. That's totally fine! Notice the URL we were redirected to and copy everything after `?code=` up until `&state=` to your clipboard <br /> ![alt text](./docs/403Forbidden.png) <br /> At this stage in the process you've registered an API client, enabled it in the console, authorized and gotten a code which we've copied to our clipboard.
-10. Let's navigate back to our script that's running in the terminal and press enter to proceed. The next prompt should be instructing us to "Copy the code in the redirect link and then press enter." which if all went well in part 8 should already be done. Now let's press enter to proceed. We should see the code we copied appear in the terminal like so <br /> ![alt text](./docs/CodeInTerminal.png) <br /> followed by a response containing an access token that can be used to make authenticatecd API calls that looks like this <br /> ![alt text](./docs/Success.png)
+8. Then let's select our testing user <br /> ![alt text](./docs/images/SelectPatient.png) <br /> which should bring us to a screen that looks like this <br /> ![alt text](./docs/images/TopOfAuthorizationPage.png) <br /> and then scroll to the bottom of the page and click `"authorize"` <br /> ![alt text](./docs/images/ClickAuthorize.png)
+9. Now in our example you're going to get a `"403 Forbidden"` page. That's totally fine! Notice the URL we were redirected to and copy everything after `?code=` up until `&state=` to your clipboard <br /> ![alt text](./docs/images/403Forbidden.png) <br /> At this stage in the process you've registered an API client, enabled it in the console, authorized and gotten a code which we've copied to our clipboard.
+10. Let's navigate back to our script that's running in the terminal and press enter to proceed. The next prompt should be instructing us to "Copy the code in the redirect link and then press enter." which if all went well in part 8 should already be done. Now let's press enter to proceed. We should see the code we copied appear in the terminal like so <br /> ![alt text](./docs/images/CodeInTerminal.png) <br /> followed by a response containing an access token that can be used to make authenticatecd API calls that looks like this <br /> ![alt text](./docs/images/Success.png)
 
 # Using AWS Global Acclerator
 

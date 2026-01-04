@@ -1,11 +1,35 @@
-*.swp
-package-lock.json
-__pycache__
-.pytest_cache
-.venv
-*.egg-info
+# CDK
+cdk.out/
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
 
-# CDK asset staging directory
-.cdk.staging
-cdk.out
-cdk.context.json
+# Type checking
+.mypy_cache
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+/tmp/
+*.log
+mysql-ssl-ca/
+
+# Source Code
+openemr-master
+openemr-devops-master

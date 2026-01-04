@@ -1,0 +1,13 @@
+# ShellCheck configuration
+# Documentation: https://github.com/koalaman/shellcheck/wiki
+
+# Exclude common warnings that are acceptable in this project:
+# SC1090: Can't follow non-constant source. Use a directive to specify location.
+# SC1091: Not following: file not found
+# SC2015: Note that A && B || C is not if-then-else. C may run when A is true.
+# SC2034: Variable appears unused (color variables, etc.)
+# SC2059: Don't use variables in the printf format string
+# SC2317: Command appears to be unreachable (functions defined but not always called)
+
+exclude=SC1090,SC1091,SC2015,SC2034,SC2059,SC2317
+

@@ -1,0 +1,399 @@
+services:
+  # Simulate the ECS container startup for testing WITH SSL (like production RDS)
+  openemr-test-ssl:
+    image: openemr/openemr:7.0.4
+    container_name: openemr-container-test-ssl
+    # Exact copy of startup script from compute.py - matches production ECS deployment
+    # For SSL testing: uses container-provided certs if available, otherwise downloads from AWS
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        set -x
+        log() { echo "[$$(date +%Y-%m-%d\ %H:%M:%S)] $$*"; }
+        log "=== OpenEMR Container Startup Script ==="
+        log "Starting container initialization..."
+        cd /var/www/localhost/htdocs/openemr || { log "ERROR: Failed to change to OpenEMR directory"; exit 1; }
+        if [ "$$PWD" != "/var/www/localhost/htdocs/openemr" ]; then
+          log "ERROR: Working directory verification failed. Expected /var/www/localhost/htdocs/openemr, got $$PWD"
+          exit 1
+        fi
+        log "Working directory verified: $$PWD"
+        if ! id apache >/dev/null 2>&1; then
+          log "ERROR: Apache user does not exist in container image"
+          exit 1
+        fi
+        log "Apache user verified"
+        log "Checking EFS sites directory initialization..."
+        if [ ! -d /var/www/localhost/htdocs/openemr/sites/default ] || [ ! -f /var/www/localhost/htdocs/openemr/sites/default/sqlconf.php ]; then
+          log "EFS sites directory missing or uninitialized, restoring from image..."
+          if [ ! -d /swarm-pieces/sites ]; then
+            log "ERROR: Source directory /swarm-pieces/sites not found in container image"
+            exit 1
+          fi
+          rsync --owner --group --perms --recursive --links --verbose /swarm-pieces/sites /var/www/localhost/htdocs/openemr/ || {
+            log "ERROR: Failed to restore site skeleton from image"
+            exit 1
+          }
+          log "Site skeleton restored successfully"
+        else
+          log "EFS sites directory already initialized"
+        fi
+        log "Creating certificate directories..."
+        mkdir -p /var/www/localhost/htdocs/openemr/sites/default/documents/certificates /root/certs/redis /root/certs/mysql/server || {
+          log "ERROR: Failed to create certificate directories"
+          exit 1
+        }
+        for dir in /var/www/localhost/htdocs/openemr/sites/default/documents/certificates /root/certs/redis /root/certs/mysql/server; do
+          if [ ! -d "$$dir" ]; then
+            log "ERROR: Directory $$dir was not created"
+            exit 1
+          fi
+        done
+        log "Certificate directories created and verified"
+        log "Setting up Redis/Valkey TLS certificate..."
+        REDIS_CA_PATH="/root/certs/redis/redis-ca"
+        # For SSL testing: must use container-provided cert (no fallback - would fail SSL verification)
+        if [ ! -f /redis-ssl-certs/ca-cert.pem ]; then
+          log "ERROR: Redis container CA certificate not found at /redis-ssl-certs/ca-cert.pem"
+          log "ERROR: SSL test requires container-provided certificates - ensure Redis container has generated SSL certs"
+          exit 1
+        fi
+        log "Using Redis container CA certificate for SSL testing"
+        cp /redis-ssl-certs/ca-cert.pem "$$REDIS_CA_PATH" || {
+          log "ERROR: Failed to copy Redis container CA certificate"
+          exit 1
+        }
+        if [ ! -f "$$REDIS_CA_PATH" ] || [ ! -s "$$REDIS_CA_PATH" ]; then
+          log "ERROR: Redis CA certificate file is missing or empty after copy"
+          exit 1
+        fi
+        CERT_SIZE=$$(wc -c < "$$REDIS_CA_PATH")
+        if [ "$$CERT_SIZE" -lt 500 ] || [ "$$CERT_SIZE" -gt 10000 ]; then
+          log "ERROR: Redis CA certificate size ($$CERT_SIZE bytes) is outside expected range (500-10000 bytes)"
+          exit 1
+        fi
+        if ! head -n 1 "$$REDIS_CA_PATH" | grep -q "BEGIN CERTIFICATE" 2>/dev/null; then
+          log "ERROR: Redis CA certificate does not appear to be valid PEM format"
+          exit 1
+        fi
+        chown apache "$$REDIS_CA_PATH" || { log "ERROR: Failed to set ownership on Redis CA certificate"; exit 1; }
+        log "Redis CA certificate ready and validated"
+        log "Setting up MySQL SSL certificate..."
+        MYSQL_CA_PATH="/root/certs/mysql/server/mysql-ca"
+        # For SSL testing: must use container-provided cert (no fallback - would fail SSL verification)
+        if [ ! -f /mysql-ssl-certs/ca-cert.pem ]; then
+          log "ERROR: MySQL container CA certificate not found at /mysql-ssl-certs/ca-cert.pem"
+          log "ERROR: SSL test requires container-provided certificates - ensure MySQL container has generated SSL certs"
+          exit 1
+        fi
+        log "Using MySQL container CA certificate for SSL testing"
+        cp /mysql-ssl-certs/ca-cert.pem "$$MYSQL_CA_PATH" || {
+          log "ERROR: Failed to copy MySQL container CA certificate"
+          exit 1
+        }
+        if [ ! -f "$$MYSQL_CA_PATH" ] || [ ! -s "$$MYSQL_CA_PATH" ]; then
+          log "ERROR: MySQL CA certificate file is missing or empty after copy"
+          exit 1
+        fi
+        CERT_SIZE=$$(wc -c < "$$MYSQL_CA_PATH")
+        if [ "$$CERT_SIZE" -lt 500 ] || [ "$$CERT_SIZE" -gt 10000 ]; then
+          log "ERROR: MySQL CA certificate size ($$CERT_SIZE bytes) is outside expected range (500-10000 bytes for container cert)"
+          exit 1
+        fi
+        if ! head -n 1 "$$MYSQL_CA_PATH" | grep -q "BEGIN CERTIFICATE" 2>/dev/null; then
+          log "ERROR: MySQL CA certificate does not appear to be valid PEM format"
+          exit 1
+        fi
+        chown apache "$$MYSQL_CA_PATH" || { log "ERROR: Failed to set ownership on MySQL CA certificate"; exit 1; }
+        log "Deploying MySQL CA certificate to OpenEMR certificates directory..."
+        OPENEMR_CA_PATH="/var/www/localhost/htdocs/openemr/sites/default/documents/certificates/mysql-ca"
+        cp "$$MYSQL_CA_PATH" "$$OPENEMR_CA_PATH" || {
+          log "ERROR: Failed to copy MySQL CA certificate to OpenEMR directory"
+          exit 1
+        }
+        chown apache "$$OPENEMR_CA_PATH" || { log "ERROR: Failed to set ownership on OpenEMR MySQL CA certificate"; exit 1; }
+        chmod 744 "$$OPENEMR_CA_PATH" || { log "ERROR: Failed to set permissions on OpenEMR MySQL CA certificate"; exit 1; }
+        if [ ! -f "$$OPENEMR_CA_PATH" ] || [ ! -r "$$OPENEMR_CA_PATH" ]; then
+          log "ERROR: OpenEMR MySQL CA certificate is missing or not readable after deployment"
+          exit 1
+        fi
+        log "MySQL CA certificate deployed successfully"
+        # --- OpenEMR Bootstrap Reliability (RDS TLS + idempotent retries) ---
+        log "Applying OpenEMR bootstrap reliability fixes (RDS TLS + retry safety)..."
+        if [ -d "/tmp/php-file-cache" ]; then
+          log "Removing stale /tmp/php-file-cache from prior attempt"
+          rm -rf "/tmp/php-file-cache" 2>/dev/null || true
+        fi
+        if [ -f "/root/devtoolsLibrary.source" ]; then
+          if grep -q -- "--skip-ssl" /root/devtoolsLibrary.source 2>/dev/null; then
+            log "Patching /root/devtoolsLibrary.source: removing --skip-ssl to allow TLS to DB"
+            sed -i 's/ --skip-ssl//g' /root/devtoolsLibrary.source 2>/dev/null || true
+          fi
+        fi
+        log "Verifying critical files and directories..."
+        for path in "$$REDIS_CA_PATH" "$$MYSQL_CA_PATH" "$$OPENEMR_CA_PATH" /var/www/localhost/htdocs/openemr/sites/default; do
+          if [ ! -e "$$path" ]; then
+            log "ERROR: Critical path missing: $$path"
+            exit 1
+          fi
+        done
+        log "All critical paths verified"
+        log "Performing final preparation steps..."
+        if [ ! -f ./openemr.sh ]; then
+          log "ERROR: openemr.sh not found in working directory"
+          exit 1
+        fi
+        chmod +x ./openemr.sh || { log "ERROR: Failed to make openemr.sh executable"; exit 1; }
+        log "openemr.sh is executable"
+        if ! grep -q "httpd -k graceful" /etc/crontabs/root 2>/dev/null; then
+          echo "1 23  *   *   *   httpd -k graceful" >> /etc/crontabs/root
+          log "Added Apache graceful restart cron job"
+        else
+          log "Apache graceful restart cron job already exists"
+        fi
+        log "=== Container initialization complete ==="
+        log "Verifying EFS mount points are writable..."
+        EFS_SITES_TEST_FILE="/var/www/localhost/htdocs/openemr/sites/.efs_write_test"
+        EFS_SSL_TEST_FILE="/etc/ssl/.efs_write_test"
+        # Test sites EFS writability
+        if touch "$$EFS_SITES_TEST_FILE" 2>/dev/null && rm -f "$$EFS_SITES_TEST_FILE" 2>/dev/null; then
+          log "EFS sites mount verified (writable)"
+        else
+          log "ERROR: EFS sites mount is not writable. Cannot proceed with setup."
+          exit 1
+        fi
+        # Test SSL EFS writability
+        if touch "$$EFS_SSL_TEST_FILE" 2>/dev/null && rm -f "$$EFS_SSL_TEST_FILE" 2>/dev/null; then
+          log "EFS SSL mount verified (writable)"
+        else
+          log "ERROR: EFS SSL mount is not writable. Cannot proceed with setup."
+          exit 1
+        fi
+        log "All EFS mounts verified and writable"
+        log "Checking database connectivity..."
+        if [ -z "$$MYSQL_HOST" ] || [ -z "$$MYSQL_ROOT_PASS" ]; then
+          log "WARNING: Database credentials not available for readiness check, will rely on OpenEMR retry logic"
+        else
+          DB_READY=0
+          MAX_ATTEMPTS=30
+          INITIAL_DELAY=2
+          CURRENT_DELAY=$$INITIAL_DELAY
+          for attempt in $$(seq 1 $$MAX_ATTEMPTS); do
+            # Use mysqladmin ping if available, otherwise fall back to nc (netcat)
+            if command -v mysqladmin >/dev/null 2>&1; then
+              MYSQLADMIN_CMD="mysqladmin ping -h \"$$MYSQL_HOST\" -u \"$$MYSQL_ROOT_USER\" -p\"$$MYSQL_ROOT_PASS\""
+              # Always use TLS for DB connections (matches production)
+              if [ -n "$$MYSQL_CA_PATH" ] && [ -f "$$MYSQL_CA_PATH" ]; then
+                MYSQLADMIN_CMD="$$MYSQLADMIN_CMD --ssl-ca=\"$$MYSQL_CA_PATH\" --ssl-mode=REQUIRED"
+              else
+                MYSQLADMIN_CMD="$$MYSQLADMIN_CMD --ssl-mode=REQUIRED"
+              fi
+              if eval "$$MYSQLADMIN_CMD" --silent 2>/dev/null; then
+                log "Database connectivity verified (attempt $$attempt/$$MAX_ATTEMPTS)"
+                DB_READY=1
+                break
+              fi
+            elif command -v nc >/dev/null 2>&1 && [ -n "$$MYSQL_PORT" ]; then
+              # Fallback: check if port is open (does not verify database is ready, but better than nothing)
+              if nc -z -w 3 "$$MYSQL_HOST" "$${MYSQL_PORT:-3306}" 2>/dev/null; then
+                log "Database port is reachable (attempt $$attempt/$$MAX_ATTEMPTS), assuming ready"
+                DB_READY=1
+                break
+              fi
+            else
+              log "WARNING: Neither mysqladmin nor nc available for database readiness check"
+              DB_READY=1  # Assume ready if we cannot check
+              break
+            fi
+            if [ "$$attempt" -lt "$$MAX_ATTEMPTS" ]; then
+              log "Database not ready yet, waiting $${CURRENT_DELAY}s before retry (attempt $$attempt/$$MAX_ATTEMPTS)..."
+              sleep $$CURRENT_DELAY
+              # Exponential backoff: double delay each attempt, max 60s
+              CURRENT_DELAY=$$((CURRENT_DELAY * 2))
+              if [ "$$CURRENT_DELAY" -gt 60 ]; then
+                CURRENT_DELAY=60
+              fi
+            fi
+          done
+          if [ "$$DB_READY" -eq 0 ]; then
+            log "WARNING: Database readiness check failed after $$MAX_ATTEMPTS attempts"
+            log "Database may still be initializing. OpenEMR will retry setup automatically."
+          fi
+        fi
+        log "Checking Valkey/Redis connectivity..."
+        if [ -z "$$REDIS_SERVER" ] || [ "$$REDIS_SERVER" = "null" ]; then
+          log "Valkey/Redis not configured, skipping connectivity check"
+        else
+          # Extract host and port from REDIS_SERVER (format: host:port or host)
+          REDIS_HOST="$${REDIS_SERVER%%:*}"
+          REDIS_PORT="$${REDIS_SERVER##*:}"
+          REDIS_PORT="$${REDIS_PORT:-6379}"  # Default Redis port if not specified
+          if command -v nc >/dev/null 2>&1; then
+            if nc -z -w 3 "$$REDIS_HOST" "$$REDIS_PORT" 2>/dev/null; then
+              log "Valkey/Redis connectivity verified ($$REDIS_HOST:$$REDIS_PORT)"
+            else
+              log "WARNING: Valkey/Redis not reachable at $$REDIS_HOST:$$REDIS_PORT"
+              log "Application may have degraded cache functionality, but will continue startup"
+            fi
+          else
+            log "WARNING: nc (netcat) not available for Valkey/Redis connectivity check"
+          fi
+        fi
+        log "Checking for stale docker-leader files..."
+        LEADER_FILE="/var/www/localhost/htdocs/openemr/sites/docker-leader"
+        COMPLETED_FILE="/var/www/localhost/htdocs/openemr/sites/docker-completed"
+        if [ -f "$$COMPLETED_FILE" ]; then
+          log "Setup completed successfully (docker-completed file exists), proceeding normally"
+        elif [ -f "$$LEADER_FILE" ]; then
+          log "docker-leader file exists but docker-completed does not, checking if leader is stale..."
+          LEADER_MTIME=$$(stat -c %Y "$$LEADER_FILE" 2>/dev/null || stat -f %m "$$LEADER_FILE" 2>/dev/null || echo "")
+          if [ -n "$$LEADER_MTIME" ] && [ "$$LEADER_MTIME" != "0" ]; then
+            CURRENT_TIME=$$(date +%s)
+            AGE_SECONDS=$$((CURRENT_TIME - LEADER_MTIME))
+            if [ "$$AGE_SECONDS" -gt 1200 ]; then
+              log "WARNING: Stale docker-leader file detected ($${AGE_SECONDS}s old, >20min). Leader likely failed mid-setup."
+              log "This can cause 'Table already exists' errors. Cleaning up stale leader file..."
+              rm -f "$$LEADER_FILE" || log "WARNING: Failed to remove stale leader file, continuing anyway"
+              log "Stale leader file cleaned up. Another container can now become leader and handle partial database state."
+            else
+              log "docker-leader file is recent ($${AGE_SECONDS}s old), waiting for leader to complete setup..."
+            fi
+          else
+            # If we can't determine file age (unlikely on Alpine), log but don't remove.
+            # The openemr.sh script will handle waiting for completion.
+            log "Could not determine age of docker-leader file. Will rely on openemr.sh timeout handling."
+          fi
+        else
+          log "No docker-leader file found, this container may become the leader"
+        fi
+        log "Handing over to openemr.sh..."
+        exec ./openemr.sh
+    environment:
+      # Mock database connection with SSL enabled (like production RDS)
+      MYSQL_HOST: ${MYSQL_HOST:-mysql-test-ssl}
+      MYSQL_ROOT_USER: ${MYSQL_ROOT_USER:-root}
+      MYSQL_ROOT_PASS: ${MYSQL_ROOT_PASS:-testpass}
+      MYSQL_USER: ${MYSQL_USER:-openemr}
+      MYSQL_PASS: ${MYSQL_PASS:-openemr}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-openemr}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_SSL_CA: /var/www/localhost/htdocs/openemr/sites/default/documents/certificates/mysql-ca
+      # Enable SSL to simulate RDS require_secure_transport=ON
+      # Note: We use the RDS CA bundle for testing, but in a real scenario with self-signed certs,
+      # you'd need to use the MySQL container's CA certificate
+      MYSQL_SSL: ${MYSQL_SSL:-ON}
+      # OpenEMR admin credentials
+      OE_USER: ${OE_USER:-admin}
+      OE_PASS: ${OE_PASS:-pass}
+      # Redis/Valkey configuration with SSL enabled
+      # Note: Redis with TLS uses port 6380, format: hostname:port
+      REDIS_SERVER: ${REDIS_SERVER:-redis-test-ssl:6380}
+      REDIS_TLS: ${REDIS_TLS:-ON}
+      # Swarm mode (set to yes to enable auto-setup)
+      SWARM_MODE: ${SWARM_MODE:-yes}
+      # Authority (set to yes for leader node)
+      AUTHORITY: ${AUTHORITY:-yes}
+    working_dir: /var/www/localhost/htdocs/openemr
+    volumes:
+      # Mount MySQL and Redis CA certificates for SSL verification
+      - mysql-ssl-certs:/mysql-ssl-certs:ro
+      - redis-ssl-certs:/redis-ssl-certs:ro
+    networks:
+      - openemr-test-network
+    depends_on:
+      mysql-test-ssl:
+        condition: service_healthy
+      redis-test-ssl:
+        condition: service_healthy
+    # Keep container running to inspect logs
+    stdin_open: true
+    tty: true
+
+  # MySQL with SSL enabled to simulate RDS require_secure_transport=ON
+  mysql-test-ssl:
+    image: mariadb:11.8
+    container_name: mysql-test-ssl
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASS:-testpass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-openemr}
+      MYSQL_USER: ${MYSQL_USER:-openemr}
+      MYSQL_PASSWORD: ${MYSQL_PASS:-openemr}
+    volumes:
+      - mysql-test-ssl-data:/var/lib/mysql
+      - ../scripts/mysql-entrypoint-wrapper.sh:/mysql-entrypoint-wrapper.sh:ro
+      - mysql-ssl-certs:/mysql-ssl-certs
+      - mysql-ssl-certs:/etc/mysql/ssl
+    networks:
+      - openemr-test-network
+    # Use wrapper script that generates SSL certificates, then starts MySQL with SSL
+    entrypoint: ["/mysql-entrypoint-wrapper.sh"]
+    # Enable SSL and require secure transport (like RDS)
+    # Note: The entrypoint will use the default command (mariadbd) with these SSL options
+    command:
+      - "--require-secure-transport=ON"
+      - "--ssl-ca=/etc/mysql/ssl/ca-cert.pem"
+      - "--ssl-cert=/etc/mysql/ssl/server-cert.pem"
+      - "--ssl-key=/etc/mysql/ssl/server-key.pem"
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+
+  # Redis with SSL enabled to simulate ElastiCache Valkey TLS
+  redis-test-ssl:
+    image: redis:7-alpine
+    container_name: redis-test-ssl
+    volumes:
+      - redis-test-ssl-data:/data
+      - redis-ssl-certs:/redis-ssl-certs
+      - redis-ssl-certs:/etc/redis/ssl
+    networks:
+      - openemr-test-network
+    # Generate SSL certificates first, then start Redis with TLS
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        apk add --no-cache openssl >/dev/null 2>&1 &&
+        SSL_DIR=/etc/redis/ssl &&
+        mkdir -p $$SSL_DIR &&
+        if [ ! -f $$SSL_DIR/ca-cert.pem ]; then
+          echo "Generating Redis SSL certificates..." &&
+          openssl genrsa -out $$SSL_DIR/ca-key.pem 2048 &&
+          openssl req -new -x509 -nodes -days 3650 -key $$SSL_DIR/ca-key.pem -out $$SSL_DIR/ca-cert.pem -subj "/C=US/ST=State/L=City/O=Test/CN=Redis-CA" &&
+          openssl genrsa -out $$SSL_DIR/server-key.pem 2048 &&
+          openssl req -new -key $$SSL_DIR/server-key.pem -out $$SSL_DIR/server.csr -subj "/C=US/ST=State/L=City/O=Test/CN=redis-test-ssl" &&
+          openssl x509 -req -in $$SSL_DIR/server.csr -CA $$SSL_DIR/ca-cert.pem -CAkey $$SSL_DIR/ca-key.pem -CAcreateserial -out $$SSL_DIR/server-cert.pem -days 3650 &&
+          chmod 644 $$SSL_DIR/*.pem &&
+          rm -f $$SSL_DIR/server.csr &&
+          cp $$SSL_DIR/ca-cert.pem /redis-ssl-certs/ca-cert.pem 2>/dev/null || true &&
+          echo "✓ Redis SSL certificates generated successfully"
+        fi &&
+        exec redis-server \
+          --appendonly yes \
+          --tls-port 6380 \
+          --port 0 \
+          --tls-cert-file /etc/redis/ssl/server-cert.pem \
+          --tls-key-file /etc/redis/ssl/server-key.pem \
+          --tls-ca-cert-file /etc/redis/ssl/ca-cert.pem \
+          --tls-auth-clients no
+    healthcheck:
+      test: ["CMD", "redis-cli", "--tls", "--cert", "/etc/redis/ssl/server-cert.pem", "--key", "/etc/redis/ssl/server-key.pem", "--cacert", "/etc/redis/ssl/ca-cert.pem", "-p", "6380", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+networks:
+  openemr-test-network:
+    driver: bridge
+
+volumes:
+  mysql-test-ssl-data:
+  mysql-ssl-certs:
+  redis-test-ssl-data:
+  redis-ssl-certs:
+

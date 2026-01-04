@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Configure report metadata
         id: metadata
@@ -37,6 +37,12 @@ jobs:
           fi
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
           echo "timestamp=$(date -u '+%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: scripts/backup-tui/go.sum
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -108,7 +114,44 @@ jobs:
                       }
                   )
 
-          stack_path = Path("openemr_ecs/openemr_ecs_stack.py")
+          # Check Go module dependencies in backup-tui
+          go_outdated = []
+          go_mod_path = Path("scripts/backup-tui/go.mod")
+          if go_mod_path.exists():
+              try:
+                  # Run go list to get outdated modules
+                  result = subprocess.run(
+                      ["go", "list", "-u", "-m", "-json", "all"],
+                      cwd="scripts/backup-tui",
+                      check=True,
+                      capture_output=True,
+                      text=True,
+                  )
+                  
+                  # Parse JSON output (one JSON object per line)
+                  for line in result.stdout.strip().split('\n'):
+                      if not line.strip():
+                          continue
+                      try:
+                          mod = json.loads(line)
+                          # Skip indirect dependencies and the main module
+                          if mod.get("Indirect") or mod.get("Main"):
+                              continue
+                          # Check if update is available
+                          if mod.get("Update"):
+                              go_outdated.append({
+                                  "name": mod.get("Path"),
+                                  "current_version": mod.get("Version", "unknown"),
+                                  "latest_version": mod["Update"].get("Version", "unknown"),
+                              })
+                      except json.JSONDecodeError:
+                          continue
+              except subprocess.CalledProcessError as e:
+                  print(f"Warning: Failed to check Go modules: {e}", file=sys.stderr)
+              except FileNotFoundError:
+                  print("Warning: Go not found in PATH", file=sys.stderr)
+
+          stack_path = Path("openemr_ecs/stack.py")
           stack_source = stack_path.read_text()
 
           def extract_value(pattern: str, source: str) -> str | None:
@@ -302,6 +345,7 @@ jobs:
               "generated_at": os.environ.get("GITHUB_RUN_ID"),
               "timestamp": os.environ.get("REPORT_TIMESTAMP", ""),
               "python_outdated_dependencies": outdated,
+              "go_outdated_dependencies": go_outdated,
               "aurora_engine": {
                   "current_attribute": current_attr,
                   "current_version": current_version,
@@ -407,6 +451,7 @@ jobs:
               summary_fp.write(f"# Dependency Update Summary\n\n")
               summary_fp.write(f"- Generated at: {os.environ.get('REPORT_TIMESTAMP', 'N/A')}\n")
               summary_fp.write(f"- Outdated Python packages: {len(outdated)}\n")
+              summary_fp.write(f"- Outdated Go modules: {len(go_outdated)}\n")
               summary_fp.write(
                   f"- Aurora MySQL engine update available: {'Yes' if aurora_update_available else 'No'}\n"
               )
@@ -439,8 +484,20 @@ jobs:
               else:
                   summary_fp.write("All pinned Python dependencies are up to date.\n")
 
+              summary_fp.write("\n## Go Modules (Backup TUI)\n\n")
+              if go_outdated:
+                  summary_fp.write("| Module | Current | Latest |\n")
+                  summary_fp.write("|--------|---------|--------|\n")
+                  for mod in go_outdated:
+                      summary_fp.write(
+                          f"| {mod['name']} | {mod['current_version']} | {mod['latest_version']} |\n"
+                      )
+              else:
+                  summary_fp.write("All Go modules are up to date.\n")
+
           updates_found = bool(
               outdated
+              or go_outdated
               or aurora_update_available
               or emr_update_available
               or lambda_update_available
@@ -452,13 +509,14 @@ jobs:
               fh.write(f"report_path={output_path}\n")
               fh.write(f"summary_path={summary_path}\n")
               fh.write(f"outdated_count={len(outdated)}\n")
+              fh.write(f"go_outdated_count={len(go_outdated)}\n")
               fh.write(f"aurora_update={'true' if aurora_update_available else 'false'}\n")
           PYTHON
         env:
           REPORT_TIMESTAMP: ${{ steps.metadata.outputs.timestamp }}
 
       - name: Upload version report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: version-check-${{ github.run_id }}
           path: |
@@ -472,12 +530,12 @@ jobs:
 
       - name: Create GitHub Issue
         if: steps.collect.outputs.updates_found == 'true' && (github.event_name == 'schedule' || github.event.inputs.create_issue == 'true')
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
             const body = fs.readFileSync('version-check-summary.md', 'utf8');
-            const title = `${{ toJson(steps.metadata.outputs.title) }}`;
+            const title = `${{ steps.metadata.outputs.title }}`;
             const issue = await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,

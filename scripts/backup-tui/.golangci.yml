@@ -1,0 +1,57 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: false
+  skip-dirs:
+    - bin
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - revive
+    - errname
+    - errorlint
+    - copyloopvar
+    - goconst
+    - gocritic
+    - gosec
+    - unconvert
+    - unparam
+
+linters-settings:
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+      - name: package-comments
+        severity: warning
+      - name: var-naming
+        severity: warning
+      - name: var-declaration
+        severity: warning
+      - name: range
+        severity: warning
+      - name: increment-decrement
+        severity: warning
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+
