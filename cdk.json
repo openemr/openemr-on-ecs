@@ -30,7 +30,7 @@
     "openemr_service_fargate_memory_autoscaling_percentage": 40,
     "rds_deletion_protection": false,
     "disable_rds_deletion_protection_on_destroy": false,
-    "enable_long_term_cloudtrail_monitoring": "false",
+    "enable_long_term_cloudtrail_monitoring": "true",
     "enable_monitoring_alarms": "false",
     "enable_stack_termination_protection": false,
     "enable_patient_portal": "false",
