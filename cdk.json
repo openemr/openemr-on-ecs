@@ -19,7 +19,7 @@
     "security_group_ip_range_ipv6": null,
     "certificate_arn": null,
     "email_forwarding_address": null,
-    "route53_domain": "emr-testing.com",
+    "route53_domain": null,
     "monitoring_email": null,
     "deployment_notification_email": null,
     "openemr_service_fargate_minimum_capacity": 2,
