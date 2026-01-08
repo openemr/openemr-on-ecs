@@ -519,7 +519,7 @@ jobs:
           REPORT_TIMESTAMP: ${{ steps.metadata.outputs.timestamp }}
 
       - name: Upload version report
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: version-check-${{ github.run_id }}
           path: |
