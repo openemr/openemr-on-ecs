@@ -94,7 +94,7 @@ jobs:
         run: |
           npm install --location=global aws-cdk@2
 
-      - name: Run cdk synth
+      - name: Run cdk synth with default config
         env:
           AWS_ACCESS_KEY_ID: "fake"
           AWS_SECRET_ACCESS_KEY: "fake"
@@ -102,6 +102,16 @@ jobs:
           CDK_DEFAULT_REGION: "us-west-2"
         run: |
           cdk synth --no-lookups -c certificate_arn=arn:aws:acm:us-west-2:123456789012:certificate/00000000-0000-0000-0000-000000000000
+
+      - name: Test configuration matrix
+        env:
+          AWS_ACCESS_KEY_ID: "fake"
+          AWS_SECRET_ACCESS_KEY: "fake"
+          AWS_DEFAULT_REGION: "us-west-2"
+          CDK_DEFAULT_REGION: "us-west-2"
+        run: |
+          echo "Testing multiple configurations to ensure all features work..."
+          python3 scripts/test-cdk-synthesis.py
 
       - name: Validate CloudFormation template with cfn-lint
         run: |

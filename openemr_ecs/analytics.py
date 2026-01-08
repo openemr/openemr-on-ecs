@@ -733,6 +733,7 @@ class AnalyticsComponents:
         policy.attach_to_role(sagemaker_role)
 
         # Add suppressions for EMRServerless policy
+        # Pattern matches the format CDK Nag sees: region-specific with <AWS::AccountId> placeholder
         NagSuppressions.add_resource_suppressions(
             policy,
             [
@@ -740,9 +741,9 @@ class AnalyticsComponents:
                     "id": "AwsSolutions-IAM5",
                     "reason": "Wildcard permissions for EMR Serverless applications, ECR images, and ECS tasks are required for SageMaker Studio data science workflows",
                     "appliesTo": [
-                        "Resource::arn:aws:emr-serverless:us-west-2:440744216926:/*",
-                        "Resource::arn:aws:emr-serverless:us-west-2:440744216926:/applications/*",
-                        "Resource::arn:aws:ecr:*:440744216926:*/*",
+                        f"Resource::arn:aws:emr-serverless:{region}:<AWS::AccountId>:/*",
+                        f"Resource::arn:aws:emr-serverless:{region}:<AWS::AccountId>:/applications/*",
+                        "Resource::arn:aws:ecr:*:<AWS::AccountId>:*/*",
                         "Resource::*",
                     ],
                 },

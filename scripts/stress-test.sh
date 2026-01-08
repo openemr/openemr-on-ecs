@@ -11,10 +11,18 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Test configurations
+# Note: certificate_arn is required for HTTPS (end-to-end encryption)
+# Using a dummy ARN for synthesis testing (replace with real ARN for deployment)
+CERT_ARN="arn:aws:acm:us-west-2:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+
+# Using | as delimiter instead of : to avoid conflicts with ARN format
 declare -a TEST_CONFIGS=(
-    "minimal:route53_domain=null:certificate_arn=null:enable_global_accelerator=false:enable_bedrock_integration=false:enable_data_api=false:create_serverless_analytics_environment=false"
-    "standard:route53_domain=null:certificate_arn=null:enable_global_accelerator=false:enable_bedrock_integration=true:enable_data_api=true:create_serverless_analytics_environment=false"
-    "full-featured:route53_domain=null:certificate_arn=null:enable_global_accelerator=true:enable_bedrock_integration=true:enable_data_api=true:create_serverless_analytics_environment=true"
+    "minimal|certificate_arn=$CERT_ARN|enable_global_accelerator=false|enable_bedrock_integration=false|enable_data_api=false|create_serverless_analytics_environment=false|enable_monitoring_alarms=false"
+    "minimal-with-monitoring|certificate_arn=$CERT_ARN|enable_global_accelerator=false|enable_bedrock_integration=false|enable_data_api=false|create_serverless_analytics_environment=false|enable_monitoring_alarms=true|monitoring_email=test@example.com"
+    "standard|certificate_arn=$CERT_ARN|enable_global_accelerator=false|enable_bedrock_integration=true|enable_data_api=true|create_serverless_analytics_environment=false|enable_monitoring_alarms=false"
+    "standard-with-monitoring|certificate_arn=$CERT_ARN|enable_global_accelerator=false|enable_bedrock_integration=true|enable_data_api=true|create_serverless_analytics_environment=false|enable_monitoring_alarms=true|monitoring_email=test@example.com"
+    "full-featured|certificate_arn=$CERT_ARN|enable_global_accelerator=true|enable_bedrock_integration=true|enable_data_api=true|create_serverless_analytics_environment=true|enable_monitoring_alarms=false"
+    "full-featured-with-monitoring|certificate_arn=$CERT_ARN|enable_global_accelerator=true|enable_bedrock_integration=true|enable_data_api=true|create_serverless_analytics_environment=true|enable_monitoring_alarms=true|monitoring_email=test@example.com"
 )
 
 PASSED=0
@@ -47,16 +55,22 @@ test_config() {
     log "Testing configuration: $config_name"
     log "Config vars: $config_vars"
     
-    # Parse and apply configuration
-    IFS=':' read -ra VARS <<< "$config_vars"
+    # Parse and apply configuration (using | as delimiter to avoid ARN conflicts)
+    IFS='|' read -ra VARS <<< "$config_vars"
     local cdk_args=""
+    local cert_arn=""
     
     for var in "${VARS[@]}"; do
         if [[ -n "$var" ]]; then
-            IFS='=' read -ra PARTS <<< "$var"
-            if [ ${#PARTS[@]} -eq 2 ]; then
-                local key="${PARTS[0]}"
-                local value="${PARTS[1]}"
+            # Split on first = only to preserve ARN format
+            local key="${var%%=*}"
+            local value="${var#*=}"
+            
+            if [[ -n "$key" && -n "$value" ]]; then
+                # Special handling for certificate_arn - save it for later
+                if [[ "$key" == "certificate_arn" ]]; then
+                    cert_arn="$value"
+                fi
                 
                 if [[ "$value" == "null" ]]; then
                     cdk_args="$cdk_args -c $key=null"
@@ -69,19 +83,39 @@ test_config() {
         fi
     done
     
+    # Backup original cdk.json
+    cp cdk.json cdk.json.backup
+    
+    # Temporarily update certificate_arn in cdk.json if provided
+    if [[ -n "$cert_arn" ]]; then
+        log "Temporarily setting certificate_arn in cdk.json"
+        python3 -c "
+import json
+import sys
+with open('cdk.json', 'r') as f:
+    config = json.load(f)
+config['context']['certificate_arn'] = '$cert_arn'
+with open('cdk.json', 'w') as f:
+    json.dump(config, f, indent=2)
+"
+    fi
+    
     log "CDK args: $cdk_args"
     
     # Test synthesis first
     log "Testing synthesis..."
-    if cdk synth "$cdk_args" > /tmp/cdk-synth-"${config_name}".log 2>&1; then
+    if eval "cdk synth $cdk_args" > /tmp/cdk-synth-"${config_name}".log 2>&1; then
         success "Synthesis successful for $config_name"
+        # Restore original cdk.json
+        mv cdk.json.backup cdk.json
+        return 0
     else
         error "Synthesis failed for $config_name"
         cat /tmp/cdk-synth-"${config_name}".log
+        # Restore original cdk.json
+        mv cdk.json.backup cdk.json
         return 1
     fi
-    
-    return 0
 }
 
 # Check if we should actually deploy (since deployments take ~40 minutes)
@@ -107,9 +141,9 @@ fi
 
 # Run tests
 for config in "${TEST_CONFIGS[@]}"; do
-    IFS=':' read -ra PARTS <<< "$config"
+    IFS='|' read -ra PARTS <<< "$config"
     config_name="${PARTS[0]}"
-    config_vars="${config#*:}"
+    config_vars="${config#*|}"
     
     echo ""
     echo "----------------------------------------"
