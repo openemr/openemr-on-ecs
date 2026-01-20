@@ -86,7 +86,7 @@ You're ready to deploy. Run:
 
 ### `stress-test.sh`
 
-**Purpose:** Stress test CDK stack synthesis and optionally deployment/destruction with various configurations.
+**Purpose:** Bash-based stress test for CDK stack synthesis and optionally deployment/destruction with various configurations.
 
 **Usage:**
 
@@ -96,8 +96,11 @@ You're ready to deploy. Run:
 ```
 This tests that the stack can be synthesized (validated) with different configurations:
 - Minimal configuration (basic features only)
+- Minimal with monitoring alarms
 - Standard configuration (with Bedrock and Data API)
+- Standard with monitoring alarms
 - Full-featured configuration (with Global Accelerator and Analytics)
+- Full-featured with monitoring alarms
 
 **Full Deployment Testing (Slow, Creates/Destroys Resources):**
 ```bash
@@ -108,8 +111,17 @@ export DEPLOY_ACTUAL=true
 
 **What it tests:**
 - Stack synthesis with different feature combinations
+- Monitoring alarms configuration (with/without)
 - (Optional) Actual deployment and destruction cycles
-- Configuration variations (with/without Route53, certificates, etc.)
+- Configuration variations with certificate_arn requirement
+
+**Configurations Tested:**
+1. `minimal` - Only required features
+2. `minimal-with-monitoring` - Minimal + monitoring alarms
+3. `standard` - Bedrock + Data API
+4. `standard-with-monitoring` - Standard + monitoring alarms
+5. `full-featured` - All optional features
+6. `full-featured-with-monitoring` - Full-featured + monitoring alarms
 
 **Customizing Test Configurations:**
 Edit the `TEST_CONFIGS` array in the script to add your own test configurations.
@@ -128,16 +140,21 @@ Test: minimal
 ✓ Synthesis successful for minimal
 
 ----------------------------------------
-Test: standard
+Test: standard-with-monitoring
 ----------------------------------------
+[14:00:05] Testing configuration: standard-with-monitoring
+[14:00:05] Testing synthesis...
+✓ Synthesis successful for standard-with-monitoring
 ...
 =========================================
 Test Summary
 =========================================
-✓ Passed: 3
+✓ Passed: 6
 ✗ Failed: 0
 ⚠ Skipped: 0
 ```
+
+**Note:** For a more comprehensive testing solution with better reporting, see [`test-cdk-synthesis.py`](#test-cdk-synthesispy) below.
 
 ---
 
@@ -222,6 +239,96 @@ Response Times (ms):
 **Success Criteria:**
 - Success rate ≥ 95%
 - Actual RPS ≥ 80% of target RPS
+
+---
+
+### `test-cdk-synthesis.py`
+
+**Purpose:** Comprehensive Python-based configuration matrix testing for CDK stack synthesis with all feature combinations.
+
+**Usage:**
+
+**Basic Usage (Test All Configurations):**
+```bash
+python3 scripts/test-cdk-synthesis.py
+```
+
+**Verbose Mode (Show Detailed Errors):**
+```bash
+python3 scripts/test-cdk-synthesis.py --verbose
+```
+
+**Fail-Fast Mode (Stop on First Failure):**
+```bash
+python3 scripts/test-cdk-synthesis.py --fail-fast
+```
+
+**What it tests:**
+- 8 comprehensive configuration combinations
+- Automatic cdk.json backup and restore
+- CDK Nag validation checking
+- Colored output for easy reading
+- Detailed error reporting
+
+**Configurations Tested:**
+1. `minimal` - Only required features
+2. `minimal-with-monitoring` - Minimal + monitoring alarms
+3. `standard` - Bedrock + Data API
+4. `standard-with-monitoring` - Standard + monitoring alarms
+5. `full-featured` - All optional features (Global Accelerator, Bedrock, Data API, Analytics)
+6. `full-featured-with-monitoring` - Full-featured + monitoring alarms
+7. `api-portal-enabled` - APIs and patient portal enabled
+8. `cloudtrail-enabled` - CloudTrail logging enabled
+
+**Features:**
+- **Automatic certificate handling**: Temporarily updates `cdk.json` with test certificate ARN
+- **Safe operations**: Always restores original `cdk.json` after testing
+- **Error detection**: Checks for cdk_nag errors in synthesis output
+- **Color-coded output**: Green for success, red for errors, blue for info
+- **Python-based**: Easy to extend and integrate into Python workflows
+
+**Example Output:**
+```
+============================================================
+CDK Synthesis Test Suite
+============================================================
+
+Testing 8 configurations...
+
+------------------------------------------------------------
+[INFO] Testing configuration: minimal
+[INFO] Description: Minimal configuration with only required features
+[INFO] Running cdk synth...
+✓ Synthesis successful for minimal
+
+------------------------------------------------------------
+[INFO] Testing configuration: full-featured-with-monitoring
+[INFO] Description: Full-featured configuration with monitoring alarms
+[INFO] Running cdk synth...
+✓ Synthesis successful for full-featured-with-monitoring
+
+============================================================
+Test Summary
+============================================================
+Passed: 8
+Failed: 0
+
+✓ All tests passed!
+```
+
+**Requirements:**
+- Python 3.10+
+- AWS CDK CLI installed
+- AWS credentials configured (fake credentials work for synthesis)
+- Dependencies from `requirements.txt` installed
+
+**Exit Codes:**
+- `0`: All tests passed
+- `1`: One or more tests failed
+
+**See Also:**
+- [`stress-test.sh`](#stress-testsh) for bash-based testing with deployment options
+- [.github/workflows/cdk-config-matrix.yml](../.github/workflows/cdk-config-matrix.yml) for CI/CD integration
 
 ---
 

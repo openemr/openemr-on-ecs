@@ -369,6 +369,40 @@ This script automatically:
 
 See [scripts/README.md](scripts/README.md) for detailed usage and configuration options.
 
+### Configuration Matrix Testing
+
+Test all configuration combinations to ensure features work correctly:
+
+**Python Test Script (Recommended):**
+```bash
+# Test all 8 configurations (minimal, standard, full-featured, with/without monitoring, etc.)
+python3 scripts/test-cdk-synthesis.py
+
+# Verbose output with detailed errors
+python3 scripts/test-cdk-synthesis.py --verbose
+
+# Stop on first failure
+python3 scripts/test-cdk-synthesis.py --fail-fast
+```
+
+**Bash Stress Test:**
+```bash
+# Test 6 core configurations (synthesis only - fast)
+./scripts/stress-test.sh
+
+# Test actual deployment and destruction (slow - ~40 min per config)
+export DEPLOY_ACTUAL=true
+./scripts/stress-test.sh
+```
+
+**What's tested:**
+- Minimal configuration (core features only)
+- Standard configuration (Bedrock + Data API)
+- Full-featured (Global Accelerator + Analytics)
+- Monitoring alarms (SNS + CloudWatch)
+- API and patient portal features
+- CloudTrail logging
+
 ### Local Testing Scripts
 
 - **`scripts/test-startup.sh`** - Test container startup locally without SSL
@@ -386,11 +420,46 @@ See [README-TESTING.md](README-TESTING.md) for detailed usage.
 - **💬 Have questions?** Join the OpenEMR community: https://community.open-emr.org/
 
 ## Automation & Maintenance
-- **CI Validation (`.github/workflows/ci.yml`)** – Runs unit tests and tests synthesizing the CDK application on every PR and push. Uses mocked AWS credentials with `cdk synth --no-lookups` to keep the pipeline credential-free.
-- **Monthly Version Check (`.github/workflows/monthly-version-check.yml`)** – Scheduled on the first of each month (and manually runnable) to scan pinned Python packages, Aurora engine versions, EMR Serverless releases, Lambda runtimes, and container tags. Creates an issue when updates are detected.
-- **Manual Release (`.github/workflows/manual-release.yml`)** – Provides a guided `workflow_dispatch` release process with semantic version bumps, tag/release creation, and optional dry run. See `docs/MANUAL_RELEASES.md` in the EKS project for process parity.
 
-Detailed usage notes and manual trigger instructions are available in [DETAILS.md](DETAILS.md#cicd-automation).
+### CI/CD Workflows
+
+The project includes comprehensive CI/CD automation:
+
+- **CI Validation (`.github/workflows/ci.yml`)** 
+  - Runs on every PR and push to `main`/`develop`
+  - Unit tests with pytest
+  - **Configuration matrix testing** - Tests 8 configuration combinations
+  - CDK synthesis validation with cdk_nag checks
+  - CloudFormation template validation with cfn-lint
+  - Code quality checks (black, flake8, mypy, isort)
+  - Security scanning with bandit
+  - Shell script validation with shellcheck
+  - Docker Compose tests (basic and SSL configurations)
+  - Go TUI build and tests
+
+- **Configuration Matrix Testing (`.github/workflows/cdk-config-matrix.yml`)**
+  - Dedicated workflow for comprehensive configuration testing
+  - Tests all feature combinations (monitoring, analytics, APIs, etc.)
+  - Automatically runs on every commit
+  - Can be triggered manually via `workflow_dispatch`
+  - Uploads synthesis logs on failure for debugging
+
+- **Monthly Version Check (`.github/workflows/monthly-version-check.yml`)** 
+  - Scheduled on the first of each month (and manually runnable)
+  - Scans pinned Python packages, Aurora engine versions, EMR Serverless releases, Lambda runtimes, and container tags
+  - Creates an issue when updates are detected
+
+- **Manual Release (`.github/workflows/manual-release.yml`)** 
+  - Guided `workflow_dispatch` release process
+  - Semantic version bumps
+  - Tag/release creation with optional dry run
+
+All workflows use mocked AWS credentials with `cdk synth --no-lookups` to keep the pipeline credential-free.
+
+**Testing Tools:**
+- `scripts/test-cdk-synthesis.py` - Python-based comprehensive configuration testing
+- `scripts/stress-test.sh` - Bash-based stress testing with optional deployment
+- `scripts/validate-deployment-prerequisites.sh` - Pre-flight validation
 
 ## Additional Resources
 
@@ -401,7 +470,7 @@ Detailed usage notes and manual trigger instructions are available in [DETAILS.m
 - [Local Testing Guide](README-TESTING.md) - Test the container startup locally using Docker Compose before deploying to AWS
 
 ### Helper Scripts & Tools
-- [Scripts Documentation](scripts/README.md) - Complete guide to all helper scripts including validation, stress testing, local testing, and database access tools
+- [Scripts Documentation](scripts/README.md) - Complete guide to all helper scripts including validation, stress testing, configuration testing, local testing, and database access tools
 
 ### Configuration & Customization
 - [Load Testing Results](DETAILS.md#load-testing) - Performance testing results showing the architecture's ability to handle 4000+ requests/second with low resource utilization
