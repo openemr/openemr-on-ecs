@@ -293,10 +293,8 @@ class AnalyticsComponents:
         )
 
         # Script to sync EFS to S3
-        command_array = [
-            f"apk add --no-cache aws-cli && \
-            aws s3 sync /var/www/localhost/htdocs/openemr/sites/ s3://{self.export_bucket_efs.bucket_name}"
-        ]
+        command_array = [f"apk add --no-cache aws-cli && \
+            aws s3 sync /var/www/localhost/htdocs/openemr/sites/ s3://{self.export_bucket_efs.bucket_name}"]
 
         # Add container definition (this creates the execution role's DefaultPolicy)
         sync_efs_to_s3_container = sync_efs_to_s3_task.add_container(

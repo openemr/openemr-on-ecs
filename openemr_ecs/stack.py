@@ -355,7 +355,7 @@ class OpenemrEcsStack(Stack):
         ecs_result = compute.create_ecs_cluster(self.vpc, self.db_instance, context, self.region)
         if not ecs_result:
             raise ValueError("Failed to create ECS cluster - this is a required resource")
-        (self.ecs_cluster, self.log_group, self.kms_key, self.ecs_exec_group, self.exec_bucket) = ecs_result
+        self.ecs_cluster, self.log_group, self.kms_key, self.ecs_exec_group, self.exec_bucket = ecs_result
 
         # Create and maintain TLS materials
         self.one_time_create_ssl_materials_lambda = security.create_and_maintain_tls_materials(
@@ -549,8 +549,7 @@ class OpenemrEcsStack(Stack):
             "EnableTerminationProtectionLambda",
             runtime=_lambda.Runtime.PYTHON_3_14,
             handler="index.handler",
-            code=_lambda.Code.from_inline(
-                """
+            code=_lambda.Code.from_inline("""
 import boto3
 import cfnresponse
 
@@ -576,8 +575,7 @@ def handler(event, context):
     except Exception as e:
         print(f"Error: {str(e)}")
         cfnresponse.send(event, context, cfnresponse.FAILED, {}, reason=str(e))
-"""
-            ),
+"""),
             timeout=Duration.seconds(30),
         )
 
