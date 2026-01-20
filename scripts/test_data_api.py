@@ -1,5 +1,4 @@
 import boto3
-import json
 
 # Initialize AWS client for RDS Data API
 # Note: Update this region to match your deployment region

@@ -1,16 +1,17 @@
 """Lambda utility functions that support maintenance workflows for OpenEMR."""
 
-import boto3
-import os
-import hmac
 import base64
-import hashlib
-import json
 import email
+import hashlib
+import hmac
+import json
+import os
 import re
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
+
+import boto3
 
 
 def generate_ssl_materials(event, context):
@@ -90,7 +91,7 @@ def generate_smtp_credential(event, context):
     # Read, Calculate and Update Value
     secret = get_secret(os.environ["SECRET_ACCESS_KEY"], os.environ["AWS_REGION"])
     secret["password"] = calculate_key(secret["password"], os.environ["AWS_REGION"])
-    response = update_secret(os.environ["SMTP_PASSWORD"], secret, os.environ["AWS_REGION"])
+    update_secret(os.environ["SMTP_PASSWORD"], secret, os.environ["AWS_REGION"])
 
     # Return success code
     return {"statusCode": 200, "headers": {"Content-Type": "text/plain"}}
@@ -149,7 +150,7 @@ def send_email(event, context):
         message = {"Source": sender, "Destinations": recipient, "Data": msg.as_string()}
 
     ses_client = boto3.client("ses", os.environ["AWS_REGION"])
-    response = ses_client.send_raw_email(
+    ses_client.send_raw_email(
         Source=os.environ["SOURCE_NAME"], SourceArn=os.environ["SOURCE_ARN"], RawMessage={"Data": message["Data"]}
     )
 
@@ -163,7 +164,7 @@ def make_ruleset_active(event, context):
     ses_client = boto3.client("ses")
 
     # Make target rule set active
-    response = ses_client.set_active_receipt_rule_set(RuleSetName=os.environ["RULE_SET_NAME"])
+    ses_client.set_active_receipt_rule_set(RuleSetName=os.environ["RULE_SET_NAME"])
 
     # Return success code
     return {"statusCode": 200, "headers": {"Content-Type": "text/plain"}}

@@ -436,7 +436,7 @@ class StorageComponents:
         plan.add_selection(
             "Resources",
             resources=[
-                backup.BackupResource.from_rds_database_instance(db_instance),
+                backup.BackupResource.from_rds_database_cluster(db_instance),
                 backup.BackupResource.from_efs_file_system(ssl_efs),
                 backup.BackupResource.from_efs_file_system(sites_efs),
             ],
