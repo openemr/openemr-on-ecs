@@ -85,7 +85,7 @@ def validate_autoscaling_percentage(value: Optional[Any], name: str) -> int:
         if percentage < 1 or percentage > 100:
             raise ValidationError(f"{name} must be between 1 and 100, got: {percentage}")
         return percentage
-    except ValueError, TypeError:
+    except (ValueError, TypeError) as _:
         raise ValidationError(f"{name} must be a valid integer between 1 and 100, got: {value}")
 
 
@@ -138,7 +138,7 @@ def validate_timeout_parameter(value: Optional[str], name: str) -> Optional[str]
         if timeout < 1:
             raise ValidationError(f"{name} must be a positive integer, got: {timeout}")
         return str(timeout)
-    except ValueError, TypeError:
+    except (ValueError, TypeError) as _:
         raise ValidationError(f"{name} must be a valid positive integer string, got: {value}")
 
 
