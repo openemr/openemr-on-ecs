@@ -75,8 +75,7 @@ class CleanupComponents:
             runtime=_lambda.Runtime.PYTHON_3_14,
             handler="index.handler",
             timeout=Duration.minutes(15),  # Allow time for backup deletion
-            code=_lambda.Code.from_inline(
-                """
+            code=_lambda.Code.from_inline("""
 import boto3
 import logging
 import time
@@ -444,8 +443,7 @@ def handler(event, context):
             })
         else:
             send_response(event, context, 'FAILED', {}, reason=str(e))
-"""
-            ),
+"""),
         )
 
         # Add suppressions for cleanup Lambda (custom resource for stack deletion)

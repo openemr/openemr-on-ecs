@@ -742,8 +742,7 @@ class SecurityComponents:
         )
 
         # Script generates self-signed SSL materials using OpenSSL
-        command_array = [
-            "mkdir -p /etc/ssl/certs/ && \
+        command_array = ["mkdir -p /etc/ssl/certs/ && \
             mkdir -p /etc/ssl/private/ && \
             openssl genrsa 2048 > /etc/ssl/private/selfsigned.key.pem && \
             openssl req -new -x509 -nodes -sha256 -days 365 -key /etc/ssl/private/selfsigned.key.pem \
@@ -751,8 +750,7 @@ class SecurityComponents:
             -subj '/CN=localhost' && \
             cp /etc/ssl/private/selfsigned.key.pem /etc/ssl/private/webserver.key.pem && \
             cp /etc/ssl/certs/selfsigned.cert.pem /etc/ssl/certs/webserver.cert.pem && \
-            touch /etc/ssl/docker-selfsigned-configured"
-        ]
+            touch /etc/ssl/docker-selfsigned-configured"]
 
         # Add container definition (this creates the execution role's DefaultPolicy)
         ssl_maintenance_container = create_ssl_materials_task.add_container(

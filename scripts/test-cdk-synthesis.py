@@ -10,21 +10,20 @@ Usage:
 
 import argparse
 import json
-import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 
 class Colors:
     """ANSI color codes for terminal output."""
-    GREEN = '\033[0;32m'
-    RED = '\033[0;31m'
-    YELLOW = '\033[1;33m'
-    BLUE = '\033[0;34m'
-    NC = '\033[0m'  # No Color
+
+    GREEN = "\033[0;32m"
+    RED = "\033[0;31m"
+    YELLOW = "\033[1;33m"
+    BLUE = "\033[0;34m"
+    NC = "\033[0m"  # No Color
 
 
 def log(message: str) -> None:
@@ -151,45 +150,45 @@ CERT_ARN = "arn:aws:acm:us-west-2:123456789012:certificate/00000000-0000-0000-00
 
 def update_cdk_json(config: Dict[str, any], cdk_json_path: Path, backup_path: Path) -> None:
     """Temporarily update cdk.json with test configuration.
-    
+
     Args:
         config: Configuration dictionary to apply
         cdk_json_path: Path to cdk.json file
         backup_path: Path to backup cdk.json file
     """
     # Backup original cdk.json
-    with open(cdk_json_path, 'r') as f:
+    with open(cdk_json_path, "r") as f:
         original_config = json.load(f)
-    
-    with open(backup_path, 'w') as f:
+
+    with open(backup_path, "w") as f:
         json.dump(original_config, f, indent=2)
-    
+
     # Update certificate_arn
-    original_config['context']['certificate_arn'] = CERT_ARN
-    
+    original_config["context"]["certificate_arn"] = CERT_ARN
+
     # Apply test configuration
     for key, value in config.items():
-        original_config['context'][key] = value
-    
+        original_config["context"][key] = value
+
     # Write updated config
-    with open(cdk_json_path, 'w') as f:
+    with open(cdk_json_path, "w") as f:
         json.dump(original_config, f, indent=2)
 
 
 def restore_cdk_json(cdk_json_path: Path, backup_path: Path) -> None:
     """Restore original cdk.json from backup.
-    
+
     Args:
         cdk_json_path: Path to cdk.json file
         backup_path: Path to backup cdk.json file
     """
     if backup_path.exists():
-        with open(backup_path, 'r') as f:
+        with open(backup_path, "r") as f:
             original_config = json.load(f)
-        
-        with open(cdk_json_path, 'w') as f:
+
+        with open(cdk_json_path, "w") as f:
             json.dump(original_config, f, indent=2)
-        
+
         backup_path.unlink()
 
 
@@ -201,26 +200,26 @@ def test_configuration(
     verbose: bool = False,
 ) -> Tuple[bool, str]:
     """Test a single configuration.
-    
+
     Args:
         config_name: Name of the configuration
         config_description: Description of the configuration
         config: Configuration dictionary
         cdk_json_path: Path to cdk.json file
         verbose: Whether to print verbose output
-    
+
     Returns:
         Tuple of (success, error_message)
     """
     log(f"Testing configuration: {config_name}")
     log(f"Description: {config_description}")
-    
+
     backup_path = cdk_json_path.parent / "cdk.json.backup"
-    
+
     try:
         # Update cdk.json with test configuration
         update_cdk_json(config, cdk_json_path, backup_path)
-        
+
         # Run cdk synth
         log("Running cdk synth...")
         result = subprocess.run(
@@ -229,22 +228,22 @@ def test_configuration(
             capture_output=True,
             text=True,
         )
-        
+
         if result.returncode == 0:
             success(f"Synthesis successful for {config_name}")
-            
+
             # Check for cdk-nag errors in output
             if "[Error at" in result.stdout or "[Error at" in result.stderr:
                 error_msg = "CDK Nag errors found in output"
                 error(error_msg)
                 if verbose:
                     print("\n--- CDK Nag Errors ---")
-                    for line in (result.stdout + result.stderr).split('\n'):
+                    for line in (result.stdout + result.stderr).split("\n"):
                         if "[Error at" in line:
                             print(line)
                     print("--- End CDK Nag Errors ---\n")
                 return False, error_msg
-            
+
             return True, ""
         else:
             error_msg = f"Synthesis failed for {config_name}"
@@ -255,7 +254,7 @@ def test_configuration(
                 print(result.stdout)
                 print("--- End Error Output ---\n")
             return False, result.stderr
-    
+
     finally:
         # Always restore original cdk.json
         restore_cdk_json(cdk_json_path, backup_path)
@@ -263,7 +262,7 @@ def test_configuration(
 
 def main() -> int:
     """Run all configuration tests.
-    
+
     Returns:
         Exit code (0 for success, 1 for failure)
     """
@@ -271,28 +270,28 @@ def main() -> int:
     parser.add_argument("--verbose", "-v", action="store_true", help="Print verbose output")
     parser.add_argument("--fail-fast", action="store_true", help="Stop on first failure")
     args = parser.parse_args()
-    
+
     print("=" * 60)
     print("CDK Synthesis Test Suite")
     print("=" * 60)
     print()
     print(f"Testing {len(TEST_CONFIGURATIONS)} configurations...")
     print()
-    
+
     # Get path to cdk.json
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
     cdk_json_path = project_root / "cdk.json"
-    
+
     if not cdk_json_path.exists():
         error(f"cdk.json not found at {cdk_json_path}")
         return 1
-    
+
     # Run tests
     passed = 0
     failed = 0
     failed_configs = []
-    
+
     for test_config in TEST_CONFIGURATIONS:
         print("-" * 60)
         result, error_msg = test_configuration(
@@ -303,7 +302,7 @@ def main() -> int:
             args.verbose,
         )
         print()
-        
+
         if result:
             passed += 1
         else:
@@ -312,7 +311,7 @@ def main() -> int:
             if args.fail_fast:
                 warning("Stopping on first failure (--fail-fast)")
                 break
-    
+
     # Print summary
     print("=" * 60)
     print("Test Summary")
@@ -320,7 +319,7 @@ def main() -> int:
     print(f"{Colors.GREEN}Passed:{Colors.NC} {passed}")
     print(f"{Colors.RED}Failed:{Colors.NC} {failed}")
     print()
-    
+
     if failed == 0:
         success("All tests passed!")
         return 0
@@ -335,4 +334,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

@@ -4,9 +4,9 @@
 import os
 
 import aws_cdk as cdk
+from cdk_nag import AwsSolutionsChecks, HIPAASecurityChecks
 
 from openemr_ecs.stack import OpenemrEcsStack
-from cdk_nag import AwsSolutionsChecks, HIPAASecurityChecks
 
 app = cdk.App()
 cdk.Aspects.of(app).add(AwsSolutionsChecks(verbose=True))
