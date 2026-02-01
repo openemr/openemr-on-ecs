@@ -1,18 +1,18 @@
 codecov:
-  require_ci_to_pass: false
+  require_ci_to_pass: true
   notify:
-    wait_for_ci: false
+    wait_for_ci: true
 
 coverage:
   status:
     project:
       default:
-        target: 10%
-        threshold: 0%
+        target: 95%
+        threshold: 80%
     patch:
       default:
-        target: 10%
-        threshold: 0%
+        target: 95%
+        threshold: 80%
 
 comment:
   layout: "reach, diff, flags, files, footer"
