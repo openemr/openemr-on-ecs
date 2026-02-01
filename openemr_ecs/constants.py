@@ -26,7 +26,7 @@ class StackConstants:
     EMR_SERVERLESS_RELEASE_LABEL = "emr-7.12.0"
     # Check: https://docs.aws.amazon.com/emr/latest/EMR-Serverless-UserGuide/release-versions.html
 
-    AURORA_MYSQL_ENGINE_VERSION = rds.AuroraMysqlEngineVersion.VER_3_11_0
+    AURORA_MYSQL_ENGINE_VERSION = rds.AuroraMysqlEngineVersion.VER_3_11_1
     # Note: When updating, verify that Bedrock integration is supported if enable_bedrock_integration is used.
     # Some newer engine versions may not have Bedrock integration enabled initially.
 
