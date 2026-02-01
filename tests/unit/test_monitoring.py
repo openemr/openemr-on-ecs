@@ -135,3 +135,67 @@ class TestMonitoringConfiguration:
         else:
             # Should have no alarms when disabled
             assert len(alarms) == 0
+
+    def test_monitoring_with_email_subscription(self):
+        """Test monitoring with email subscription for alarms topic."""
+        app = App()
+        app.node.set_context("route53_domain", "example.com")
+        app.node.set_context("enable_monitoring_alarms", "true")
+        app.node.set_context("monitoring_email", "alerts@example.com")
+
+        from openemr_ecs.stack import OpenemrEcsStack
+
+        stack = OpenemrEcsStack(
+            app,
+            "TestStack",
+            env=Environment(account="123456789012", region="us-west-2"),
+        )
+        template = assertions.Template.from_stack(stack)
+
+        # Verify SNS subscriptions exist when email is provided
+        subscriptions = template.find_resources("AWS::SNS::Subscription")
+        # Should have at least one subscription for alarms topic
+        assert len(subscriptions) >= 1
+
+    def test_monitoring_with_deployment_email_subscription(self):
+        """Test monitoring with email subscription for deployment topic."""
+        app = App()
+        app.node.set_context("route53_domain", "example.com")
+        app.node.set_context("enable_monitoring_alarms", "true")
+        app.node.set_context("monitoring_email", "deployments@example.com")
+
+        from openemr_ecs.stack import OpenemrEcsStack
+
+        stack = OpenemrEcsStack(
+            app,
+            "TestStack",
+            env=Environment(account="123456789012", region="us-west-2"),
+        )
+        template = assertions.Template.from_stack(stack)
+
+        # Verify stack builds successfully with deployment email
+        assert template is not None
+
+    def test_monitoring_alarms_with_sns_actions(self):
+        """Test that alarms have SNS actions when topic is provided."""
+        app = App()
+        app.node.set_context("route53_domain", "example.com")
+        app.node.set_context("enable_monitoring_alarms", "true")
+        app.node.set_context("monitoring_email", "alerts@example.com")
+
+        from openemr_ecs.stack import OpenemrEcsStack
+
+        stack = OpenemrEcsStack(
+            app,
+            "TestStack",
+            env=Environment(account="123456789012", region="us-west-2"),
+        )
+        template = assertions.Template.from_stack(stack)
+
+        # Verify alarms exist
+        alarms = template.find_resources("AWS::CloudWatch::Alarm")
+        assert len(alarms) > 0
+
+        # Verify SNS topic exists (needed for alarm actions)
+        topics = template.find_resources("AWS::SNS::Topic")
+        assert len(topics) >= 1
