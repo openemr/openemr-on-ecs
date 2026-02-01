@@ -1,7 +1,7 @@
 services:
   # Simulate the ECS container startup for testing WITH SSL (like production RDS)
   openemr-test-ssl:
-    image: openemr/openemr:7.0.4
+    image: openemr/openemr:7.0.5
     container_name: openemr-container-test-ssl
     # Exact copy of startup script from compute.py - matches production ECS deployment
     # For SSL testing: uses container-provided certs if available, otherwise downloads from AWS
