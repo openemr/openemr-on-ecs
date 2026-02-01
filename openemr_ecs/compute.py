@@ -429,7 +429,7 @@ class ComputeComponents:
             "fi",
             'log "MySQL CA certificate deployed successfully"',
             # --- OpenEMR Bootstrap Reliability (RDS TLS + idempotent retries) ---
-            # OpenEMR 7.0.4's devtools library hard-codes `mariadb --skip-ssl` for setting globals.
+            # OpenEMR 7.0.5's devtools library hard-codes `mariadb --skip-ssl` for setting globals.
             # With Aurora's `require_secure_transport=ON`, that causes repeated failures AFTER a partial install,
             # which then leads to "Table already exists" on the next attempt.
             # We patch the library at container startup to remove `--skip-ssl` so the client negotiates TLS.

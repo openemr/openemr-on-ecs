@@ -188,7 +188,7 @@ ls -la /root/certs/redis/
 ## Comparing with ECS
 
 The local test environment uses:
-- Same Docker image: `openemr/openemr:7.0.4`
+- Same Docker image: `openemr/openemr:7.0.5`
 - Same startup command from `compute.py`
 - Same environment variable structure
 
