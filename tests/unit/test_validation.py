@@ -480,3 +480,15 @@ def test_validate_context_bedrock_timeout_validation():
 
     with pytest.raises(ValidationError, match="must be a positive integer"):
         validate_context(context)
+
+
+def test_validate_context_ipv4_range_auto():
+    """Test context validation accepts 'auto' for IPv4 range."""
+    context = {
+        "security_group_ip_range_ipv4": "auto",  # Valid: will be resolved at deployment time
+        "route53_domain": "example.com",  # Certificate required
+        "certificate_arn": None,
+        "configure_ses": False,
+    }
+    # Should not raise - "auto" is valid and will be resolved at deployment time
+    validate_context(context)

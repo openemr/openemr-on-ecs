@@ -58,6 +58,10 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
+          override_branch: ${{ github.ref_name }}
+          override_commit: ${{ github.event.pull_request.head.sha || github.sha }}
+          base: ${{ github.base_ref || 'main' }}
+          slug: ${{ github.repository }}
 
       - name: Upload coverage HTML report
         uses: actions/upload-artifact@v6

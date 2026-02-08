@@ -1,0 +1,23 @@
+codecov:
+  require_ci_to_pass: true
+  notify:
+    wait_for_ci: true
+
+coverage:
+  status:
+    project:
+      default:
+        target: 95%
+        threshold: 80%
+    patch:
+      default:
+        target: 95%
+        threshold: 80%
+
+comment:
+  layout: "reach, diff, flags, files, footer"
+  behavior: default
+  require_changes: false
+
+github_checks:
+  annotations: true
