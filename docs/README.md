@@ -1,22 +1,30 @@
 # Documentation Assets
 
-This directory contains images, diagrams, and visual documentation used throughout the project documentation.
+This directory contains documentation, images, diagrams, and visual documentation used throughout the project.
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Documents](#documents)
 - [Image Categories](#image-categories)
 - [Usage in Documentation](#usage-in-documentation)
 - [Adding New Images](#adding-new-images)
 
 ## Overview
 
-The `docs/` directory contains visual assets that enhance the project documentation, including:
+The `docs/` directory contains documentation and visual assets that enhance the project, including:
+- Cost estimates and planning guides
+- CDK Nag suppressions reference
 - Screenshots of the deployment process
 - Architecture diagrams
 - Configuration examples
 - UI walkthroughs
 - Testing and validation examples
+
+## Documents
+
+- [cost-estimate.md](cost-estimate.md) - AWS monthly cost estimates for QA, Staging, and Production environments
+- [cdk-nag-suppressions.md](cdk-nag-suppressions.md) - CDK Nag suppression rules and justifications
 
 ## Image Categories
 
