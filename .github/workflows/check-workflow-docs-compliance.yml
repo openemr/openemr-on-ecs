@@ -1,0 +1,374 @@
+name: Workflow Documentation Compliance Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_issue_if_non_compliant:
+        description: 'Create GitHub issue if docs are not 100% compliant'
+        required: false
+        type: boolean
+        default: false
+  
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/docs/**'
+      - '.github/workflows/*.yml'
+      - '.github/skills/workflow-docs/SKILL.md'
+      - '.github/skills/workflow-docs/scripts/check-workflow-docs-compliance.py'
+  
+  pull_request:
+    paths:
+      - '.github/workflows/docs/**'
+      - '.github/workflows/*.yml'
+      - '.github/skills/workflow-docs/SKILL.md'
+      - '.github/skills/workflow-docs/scripts/check-workflow-docs-compliance.py'
+
+jobs:
+  check-compliance:
+    name: Check Documentation Compliance
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Run compliance checker
+        id: compliance
+        run: |
+          # Run from repo root so script can find .github/workflows/docs
+          python3 .github/skills/workflow-docs/scripts/check-workflow-docs-compliance.py | tee compliance-output.txt
+          
+          # Extract compliance percentage from output
+          if grep -q "🎉 All workflow documentation is 100% compliant!" compliance-output.txt; then
+            echo "compliant=true" >> $GITHUB_OUTPUT
+            echo "percentage=100" >> $GITHUB_OUTPUT
+          else
+            echo "compliant=false" >> $GITHUB_OUTPUT
+            # Extract percentage from summary line
+            percentage=$(grep -A 1 "Total workflow docs:" compliance-output.txt | grep "100% complete" | sed 's/.*(\([0-9]*\)%).*/\1/')
+            echo "percentage=${percentage:-0}" >> $GITHUB_OUTPUT
+          fi
+          
+          # Save full output for later steps
+          cat compliance-output.txt >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-report
+          path: compliance-output.txt
+          retention-days: 90
+      
+      - name: Comment on PR (if triggered by PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const compliance = fs.readFileSync('compliance-output.txt', 'utf8');
+            const isCompliant = '${{ steps.compliance.outputs.compliant }}' === 'true';
+            const percentage = '${{ steps.compliance.outputs.percentage }}';
+            
+            const emoji = isCompliant ? '✅' : '⚠️';
+            const status = isCompliant ? 'All docs are compliant!' : `${percentage}% compliant - some docs need updates`;
+            
+            const body = `## ${emoji} Workflow Documentation Compliance Check
+            
+            **Status:** ${status}
+            
+            <details>
+            <summary>Full Compliance Report</summary>
+            
+            \`\`\`
+            ${compliance}
+            \`\`\`
+            
+            </details>
+            
+            ${isCompliant ? '' : '\n⚠️ **Action Required:** Some workflow docs are missing required sections. Please review the report above.'}
+            `;
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+      
+      - name: Create issue for non-compliant docs (if requested)
+        if: |
+          steps.compliance.outputs.compliant == 'false' && 
+          (inputs.create_issue_if_non_compliant == true || github.event_name == 'push')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const compliance = fs.readFileSync('compliance-output.txt', 'utf8');
+            const percentage = '${{ steps.compliance.outputs.percentage }}';
+            
+            // Check if issue already exists
+            const existingIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'documentation,compliance',
+              per_page: 10
+            });
+            
+            const hasOpenIssue = existingIssues.data.some(issue => 
+              issue.title.includes('Workflow Documentation Compliance')
+            );
+            
+            if (!hasOpenIssue) {
+              const body = `## ⚠️ Workflow Documentation Compliance Alert
+              
+              **Current Status:** ${percentage}% compliant
+              **Repository:** ${context.repo.owner}/${context.repo.repo}
+              
+              Some workflow documentation files are missing required sections per the [SKILL.md](.github/skills/workflow-docs/SKILL.md) standard.
+              
+              ### Compliance Report
+              
+              \`\`\`
+              ${compliance}
+              \`\`\`
+              
+              ### Action Required
+              
+              1. Review the compliance report above
+              2. Identify which docs need updates
+              3. Add missing sections (see [SKILL.md](.github/skills/workflow-docs/SKILL.md) for requirements)
+              4. Run the compliance checker locally to verify:
+                 \`\`\`bash
+                 python3 .github/skills/workflow-docs/scripts/check-workflow-docs-compliance.py
+                 \`\`\`
+              5. Commit and push changes
+              
+              ### Required Sections (15 total)
+              
+              1. Purpose
+              2. Triggers
+              3. Inputs
+              4. Secrets and Variables
+              5. Diagram (Mermaid)
+              6. Jobs
+              7. Outputs
+              8. Data Flow
+              9. Verification
+              10. Troubleshooting (3-5+ scenarios)
+              11. Metrics
+              12. Cost Analysis
+              13. Related Workflows/Docs
+              14. Security Considerations
+              15. Support & Maintenance
+              
+              ### Resources
+              
+              - [SKILL.md Documentation Standard](.github/skills/workflow-docs/SKILL.md)
+              - [Compliance Checker Script](.github/skills/workflow-docs/scripts/check-workflow-docs-compliance.py)
+              - Check \`.github/workflows/docs/\` for existing documentation examples
+              
+              ---
+              
+              **Triggered by:** ${context.eventName} on ${context.ref}
+              **Workflow Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}
+              `;
+              
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `⚠️ Workflow Documentation Compliance: ${percentage}% (${new Date().toISOString().split('T')[0]})`,
+                body: body,
+                labels: ['documentation', 'compliance', 'automated']
+              });
+              
+              issueUrl = issue.data.html_url;
+              core.info(`Created compliance issue: ${issueUrl}`);
+              core.setOutput('issue_url', issueUrl);
+            } else {
+              // Get the existing issue URL
+              const existingIssue = existingIssues.data.find(issue => 
+                issue.title.includes('Workflow Documentation Compliance')
+              );
+              issueUrl = existingIssue.html_url;
+              core.info(`Compliance issue already exists: ${issueUrl}`);
+              core.setOutput('issue_url', issueUrl);
+            }
+      
+      - name: Fail if not compliant (for PR checks)
+        if: |
+          github.event_name == 'pull_request' && 
+          steps.compliance.outputs.compliant == 'false' &&
+          github.event.pull_request.user.login != 'github-actions[bot]' &&
+          !contains(github.event.pull_request.title, '[WIP]')
+        run: |
+          echo "❌ Workflow documentation is not 100% compliant"
+          echo "Please add missing sections before merging"
+          exit 1
+      
+      - name: Send Slack notification (optional - compliance success)
+        if: |
+          steps.compliance.outputs.compliant == 'true' && 
+          github.event_name != 'pull_request' &&
+          env.SLACK_BOT_TOKEN != ''
+        uses: slackapi/slack-github-action@v1
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        continue-on-error: true
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          payload: |
+            {
+              "text": "✅ Workflow Documentation Compliance: 100%",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ Workflow Documentation Compliance Check"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:* ${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:* 100% Compliant"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered by:* ${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Event:* ${{ github.event_name }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "All workflow documentation meets the 15-section SKILL.md standard."
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+      
+      - name: Send Slack notification (optional - compliance failure)
+        if: |
+          steps.compliance.outputs.compliant == 'false' && 
+          github.event_name != 'pull_request' &&
+          env.SLACK_BOT_TOKEN != ''
+        uses: slackapi/slack-github-action@v1
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        continue-on-error: true
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          payload: |
+            {
+              "text": "⚠️ Workflow Documentation Compliance: ${{ steps.compliance.outputs.percentage }}%",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "⚠️ Workflow Documentation Non-Compliant"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:* ${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:* ${{ steps.compliance.outputs.percentage }}% Compliant"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Triggered by:* ${{ github.actor }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Event:* ${{ github.event_name }}"
+                  }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Some workflow documentation files are missing required sections. A GitHub issue has been created with details."
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "📋 View Issue"
+                      },
+                      "url": "${{ steps.create_issue.outputs.issue_url }}",
+                      "style": "primary"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Compliance Report"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+      
+      - name: Success summary
+        if: steps.compliance.outputs.compliant == 'true'
+        run: |
+          echo "✅ All workflow documentation is 100% compliant!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All workflow docs meet the 15-section requirement." >> $GITHUB_STEP_SUMMARY

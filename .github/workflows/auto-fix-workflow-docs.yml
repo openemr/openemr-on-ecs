@@ -1,0 +1,188 @@
+name: Auto-Fix Workflow Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/docs/**'
+      - '.github/workflows/*.yml'
+      - '.github/skills/workflow-docs/SKILL.md'
+      - '.github/skills/workflow-docs/scripts/check-workflow-docs-compliance.py'
+  
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to process'
+        required: false
+        type: number
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: write
+
+jobs:
+  auto-assign-copilot:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Check current compliance
+        id: compliance
+        run: |
+          # Run compliance checker
+          python3 .github/skills/workflow-docs/scripts/check-workflow-docs-compliance.py | tee compliance-output.txt
+          
+          # Check if already 100% compliant
+          if grep -q "🎉 All workflow documentation is 100% compliant!" compliance-output.txt; then
+            echo "compliant=true" >> $GITHUB_OUTPUT
+            echo "✅ All docs are already 100% compliant - skipping Copilot assignment"
+          else
+            echo "compliant=false" >> $GITHUB_OUTPUT
+            # Extract percentage
+            percentage=$(grep -A 1 "Total workflow docs:" compliance-output.txt | grep "100% complete" | sed 's/.*(\([0-9]*\)%).*/\1/')
+            echo "percentage=${percentage:-0}" >> $GITHUB_OUTPUT
+            echo "⚠️ Docs are ${percentage}% compliant - will create Copilot issue"
+          fi
+      
+      - name: Create issue and assign to Copilot
+        if: steps.compliance.outputs.compliant == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --title "Update workflow documentation for compliance" \
+            --body "Review workflow documentation for completeness and update existing workflow docs.
+
+          **Repository:** ${{ github.repository }}
+          **Current Compliance:** ${{ steps.compliance.outputs.percentage }}%
+          
+          Please ensure all workflow documentation files in \`.github/workflows/docs/\` follow the standard defined in \`.github/skills/workflow-docs/SKILL.md\`.
+
+          Use Claude Sonnet 4.5 model." \
+            --assignee @copilot
+      
+      - name: Send Slack notification (optional - skipped if no token)
+        if: |
+          steps.compliance.outputs.compliant == 'true' &&
+          env.SLACK_BOT_TOKEN != ''
+        uses: slackapi/slack-github-action@v1
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        continue-on-error: true
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          payload: |
+            {
+              "text": "✅ Auto-Documentation: Skipped (Already Compliant)",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "✅ Auto-Documentation: Already Compliant"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:* ${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:* 100% Compliant"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "All workflow documentation is already 100% compliant. No Copilot issue created."
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+      
+      - name: Send Slack notification (optional - Copilot assigned)
+        if: |
+          steps.compliance.outputs.compliant == 'false' &&
+          env.SLACK_BOT_TOKEN != ''
+        uses: slackapi/slack-github-action@v1
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        continue-on-error: true
+        with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
+          payload: |
+            {
+              "text": "🤖 Auto-Documentation Agent: Copilot Assigned",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🤖 Copilot Issue Created"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Repository:* ${{ github.repository }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:* ${{ steps.compliance.outputs.percentage }}% Compliant"
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Workflow documentation needs updates. Issue created and assigned to Copilot for auto-generation."
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
+      
+
