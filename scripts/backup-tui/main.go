@@ -76,7 +76,7 @@ func main() {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to auto-discover CloudFormation stack: %v\n", err)
 			fmt.Fprintf(os.Stderr, "\nPlease specify a stack name using the -stack flag:\n")
-			fmt.Fprintf(os.Stderr, "  %s -stack YourStackName\n", os.Args[0])
+			fmt.Fprintln(os.Stderr, "  backup-tui -stack YourStackName")
 			cancel() // Cancel context before exiting
 			//nolint:gocritic // exitAfterDefer: we explicitly call cancel() before os.Exit
 			os.Exit(1)

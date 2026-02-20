@@ -3,6 +3,7 @@
 from typing import Optional
 
 from aws_cdk import (
+    SecretValue,
     Stack,
 )
 from aws_cdk import aws_ec2 as ec2
@@ -43,6 +44,7 @@ class DatabaseComponents:
         self.mysql_ssl_ca_variable: Optional[ssm.StringParameter] = None
         self.mysql_ssl_enabled_variable: Optional[ssm.StringParameter] = None
         self.php_valkey_tls_variable: Optional[ssm.StringParameter] = None
+        self.rds_slot_secret: Optional[secretsmanager.Secret] = None
 
     def create_db_instance(
         self,
@@ -424,3 +426,47 @@ class DatabaseComponents:
             self.mysql_ssl_ca_variable,
             self.mysql_ssl_enabled_variable,
         )
+
+    def create_rotation_slot_secrets(self) -> secretsmanager.Secret:
+        """Create dual-slot secret used by the credential rotation task.
+
+        Returns:
+            The RDS slot secret
+        """
+        if not self.db_instance:
+            raise ValueError("Database cluster must be created before slot secrets")
+
+        kms_key = self.scope.kms_keys.central_key
+
+        self.rds_slot_secret = secretsmanager.Secret(
+            self.scope,
+            "RdsSlotSecret",
+            encryption_key=kms_key,
+            secret_string_value=SecretValue.unsafe_plain_text(
+                (
+                    '{"active_slot":"A",'
+                    '"A":{"username":"openemr_a","password":"placeholder","host":"'
+                    + str(self.db_instance.cluster_endpoint.hostname)
+                    + '","port":"3306","dbname":"openemr"},'
+                    '"B":{"username":"openemr_b","password":"placeholder","host":"'
+                    + str(self.db_instance.cluster_endpoint.hostname)
+                    + '","port":"3306","dbname":"openemr"}}'
+                )
+            ),
+        )
+
+        NagSuppressions.add_resource_suppressions(
+            self.rds_slot_secret,
+            [
+                {
+                    "id": "AwsSolutions-SMG4",
+                    "reason": "Credential slot secrets are rotated by a dedicated ECS rotation task, not by built-in SM rotation Lambda",
+                },
+                {
+                    "id": "HIPAA.Security-SecretsManagerRotationEnabled",
+                    "reason": "Credential slot secrets are rotated by a dedicated ECS rotation task with application-aware flip/rollback",
+                },
+            ],
+        )
+
+        return self.rds_slot_secret

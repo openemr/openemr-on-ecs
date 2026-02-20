@@ -1,5 +1,9 @@
-aws-cdk-lib==2.236.0
-constructs==10.4.5
+aws-cdk-lib==2.238.0
+constructs==10.5.0
 cdk-nag==2.37.55
 requests==2.32.5
 boto3>=1.42.18
+
+# Credential rotation tool (tools/credential-rotation)
+pymysql==1.1.2
+redis==7.2.0

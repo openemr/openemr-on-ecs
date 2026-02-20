@@ -1,5 +1,24 @@
 # Building the Backup TUI
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+  - [Using Make (Recommended)](#using-make-recommended)
+  - [Using Go Directly](#using-go-directly)
+  - [Using the Launcher Script](#using-the-launcher-script)
+- [Requirements](#requirements)
+- [Building](#building)
+  - [Build Options](#build-options)
+  - [Build Output](#build-output)
+- [Development Notes](#development-notes)
+- [Implementation Status](#implementation-status)
+  - [✅ Completed Features](#-completed-features)
+  - [🔄 Future Enhancements](#-future-enhancements)
+- [Testing](#testing)
+- [Installation](#installation)
+  - [Local Installation](#local-installation)
+  - [System Installation](#system-installation)
+
 ## Quick Start
 
 ### Using Make (Recommended)

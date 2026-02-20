@@ -291,6 +291,9 @@ class OpenemrEcsStack(Stack):
             self.mysql_ssl_enabled_variable,
         ) = valkey_result
 
+        # Create dual-slot secrets used by the credential rotation task
+        self.rds_slot_secret = database.create_rotation_slot_secrets()
+
         # Create EFS volumes (required for OpenEMR)
         efs_result = storage.create_efs_volumes(self.vpc, context)
         if not efs_result:
@@ -450,6 +453,19 @@ class OpenemrEcsStack(Stack):
         # ECS service must wait for SSM parameters to be created
         self.openemr_service.node.add_dependency(self.swarm_mode)
         self.openemr_service.node.add_dependency(self.mysql_port_var)
+
+        # Create one-off ECS task definition for zero-downtime credential rotation
+        self.credential_rotation_task_definition = compute.create_credential_rotation_task(
+            self.ecs_cluster,
+            self.log_group,
+            self.vpc,
+            self.ecs_task_sec_group,
+            self.efs_volume_configuration_for_sites_folder,
+            self.rds_slot_secret,
+            self.db_secret,
+            self.openemr_service.service.service_name,
+            self.alb.load_balancer_dns_name,
+        )
 
         # Create serverless analytics environment (optional)
         self.sagemaker_domain_id = None
@@ -798,6 +814,20 @@ def handler(event, context):
             "OpenEMRPasswordSecretARN",
             value=self.password.secret_arn,
             description="ARN of the Secrets Manager secret containing OpenEMR admin password",
+        )
+
+        # Credential rotation slot secrets
+        CfnOutput(
+            self,
+            "RdsSlotSecretARN",
+            value=self.rds_slot_secret.secret_arn,
+            description="ARN of Secrets Manager secret with RDS dual-slot credentials",
+        )
+        CfnOutput(
+            self,
+            "CredentialRotationTaskDefinitionArn",
+            value=self.credential_rotation_task_definition.task_definition_arn,
+            description="ARN of ECS task definition used for credential rotation runs",
         )
 
         # Stack termination protection status

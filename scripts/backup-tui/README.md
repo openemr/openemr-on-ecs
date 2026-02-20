@@ -2,6 +2,33 @@
 
 A beautiful Terminal User Interface (TUI) built with Go, Bubbletea, and Lipgloss for managing and restoring AWS backups interactively.
 
+## Table of Contents
+
+- [Features](#features)
+- [Screenshots](#screenshots)
+  - [Backup List View](#backup-list-view)
+  - [Backup Detail View](#backup-detail-view)
+- [Installation](#installation)
+  - [Prerequisites](#prerequisites)
+  - [Build](#build)
+- [Usage](#usage)
+  - [Basic Usage](#basic-usage)
+  - [Command Line Options](#command-line-options)
+  - [Controls](#controls)
+- [Features in Detail](#features-in-detail)
+  - [Backup List View](#backup-list-view-1)
+  - [Backup Detail View](#backup-detail-view-1)
+  - [Help Screen](#help-screen)
+- [Development](#development)
+  - [Project Structure](#project-structure)
+  - [Dependencies](#dependencies)
+  - [Building for Distribution](#building-for-distribution)
+- [Comparison with Bash Script](#comparison-with-bash-script)
+- [Future Enhancements](#future-enhancements)
+- [Contributing](#contributing)
+- [License](#license)
+- [See Also](#see-also)
+
 ## Features
 
 - 🎨 **Beautiful UI** - Modern, colorful interface with smooth navigation

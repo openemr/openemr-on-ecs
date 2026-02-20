@@ -2,6 +2,35 @@
 
 This document explains why certain CDK Nag findings are suppressed in the OpenEMR on ECS deployment.
 
+## Table of Contents
+
+- [Wildcards in IAM Policies (AwsSolutions-IAM5, HIPAA.Security-IAMNoInlinePolicy)](#wildcards-in-iam-policies-awssolutions-iam5-hipaasecurity-iamnoinlinepolicy)
+  - [Lambda Functions](#lambda-functions)
+  - [SageMaker Execution Role](#sagemaker-execution-role)
+  - [EMR Serverless and Glue](#emr-serverless-and-glue)
+- [AWS Managed Policies (AwsSolutions-IAM4)](#aws-managed-policies-awssolutions-iam4)
+- [Lambda Configuration (HIPAA.Security-Lambda*)](#lambda-configuration-hipaasecurity-lambda)
+  - [Lambda Not in VPC](#lambda-not-in-vpc)
+  - [Lambda Concurrency and DLQ](#lambda-concurrency-and-dlq)
+- [IAM User with Inline Policy (HIPAA.Security-IAMUserNoPolicies)](#iam-user-with-inline-policy-hipaasecurity-iamusernopolicies)
+  - [SMTP User](#smtp-user)
+- [Environment Variables in ECS Task (AwsSolutions-ECS2)](#environment-variables-in-ecs-task-awssolutions-ecs2)
+- [S3 Bucket Configuration](#s3-bucket-configuration)
+  - [Replication Not Enabled](#replication-not-enabled)
+  - [Buckets Without Server Access Logging](#buckets-without-server-access-logging)
+- [VPC and Network](#vpc-and-network)
+  - [Public Subnet IGW Routes (HIPAA.Security-VPCNoUnrestrictedRouteToIGW)](#public-subnet-igw-routes-hipaasecurity-vpcnounrestrictedroutetoigw)
+  - [Default Security Group (HIPAA.Security-VPCDefaultSecurityGroupClosed)](#default-security-group-hipaasecurity-vpcdefaultsecuritygroupclosed)
+  - [VPC Endpoint Security Groups (CdkNagValidationFailure)](#vpc-endpoint-security-groups-cdknagvalidationfailure)
+- [RDS Configuration](#rds-configuration)
+  - [Default Port (AwsSolutions-RDS11)](#default-port-awssolutions-rds11)
+  - [Backtrack Not Enabled (AwsSolutions-RDS14)](#backtrack-not-enabled-awssolutions-rds14)
+  - [Deletion Protection (AwsSolutions-RDS10)](#deletion-protection-awssolutions-rds10)
+- [Secrets Manager](#secrets-manager)
+  - [Rotation Not Enabled (AwsSolutions-SMG4, HIPAA.Security-SecretsManagerRotationEnabled)](#rotation-not-enabled-awssolutions-smg4-hipaasecurity-secretsmanagerrotationenabled)
+- [CloudWatch Logs](#cloudwatch-logs)
+- [Summary](#summary)
+
 ## Wildcards in IAM Policies (AwsSolutions-IAM5, HIPAA.Security-IAMNoInlinePolicy)
 
 ### Lambda Functions

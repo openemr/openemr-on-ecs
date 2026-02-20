@@ -34,6 +34,10 @@ class StackConstants:
     # Using Python 3.14 for latest features and security updates.
     # Update this when AWS deprecates older Python runtimes.
 
+    # Credential Rotation Task Python Version
+    CREDENTIAL_ROTATION_PYTHON_VERSION = "3.14"
+    # Base image: python:{version}-slim. Update when upgrading the rotation container.
+
     # Container Image Version
     OPENEMR_VERSION = "8.0.0"
     # Use the second-latest tagged version for the "openemr/openemr" docker container.
