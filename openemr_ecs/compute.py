@@ -868,8 +868,8 @@ class ComputeComponents:
 
         # Configure ECS Exec if enabled
         if is_true(context.get("enable_ecs_exec")) and exec_bucket and ecs_exec_group:
-            openemr_service_cfn.add_property_override("EnableExecuteCommand", "True") # type: ignore
-            openemr_fargate_task_definition.task_role.add_to_policy(                  # type: ignore
+            openemr_service_cfn.add_property_override("EnableExecuteCommand", "True")  # type: ignore
+            openemr_fargate_task_definition.task_role.add_to_policy(  # type: ignore
                 iam.PolicyStatement(
                     actions=[
                         "ssmmessages:CreateControlChannel",

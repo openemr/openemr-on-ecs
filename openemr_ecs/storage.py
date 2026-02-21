@@ -440,8 +440,8 @@ class StorageComponents:
                 backup.BackupResource.from_efs_file_system(ssl_efs),
                 backup.BackupResource.from_efs_file_system(sites_efs),
             ],
-            role=backup_role,    # Pass the role explicitly
-            allow_restores=True, # Enable restore permissions for the backup plan role
+            role=backup_role,  # Pass the role explicitly
+            allow_restores=True,  # Enable restore permissions for the backup plan role
         )
 
         return plan

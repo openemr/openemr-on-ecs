@@ -27,11 +27,11 @@ def test_validate_context_full_config(full_context):
 def test_validate_fargate_cpu_memory_valid():
     """Test CPU/memory validation with valid combinations."""
     # Valid combinations (function expects int, not strings)
-    validate_fargate_cpu_memory(256, 512)   # Should not raise
+    validate_fargate_cpu_memory(256, 512)  # Should not raise
     validate_fargate_cpu_memory(512, 1024)  # Should not raise
-    validate_fargate_cpu_memory(1024, 2048) # Should not raise
-    validate_fargate_cpu_memory(2048, 4096) # Should not raise
-    validate_fargate_cpu_memory(4096, 8192) # Should not raise
+    validate_fargate_cpu_memory(1024, 2048)  # Should not raise
+    validate_fargate_cpu_memory(2048, 4096)  # Should not raise
+    validate_fargate_cpu_memory(4096, 8192)  # Should not raise
 
 
 def test_validate_fargate_cpu_memory_invalid():
@@ -114,9 +114,9 @@ def test_validate_email_forwarding_config_ses_disabled():
 def test_validate_context_invalid_cpu_memory():
     """Test context validation catches invalid CPU/memory."""
     context = {
-        "openemr_service_fargate_cpu": 256,     # Note: validation converts to int
-        "openemr_service_fargate_memory": 4096, # Invalid: too much memory for 256 CPU (max is 2048)
-        "route53_domain": "example.com",        # Certificate required
+        "openemr_service_fargate_cpu": 256,  # Note: validation converts to int
+        "openemr_service_fargate_memory": 4096,  # Invalid: too much memory for 256 CPU (max is 2048)
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -268,8 +268,8 @@ def test_validate_context_invalid_memory_type():
     """Test context validation catches invalid memory type (ValueError/TypeError)."""
     context = {
         "openemr_service_fargate_cpu": 1024,
-        "openemr_service_fargate_memory": {"a": 1}, # Non-empty dict is truthy but can't be converted to int
-        "route53_domain": "example.com",            # Certificate required
+        "openemr_service_fargate_memory": {"a": 1},  # Non-empty dict is truthy but can't be converted to int
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -353,8 +353,8 @@ def test_validate_context_certificate_arn_invalid_format():
 def test_validate_context_ipv4_range_invalid_type():
     """Test context validation catches invalid IPv4 range type."""
     context = {
-        "security_group_ip_range_ipv4": 12345, # Not a string
-        "route53_domain": "example.com",       # Certificate required
+        "security_group_ip_range_ipv4": 12345,  # Not a string
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -379,8 +379,8 @@ def test_validate_context_ipv4_range_invalid_format():
 def test_validate_context_ipv6_range_invalid_type():
     """Test context validation catches invalid IPv6 range type."""
     context = {
-        "security_group_ip_range_ipv6": 12345, # Not a string
-        "route53_domain": "example.com",       # Certificate required
+        "security_group_ip_range_ipv6": 12345,  # Not a string
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -392,8 +392,8 @@ def test_validate_context_ipv6_range_invalid_type():
 def test_validate_context_ipv6_range_invalid_format():
     """Test context validation catches invalid IPv6 range format."""
     context = {
-        "security_group_ip_range_ipv6": "invalid-ipv6", # Missing /
-        "route53_domain": "example.com",                # Certificate required
+        "security_group_ip_range_ipv6": "invalid-ipv6",  # Missing /
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -405,8 +405,8 @@ def test_validate_context_ipv6_range_invalid_format():
 def test_validate_context_email_forwarding_invalid_type():
     """Test context validation catches invalid email_forwarding_address type."""
     context = {
-        "email_forwarding_address": 12345, # Not a string
-        "route53_domain": "example.com",   # Certificate required
+        "email_forwarding_address": 12345,  # Not a string
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -418,8 +418,8 @@ def test_validate_context_email_forwarding_invalid_type():
 def test_validate_context_email_forwarding_invalid_format_2():
     """Test context validation catches invalid email format (additional test)."""
     context = {
-        "email_forwarding_address": "@example.com", # Missing local part
-        "route53_domain": "example.com",            # Certificate required
+        "email_forwarding_address": "@example.com",  # Missing local part
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -431,8 +431,8 @@ def test_validate_context_email_forwarding_invalid_format_2():
 def test_validate_context_invalid_autoscaling_percentage():
     """Test context validation catches invalid autoscaling percentage."""
     context = {
-        "openemr_service_fargate_cpu_autoscaling_percentage": 150, # Invalid: > 100
-        "route53_domain": "example.com",                           # Certificate required
+        "openemr_service_fargate_cpu_autoscaling_percentage": 150,  # Invalid: > 100
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -458,8 +458,8 @@ def test_validate_context_invalid_capacity_min_greater_than_max():
 def test_validate_context_invalid_timeout_parameter():
     """Test context validation catches invalid timeout parameter."""
     context = {
-        "net_read_timeout": "0",         # Invalid: must be positive
-        "route53_domain": "example.com", # Certificate required
+        "net_read_timeout": "0",  # Invalid: must be positive
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -472,8 +472,8 @@ def test_validate_context_bedrock_timeout_validation():
     """Test context validation validates timeout when Bedrock is enabled."""
     context = {
         "enable_bedrock_integration": "true",
-        "aurora_ml_inference_timeout": "0", # Invalid: must be positive
-        "route53_domain": "example.com",    # Certificate required
+        "aurora_ml_inference_timeout": "0",  # Invalid: must be positive
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
@@ -485,8 +485,8 @@ def test_validate_context_bedrock_timeout_validation():
 def test_validate_context_ipv4_range_auto():
     """Test context validation accepts 'auto' for IPv4 range."""
     context = {
-        "security_group_ip_range_ipv4": "auto", # Valid: will be resolved at deployment time
-        "route53_domain": "example.com",        # Certificate required
+        "security_group_ip_range_ipv4": "auto",  # Valid: will be resolved at deployment time
+        "route53_domain": "example.com",  # Certificate required
         "certificate_arn": None,
         "configure_ses": False,
     }
