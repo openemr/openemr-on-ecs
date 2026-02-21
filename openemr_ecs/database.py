@@ -105,13 +105,13 @@ class DatabaseComponents:
         # This is a security best practice and is required for HIPAA compliance.
         # OpenEMR automatically uses SSL when the MySQL CA certificate is present.
         parameters = {
-            "server_audit_logs_upload": "1",  # Upload audit logs to CloudWatch
-            "log_queries_not_using_indexes": "1",  # Log slow queries for optimization
-            "general_log": "1",  # Enable general query logging
-            "slow_query_log": "1",  # Enable slow query logging
-            "server_audit_logging": "1",  # Enable server audit logging
-            "require_secure_transport": "ON",  # CRITICAL: Enforces SSL/TLS for all connections
-            "server_audit_events": "CONNECT,QUERY,QUERY_DCL,QUERY_DDL,QUERY_DML,TABLE",  # Audit all database events
+            "server_audit_logs_upload": "1",                                            # Upload audit logs to CloudWatch
+            "log_queries_not_using_indexes": "1",                                       # Log slow queries for optimization
+            "general_log": "1",                                                         # Enable general query logging
+            "slow_query_log": "1",                                                      # Enable slow query logging
+            "server_audit_logging": "1",                                                # Enable server audit logging
+            "require_secure_transport": "ON",                                           # CRITICAL: Enforces SSL/TLS for all connections
+            "server_audit_events": "CONNECT,QUERY,QUERY_DCL,QUERY_DDL,QUERY_DML,TABLE", # Audit all database events
         }
 
         # Add timeout parameters from context (only if provided, to avoid None values)

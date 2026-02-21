@@ -143,21 +143,21 @@ go install .
 
 ```
 backup-tui/
-├── main.go                    # Entry point
-├── go.mod                     # Go module dependencies
-├── Makefile                   # Build automation
-├── backup-tui.sh              # POSIX-compliant launcher script
+├── main.go       # Entry point
+├── go.mod        # Go module dependencies
+├── Makefile      # Build automation
+├── backup-tui.sh # POSIX-compliant launcher script
 ├── internal/
 │   ├── app/
 │   │   └── model.go           # Main application model (Bubbletea)
 │   ├── aws/
-│   │   ├── backup.go          # AWS Backup client
-│   │   └── config.go          # AWS config loading
+│   │   ├── backup.go # AWS Backup client
+│   │   └── config.go # AWS config loading
 │   └── ui/
-│       ├── list.go            # List view component
-│       ├── detail.go          # Detail view component
-│       ├── help.go            # Help screen component
-│       └── logo.go            # OpenEMR logo (ASCII art)
+│       ├── list.go   # List view component
+│       ├── detail.go # Detail view component
+│       ├── help.go   # Help screen component
+│       └── logo.go   # OpenEMR logo (ASCII art)
 └── README.md
 ```
 

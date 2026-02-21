@@ -175,9 +175,9 @@ Test Summary
 ./scripts/load-test.sh [stack-name]
 
 # With custom parameters
-export DURATION=120                    # Test duration in seconds
-export CONCURRENT_USERS=100            # Number of concurrent users
-export REQUESTS_PER_SECOND=200         # Target requests per second
+export DURATION=120            # Test duration in seconds
+export CONCURRENT_USERS=100    # Number of concurrent users
+export REQUESTS_PER_SECOND=200 # Target requests per second
 ./scripts/load-test.sh OpenemrEcsStack
 ```
 

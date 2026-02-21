@@ -442,8 +442,8 @@ class SecurityComponents:
         suppress_lambda_role_common_findings(self.one_time_generate_smtp_credential_lambda.role, role_type="smtp_setup")
 
         # Grant permissions (this creates the DefaultPolicy)
-        secret_access_key.grant_read(self.one_time_generate_smtp_credential_lambda.role)  # type: ignore
-        self.smtp_password.grant_write(self.one_time_generate_smtp_credential_lambda.role)  # type: ignore
+        secret_access_key.grant_read(self.one_time_generate_smtp_credential_lambda.role)   # type: ignore
+        self.smtp_password.grant_write(self.one_time_generate_smtp_credential_lambda.role) # type: ignore
 
         # Add suppressions for DefaultPolicy (after grants create it)
         NagSuppressions.add_resource_suppressions(

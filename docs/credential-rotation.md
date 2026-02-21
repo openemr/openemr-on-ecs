@@ -128,8 +128,8 @@ for IAM trust-policy setup.
 name: Rotate credentials
 on:
   schedule:
-    - cron: '0 3 1 * *'    # 03:00 UTC on the 1st of every month
-  workflow_dispatch:       # allow manual trigger
+    - cron: '0 3 1 * *' # 03:00 UTC on the 1st of every month
+  workflow_dispatch:    # allow manual trigger
 
 env:
   AWS_REGION: us-west-2

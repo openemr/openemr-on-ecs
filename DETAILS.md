@@ -207,9 +207,9 @@ We've created an automated load testing script that makes it easy to verify your
 
 **Custom Configuration:**
 ```bash
-export DURATION=120                    # Test duration in seconds
-export CONCURRENT_USERS=100            # Number of concurrent users
-export REQUESTS_PER_SECOND=200         # Target requests per second
+export DURATION=120            # Test duration in seconds
+export CONCURRENT_USERS=100    # Number of concurrent users
+export REQUESTS_PER_SECOND=200 # Target requests per second
 ./scripts/load-test.sh OpenemrEcsStack
 ```
 

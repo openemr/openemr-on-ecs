@@ -89,8 +89,8 @@ class TestElastiCacheConfiguration:
         security_groups = template.find_resources("AWS::EC2::SecurityGroup")
 
         # Should have some caching infrastructure or security groups
-        assert len(cache_clusters) >= 0  # May or may not have cache
-        assert len(security_groups) > 0  # Should have security groups
+        assert len(cache_clusters) >= 0 # May or may not have cache
+        assert len(security_groups) > 0 # Should have security groups
 
     def test_elasticache_encryption_in_transit(self, template):
         """Test ElastiCache has encryption in transit enabled."""

@@ -57,13 +57,13 @@ make build
 ### Build Options
 
 ```bash
-make build              # Build for current platform
-make build-all          # Build for Linux, macOS, and Windows
-make build-linux        # Build for Linux (amd64)
-make build-darwin       # Build for macOS (amd64 and arm64)
-make build-windows      # Build for Windows (amd64)
-make clean              # Remove build artifacts
-make help               # Show all available targets
+make build         # Build for current platform
+make build-all     # Build for Linux, macOS, and Windows
+make build-linux   # Build for Linux (amd64)
+make build-darwin  # Build for macOS (amd64 and arm64)
+make build-windows # Build for Windows (amd64)
+make clean         # Remove build artifacts
+make help          # Show all available targets
 ```
 
 ### Build Output

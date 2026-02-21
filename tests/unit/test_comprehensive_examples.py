@@ -42,8 +42,8 @@ class TestUtilFunctions:
         suffix2 = get_resource_suffix(context)
 
         assert suffix1 == suffix2
-        assert len(suffix1) >= 6  # At least 6 characters
-        assert suffix1.replace("-", "").isalnum()  # Alphanumeric (allowing hyphens)
+        assert len(suffix1) >= 6                  # At least 6 characters
+        assert suffix1.replace("-", "").isalnum() # Alphanumeric (allowing hyphens)
 
 
 class TestValidationExtended:
