@@ -1,0 +1,42 @@
+{
+  "family": "openemr-fix-sqlconf-permissions",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "PLACEHOLDER_EXECUTION_ROLE_ARN",
+  "taskRoleArn": "PLACEHOLDER_TASK_ROLE_ARN",
+  "volumes": [
+    {
+      "name": "SitesFolderVolume",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "PLACEHOLDER_EFS_FILE_SYSTEM_ID",
+        "rootDirectory": "/",
+        "transitEncryption": "ENABLED"
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "fix-perms",
+      "image": "public.ecr.aws/docker/library/alpine:latest",
+      "essential": true,
+      "command": ["sh", "-c", "chmod 755 /mnt/openemr-sites /mnt/openemr-sites/default && chmod 644 /mnt/openemr-sites/default/sqlconf.php && ls -la /mnt/openemr-sites/default/sqlconf.php && echo done"],
+      "mountPoints": [
+        {
+          "sourceVolume": "SitesFolderVolume",
+          "containerPath": "/mnt/openemr-sites",
+          "readOnly": false
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "PLACEHOLDER_LOG_GROUP_NAME",
+          "awslogs-region": "PLACEHOLDER_AWS_REGION",
+          "awslogs-stream-prefix": "ecs/fix-sqlconf"
+        }
+      }
+    }
+  ]
+}

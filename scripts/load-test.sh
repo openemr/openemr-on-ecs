@@ -12,10 +12,10 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Default values
-DURATION=${DURATION:-60}           # Test duration in seconds
-CONCURRENT_USERS=${CONCURRENT_USERS:-50}  # Number of concurrent users
-REQUESTS_PER_SECOND=${REQUESTS_PER_SECOND:-100}  # Target requests per second
-WARMUP_TIME=${WARMUP_TIME:-10}     # Warmup period in seconds
+DURATION=${DURATION:-60}                        # Test duration in seconds
+CONCURRENT_USERS=${CONCURRENT_USERS:-50}        # Number of concurrent users
+REQUESTS_PER_SECOND=${REQUESTS_PER_SECOND:-100} # Target requests per second
+WARMUP_TIME=${WARMUP_TIME:-10}                  # Warmup period in seconds
 
 log() {
     echo -e "${BLUE}[$(date +%H:%M:%S)]${NC} $1"

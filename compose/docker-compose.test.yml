@@ -1,7 +1,7 @@
 services:
   # Simulate the ECS container startup for testing
   openemr-test:
-    image: openemr/openemr:7.0.4
+    image: openemr/openemr:8.0.0
     container_name: openemr-container-test
     # Exact copy of startup script from compute.py - matches production ECS deployment
     command:
@@ -301,7 +301,7 @@ services:
     #   # Mount the openemr.sh script if you want to test modifications
     #   # Note: Don't mount as read-only since chmod needs to work
     #   # You can find openemr-devops at: https://github.com/openemr/openemr-devops
-    #   - ./openemr-devops/docker/openemr/7.0.4/openemr.sh:/var/www/localhost/htdocs/openemr/openemr.sh
+    #   - ./openemr-devops/docker/openemr/8.0.0/openemr.sh:/var/www/localhost/htdocs/openemr/openemr.sh
     networks:
       - openemr-test-network
     depends_on:

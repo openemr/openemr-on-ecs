@@ -28,9 +28,9 @@ The test suite validates that the CDK stack:
 
 ```
 tests/
-├── README.md                    # This file
-└── unit/                        # Unit tests
-    └── test_openemr_ecs_stack.py   # Stack synthesis tests
+├── README.md                     # This file
+└── unit/                         # Unit tests
+    └── test_openemr_ecs_stack.py # Stack synthesis tests
 ```
 
 ### Test Organization

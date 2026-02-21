@@ -161,7 +161,7 @@ Key Assumptions:
     - 30 daily + 4 weekly + 1 monthly = ~35 backups per month
     - Cost: (35/1000) × $0.05 = $0.00175/month
   - Total AWS Backup Monthly Cost: **$0.05/month**
-- 2 Secrets Manager Secrets: **$0.80/month**
+- 3 Secrets Manager Secrets: **$1.20/month**
 - 1 WAF ACL with enhanced protection rules: **$5/month base + additional costs for managed rule groups**
   - Includes: AWS Managed Common Rule Set, SQL Injection Protection, Known Bad Inputs, Rate Limiting (2000 req/5min/IP), and Suspicious User-Agent blocking
 - 1 KMS Key: **$1/month**
@@ -244,46 +244,46 @@ Before starting, you'll need:
 
 ```
 .
-├── app.py                                          # CDK app entrypoint
-├── cdk.json                                        # CDK context (tunable defaults)
-├── requirements.txt                                # Python dependencies
-├── openemr_ecs/                                    # CDK stacks and modules
-│   ├── stack.py                                    # Orchestrator
-│   ├── compute.py                                  # ECS/Fargate service
-│   ├── network.py                                  # VPC, ALB, SGs
-│   ├── storage.py                                  # EFS, Backup
-│   ├── database.py                                 # Aurora config
-│   ├── security.py                                 # WAF, certs, DNS, SES
-│   ├── analytics.py                                # Optional analytics env
-│   ├── monitoring.py                               # CloudWatch alarms and SNS
-│   ├── validation.py                               # Configuration validation
-│   ├── utils.py                                    # Shared utilities
-│   └── constants.py                                # Shared constants/versions
-├── lambda/                                         # Lambda functions
-│   └── lambda_functions.py                         # Lambda code for triggers
-├── compose/                                        # Local docker-compose test rigs (basic & SSL)
-│   ├── docker-compose.test.yml                     # Basic test configuration
-│   └── docker-compose.test-ssl.yml                 # SSL test configuration
-├── scripts/                                        # Helper scripts for deployment, testing, and validation
-│   ├── validate-deployment-prerequisites.sh        # Pre-deployment validation
-│   ├── stress-test.sh                              # CDK stack stress testing
-│   ├── load-test.sh                                # Load testing for deployed application
-│   ├── restore-from-backup.sh                      # Restore from AWS Backup recovery points
-│   ├── test-startup.sh                             # Local container testing (basic)
-│   ├── test-startup-ssl.sh                         # Local container testing (with SSL)
-│   └── README.md                                   # Scripts documentation
-├── tests/                                          # Unit tests for CDK stack
-├── docs/                                           # Images and diagrams
-├── README.md                                       # This file
-├── GETTING-STARTED.md                              # Beginner-friendly setup guide
-├── README-TESTING.md                               # Local testing guide
-├── DEPLOYMENT-RELIABILITY.md                       # Deployment reliability improvements
-├── BACKUP-RESTORE-GUIDE.md                         # Backup and restore procedures
-├── DETAILS.md                                      # Deep configuration details
-├── ARCHITECTURE.md                                 # Architecture deep dive
-├── TROUBLESHOOTING.md                              # Common issues/solutions
-├── LICENSE                                         # Project license
-└── CHANGELOG.md                                    # Version history
+├── app.py                                   # CDK app entrypoint
+├── cdk.json                                 # CDK context (tunable defaults)
+├── requirements.txt                         # Python dependencies
+├── openemr_ecs/                             # CDK stacks and modules
+│   ├── stack.py                             # Orchestrator
+│   ├── compute.py                           # ECS/Fargate service
+│   ├── network.py                           # VPC, ALB, SGs
+│   ├── storage.py                           # EFS, Backup
+│   ├── database.py                          # Aurora config
+│   ├── security.py                          # WAF, certs, DNS, SES
+│   ├── analytics.py                         # Optional analytics env
+│   ├── monitoring.py                        # CloudWatch alarms and SNS
+│   ├── validation.py                        # Configuration validation
+│   ├── utils.py                             # Shared utilities
+│   └── constants.py                         # Shared constants/versions
+├── lambda/                                  # Lambda functions
+│   └── lambda_functions.py                  # Lambda code for triggers
+├── compose/                                 # Local docker-compose test rigs (basic & SSL)
+│   ├── docker-compose.test.yml              # Basic test configuration
+│   └── docker-compose.test-ssl.yml          # SSL test configuration
+├── scripts/                                 # Helper scripts for deployment, testing, and validation
+│   ├── validate-deployment-prerequisites.sh # Pre-deployment validation
+│   ├── stress-test.sh                       # CDK stack stress testing
+│   ├── load-test.sh                         # Load testing for deployed application
+│   ├── restore-from-backup.sh               # Restore from AWS Backup recovery points
+│   ├── test-startup.sh                      # Local container testing (basic)
+│   ├── test-startup-ssl.sh                  # Local container testing (with SSL)
+│   └── README.md                            # Scripts documentation
+├── tests/                                   # Unit tests for CDK stack
+├── docs/                                    # Images and diagrams
+├── README.md                                # This file
+├── GETTING-STARTED.md                       # Beginner-friendly setup guide
+├── README-TESTING.md                        # Local testing guide
+├── DEPLOYMENT-RELIABILITY.md                # Deployment reliability improvements
+├── BACKUP-RESTORE-GUIDE.md                  # Backup and restore procedures
+├── DETAILS.md                               # Deep configuration details
+├── ARCHITECTURE.md                          # Architecture deep dive
+├── TROUBLESHOOTING.md                       # Common issues/solutions
+├── LICENSE                                  # Project license
+└── CHANGELOG.md                             # Version history
 ```
 
 ## Access OpenEMR

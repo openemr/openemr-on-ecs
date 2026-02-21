@@ -23,19 +23,19 @@ The `openemr_ecs` package is organized into specialized modules, each responsibl
 
 ```
 openemr_ecs/
-├── __init__.py           # Package initialization
-├── stack.py              # Main stack orchestrator
-├── constants.py          # Shared constants and versions
-├── utils.py              # Utility functions
-├── validation.py         # Configuration validation
-├── network.py            # Network infrastructure
-├── storage.py            # Storage resources
-├── database.py           # Database components
-├── compute.py            # Compute resources
-├── security.py           # Security components
-├── analytics.py          # Analytics environment
-├── monitoring.py         # Monitoring and alarms
-└── cleanup.py            # Stack cleanup automation
+├── __init__.py   # Package initialization
+├── stack.py      # Main stack orchestrator
+├── constants.py  # Shared constants and versions
+├── utils.py      # Utility functions
+├── validation.py # Configuration validation
+├── network.py    # Network infrastructure
+├── storage.py    # Storage resources
+├── database.py   # Database components
+├── compute.py    # Compute resources
+├── security.py   # Security components
+├── analytics.py  # Analytics environment
+├── monitoring.py # Monitoring and alarms
+└── cleanup.py    # Stack cleanup automation
 ```
 
 ## Core Modules

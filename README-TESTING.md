@@ -73,13 +73,13 @@ The testing files are organized as follows:
 ```
 openemr-on-ecs/
 ├── compose/
-│   ├── docker-compose.test.yml          # Basic test (no SSL)
-│   └── docker-compose.test-ssl.yml     # SSL test (simulates RDS)
+│   ├── docker-compose.test.yml     # Basic test (no SSL)
+│   └── docker-compose.test-ssl.yml # SSL test (simulates RDS)
 └── scripts/
-    ├── test-startup.sh                  # Basic test runner
-    ├── test-startup-ssl.sh              # SSL test runner
-    ├── mysql-ssl-setup.sh               # MySQL SSL certificate generator
-    └── setup-mysql-ssl-ca.sh           # Helper to extract MySQL CA cert
+    ├── test-startup.sh       # Basic test runner
+    ├── test-startup-ssl.sh   # SSL test runner
+    ├── mysql-ssl-setup.sh    # MySQL SSL certificate generator
+    └── setup-mysql-ssl-ca.sh # Helper to extract MySQL CA cert
 ```
 
 **Note:** The Docker Compose files reference the OpenEMR container image and scripts. The OpenEMR DevOps repository (which contains the Docker configuration) can be found at: https://github.com/openemr/openemr-devops
@@ -188,7 +188,7 @@ ls -la /root/certs/redis/
 ## Comparing with ECS
 
 The local test environment uses:
-- Same Docker image: `openemr/openemr:7.0.4`
+- Same Docker image: `openemr/openemr:8.0.0`
 - Same startup command from `compute.py`
 - Same environment variable structure
 

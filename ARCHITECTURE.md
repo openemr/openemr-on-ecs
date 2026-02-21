@@ -8,8 +8,10 @@ This document provides a detailed overview of the OpenEMR on AWS Fargate archite
 - [Network Architecture](#network-architecture)
 - [Security Architecture](#security-architecture)
 - [Data Flow](#data-flow)
+- [Credential Rotation Flow](#credential-rotation-flow)
 - [Scaling Architecture](#scaling-architecture)
 - [Disaster Recovery](#disaster-recovery)
+- [Credential Rotation Architecture](#credential-rotation-architecture)
 
 ## Overview
 
@@ -111,6 +113,7 @@ Two EFS file systems are used:
   - Database credentials (auto-generated)
   - OpenEMR admin credentials (auto-generated)
   - SMTP credentials (if SES configured)
+  - Dual-slot credential secrets for database and cache rotation (`A`/`B` slots with active pointer)
 
 #### AWS KMS
 - **Purpose**: Encryption key management
@@ -184,8 +187,16 @@ ElastiCache Valkey (TLS encrypted)
 
 ### Access Control
 - **IAM Roles**: Least privilege for all services
-- **Secrets Manager**: Automatic credential rotation
+- **Secrets Manager**: Credential storage and controlled rotation workflows
 - **VPC Isolation**: Resources isolated in private subnets
+
+### Credential Rotation Architecture
+- **Model**: Dual-slot credentials for database and cache (`active_slot` + `A`/`B` entries)
+- **Flip Mechanism**: Application database config updates to standby slot on shared storage
+- **Refresh Strategy**: Forced ECS rolling deployment to safely reload runtime/opcache without downtime
+- **Validation Gates**: Database connectivity, cache connectivity, and application health checks
+- **Rollback Rule**: If post-flip validation fails, restore prior config and redeploy service
+- **Finalization Rule**: If old-slot rotation fails, keep service on current active slot and fail closed
 
 ## Data Flow
 
@@ -195,6 +206,16 @@ ElastiCache Valkey (TLS encrypted)
 3. OpenEMR configuration script runs
 4. Database connection established (with SSL)
 5. Application becomes healthy and receives traffic
+
+### Credential Rotation Flow
+1. Determine current active slot (`A` or `B`)
+2. Select standby slot
+3. Update application database config to standby credentials
+4. Trigger rolling ECS deployment
+5. Validate database, cache, and app health
+6. Rotate credentials in old slot
+7. Validate rotated old slot independently
+8. Persist updated active slot state
 
 ### User Request Flow
 1. User makes HTTPS request
