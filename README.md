@@ -161,7 +161,7 @@ Key Assumptions:
     - 30 daily + 4 weekly + 1 monthly = ~35 backups per month
     - Cost: (35/1000) × $0.05 = $0.00175/month
   - Total AWS Backup Monthly Cost: **$0.05/month**
-- 2 Secrets Manager Secrets: **$0.80/month**
+- 3 Secrets Manager Secrets: **$1.20/month**
 - 1 WAF ACL with enhanced protection rules: **$5/month base + additional costs for managed rule groups**
   - Includes: AWS Managed Common Rule Set, SQL Injection Protection, Known Bad Inputs, Rate Limiting (2000 req/5min/IP), and Suspicious User-Agent blocking
 - 1 KMS Key: **$1/month**
