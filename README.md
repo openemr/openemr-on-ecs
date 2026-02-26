@@ -247,6 +247,8 @@ Before starting, you'll need:
 ├── app.py                                   # CDK app entrypoint
 ├── cdk.json                                 # CDK context (tunable defaults)
 ├── requirements.txt                         # Python dependencies
+├── requirements-dev.txt                     # Dev/test dependencies
+├── pyproject.toml                           # Python project metadata
 ├── openemr_ecs/                             # CDK stacks and modules
 │   ├── stack.py                             # Orchestrator
 │   ├── compute.py                           # ECS/Fargate service
@@ -256,34 +258,47 @@ Before starting, you'll need:
 │   ├── security.py                          # WAF, certs, DNS, SES
 │   ├── analytics.py                         # Optional analytics env
 │   ├── monitoring.py                        # CloudWatch alarms and SNS
+│   ├── kms_keys.py                          # KMS encryption keys
+│   ├── cleanup.py                           # Stack cleanup automation
+│   ├── nag_suppressions.py                  # cdk-nag suppression rules
 │   ├── validation.py                        # Configuration validation
 │   ├── utils.py                             # Shared utilities
-│   └── constants.py                         # Shared constants/versions
+│   ├── constants.py                         # Shared constants/versions
+│   └── version.py                           # Version management
 ├── lambda/                                  # Lambda functions
 │   └── lambda_functions.py                  # Lambda code for triggers
 ├── compose/                                 # Local docker-compose test rigs (basic & SSL)
 │   ├── docker-compose.test.yml              # Basic test configuration
 │   └── docker-compose.test-ssl.yml          # SSL test configuration
-├── scripts/                                 # Helper scripts for deployment, testing, and validation
+├── scripts/                                 # Helper scripts
 │   ├── validate-deployment-prerequisites.sh # Pre-deployment validation
 │   ├── stress-test.sh                       # CDK stack stress testing
+│   ├── test-cdk-synthesis.py                # Configuration matrix testing
 │   ├── load-test.sh                         # Load testing for deployed application
+│   ├── create-backup.sh                     # Create on-demand backups
+│   ├── list-backups.sh                      # List available backups
 │   ├── restore-from-backup.sh               # Restore from AWS Backup recovery points
+│   ├── cleanup-all-stacks.sh                # Delete all OpenEMR stacks
+│   ├── run-credential-rotation.sh           # Trigger credential rotation
+│   ├── verify-credential-rotation.sh        # Verify rotation completed
 │   ├── test-startup.sh                      # Local container testing (basic)
 │   ├── test-startup-ssl.sh                  # Local container testing (with SSL)
+│   ├── backup-tui/                          # Interactive TUI for backup management (Go)
 │   └── README.md                            # Scripts documentation
 ├── tests/                                   # Unit tests for CDK stack
+├── tools/
+│   └── credential-rotation/                 # Dual-slot credential rotation tool
 ├── docs/                                    # Images and diagrams
 ├── README.md                                # This file
 ├── GETTING-STARTED.md                       # Beginner-friendly setup guide
 ├── README-TESTING.md                        # Local testing guide
-├── DEPLOYMENT-RELIABILITY.md                # Deployment reliability improvements
 ├── BACKUP-RESTORE-GUIDE.md                  # Backup and restore procedures
 ├── DETAILS.md                               # Deep configuration details
 ├── ARCHITECTURE.md                          # Architecture deep dive
 ├── TROUBLESHOOTING.md                       # Common issues/solutions
-├── LICENSE                                  # Project license
-└── CHANGELOG.md                             # Version history
+├── CONTRIBUTING.md                          # Contribution guidelines
+├── CODE_OF_CONDUCT.md                       # Code of conduct
+└── LICENSE                                  # Project license
 ```
 
 ## Access OpenEMR

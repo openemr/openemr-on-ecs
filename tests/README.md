@@ -28,16 +28,31 @@ The test suite validates that the CDK stack:
 
 ```
 tests/
-├── README.md                     # This file
-└── unit/                         # Unit tests
-    └── test_openemr_ecs_stack.py # Stack synthesis tests
+├── README.md                              # This file
+├── __init__.py                            # Package initialization
+├── conftest.py                            # Shared pytest fixtures
+├── helpers.py                             # Test helper utilities
+└── unit/                                  # Unit tests
+    ├── __init__.py                        # Package initialization
+    ├── test_openemr_ecs_stack.py          # Stack synthesis tests
+    ├── test_analytics_comprehensive.py    # Analytics module tests
+    ├── test_comprehensive_examples.py     # Comprehensive example tests
+    ├── test_compute_comprehensive.py      # Compute module tests
+    ├── test_database_comprehensive.py     # Database module tests
+    ├── test_lambda_handlers.py            # Lambda function tests
+    ├── test_monitoring.py                 # Monitoring module tests
+    ├── test_security_comprehensive.py     # Security module tests
+    ├── test_utils.py                      # Utility function tests
+    ├── test_validation.py                 # Validation function tests
+    └── test_version.py                    # Version management tests
 ```
 
 ### Test Organization
 
 Tests are organized by scope:
-- **Unit tests**: Test individual components in isolation
+- **Unit tests**: Test individual modules and functions in isolation
 - **Stack tests**: Test complete stack synthesis and resource creation
+- **Comprehensive tests**: In-depth testing of specific modules (analytics, compute, database, security)
 
 ## Running Tests
 
@@ -455,9 +470,9 @@ Planned test coverage expansions:
 
 ## Related Documentation
 
-- [TESTING-PLAN.md](../TESTING-PLAN.md) - Comprehensive testing plan
-- [TEST-EXECUTION-GUIDE.md](../TEST-EXECUTION-GUIDE.md) - Manual test execution
 - [scripts/stress-test.sh](../scripts/stress-test.sh) - Stress testing script
+- [scripts/test-cdk-synthesis.py](../scripts/test-cdk-synthesis.py) - Configuration matrix testing
+- [README-TESTING.md](../README-TESTING.md) - Local testing guide
 - [pytest Documentation](https://docs.pytest.org/) - Pytest framework docs
 - [CDK Assertions Module](https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.assertions.html) - CDK assertions API reference
 - [CDK Testing Guide](https://docs.aws.amazon.com/cdk/v2/guide/testing.html) - AWS CDK testing

@@ -97,16 +97,17 @@ The application structure:
 3. **Interactive UI** - Full TUI with keyboard navigation
 4. **Backup Vault Discovery** - Auto-discovers vault from stack name
 5. **Restore Job Initiation** - Starts restore jobs with proper metadata
+6. **Account ID Caching** - Account ID is fetched once during client initialization and cached for the session
+7. **Stack Name Auto-Discovery** - Automatically discovers the CloudFormation stack name if not provided
 
 ### 🔄 Future Enhancements
 
 1. **Restore Progress Monitoring** - Real-time monitoring of restore job status with progress updates
 2. **Search/Filter** - Interactive search within the backup list
 3. **Error Recovery** - Better handling of AWS API errors with retries and exponential backoff
-4. **Account ID Caching** - Cache account ID to avoid fetching on every startup
-5. **Multi-selection** - Select multiple backups for batch operations
-6. **Export Functionality** - Export backup list to CSV/JSON
-7. **Restore Job History** - View and monitor past restore jobs
+4. **Multi-selection** - Select multiple backups for batch operations
+5. **Export Functionality** - Export backup list to CSV/JSON
+6. **Restore Job History** - View and monitor past restore jobs
 
 ## Testing
 

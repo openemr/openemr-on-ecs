@@ -36,6 +36,7 @@ A beautiful Terminal User Interface (TUI) built with Go, Bubbletea, and Lipgloss
 - 🔍 **Filter by Type** - Filter backups by resource type (RDS/EFS)
 - 📊 **View Details** - See comprehensive backup information
 - 🔄 **Initiate Restores** - Start restore operations with a single keypress
+- 🔎 **Auto-Discovery** - Automatically discovers stack name and backup vault
 - ⚡ **Fast & Responsive** - Built with Go for excellent performance
 - 🔐 **AWS Integration** - Seamlessly integrates with AWS Backup service
 
@@ -53,7 +54,7 @@ A beautiful Terminal User Interface (TUI) built with Go, Bubbletea, and Lipgloss
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.25 or later
 - AWS credentials configured (via `aws configure` or environment variables)
 - Deployed OpenEMR stack with AWS Backup configured
 
@@ -76,7 +77,7 @@ go install .
 ### Basic Usage
 
 ```bash
-# Launch with default settings (uses OpenemrEcsStack in us-west-2)
+# Launch with auto-discovery (recommended, discovers stack name automatically)
 ./backup-tui
 
 # Specify stack name and region
@@ -93,7 +94,7 @@ go install .
 ### Command Line Options
 
 ```
--stack string     CloudFormation stack name (default: "OpenemrEcsStack")
+-stack string     CloudFormation stack name (auto-discovered if not provided)
 -vault string     Backup vault name (auto-discovered if not provided)
 -region string    AWS region (default: "us-west-2")
 -type string      Resource type to filter (RDS or EFS, empty for all)
@@ -106,7 +107,7 @@ go install .
 |-----|--------|
 | `↑` / `↓` or `k` / `j` | Navigate backup list |
 | `Enter` | Select backup / Confirm action |
-| `b` / `←` | Go back |
+| `b` / `←` / `Backspace` | Go back |
 | `r` | Refresh backup list |
 | `?` | Show/hide help |
 | `q` / `Esc` | Quit application |
@@ -143,22 +144,27 @@ go install .
 
 ```
 backup-tui/
-├── main.go       # Entry point
-├── go.mod        # Go module dependencies
-├── Makefile      # Build automation
-├── backup-tui.sh # POSIX-compliant launcher script
+├── main.go        # Entry point and CLI parsing
+├── go.mod         # Go module dependencies
+├── Makefile       # Build automation
+├── backup-tui.sh  # POSIX-compliant launcher script
+├── BUILD.md       # Build instructions and implementation status
+├── README.md      # This file
 ├── internal/
 │   ├── app/
-│   │   └── model.go           # Main application model (Bubbletea)
+│   │   └── model.go            # Main application model (Bubbletea)
 │   ├── aws/
-│   │   ├── backup.go # AWS Backup client
-│   │   └── config.go # AWS config loading
+│   │   ├── backup.go           # AWS Backup client
+│   │   ├── backup_test.go      # Tests for backup client
+│   │   └── config.go           # AWS config loading
 │   └── ui/
-│       ├── list.go   # List view component
-│       ├── detail.go # Detail view component
-│       ├── help.go   # Help screen component
-│       └── logo.go   # OpenEMR logo (ASCII art)
-└── README.md
+│       ├── list.go             # List view component
+│       ├── list_test.go        # Tests for list view
+│       ├── detail.go           # Detail view component
+│       ├── detail_test.go      # Tests for detail view
+│       ├── help.go             # Help screen component
+│       └── help_test.go        # Tests for help screen
+└── .golangci.yml  # Linter configuration
 ```
 
 ### Dependencies
@@ -196,13 +202,14 @@ GOOS=windows GOARCH=amd64 go build -o backup-tui-windows-amd64.exe .
 
 ## Future Enhancements
 
-- [ ] Search/filter functionality
-- [ ] Real-time restore progress monitoring
+- [ ] Search/filter functionality (in-app search; `/` key is reserved)
+- [ ] Real-time restore progress monitoring (currently restores are initiated and monitored via AWS console)
 - [ ] Multi-selection for batch operations
 - [ ] Export backup list to CSV/JSON
 - [ ] Compare backups
 - [ ] Backup scheduling information
 - [ ] Color themes/customization
+- [ ] Restore job history
 
 ## Contributing
 

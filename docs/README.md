@@ -25,6 +25,11 @@ The `docs/` directory contains visual assets that enhance the project documentat
 - `Architecture.png` - High-level system architecture
 - `sagemaker_studio_architecture.png` - Serverless analytics environment architecture
 
+### Backup TUI Screenshots
+
+- `backup_tui_screenshot_1.png` - Backup TUI list view
+- `backup_tui_screenshot_2.png` - Backup TUI detail view
+
 ### Deployment Screenshots
 
 - `cdk_deploy.png` - CDK deployment terminal output
