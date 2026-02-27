@@ -21,9 +21,13 @@ This directory contains various helper scripts for deployment, testing, and vali
   - [`setup-mysql-ssl-ca.sh`](#setup-mysql-ssl-cash)
 - [Database Access Scripts](#database-access-scripts)
   - [`port_forward_to_rds.sh`](#port_forward_to_rdssh)
+- [Credential Rotation Scripts](#credential-rotation-scripts)
+  - [`run-credential-rotation.sh`](#run-credential-rotationsh)
+  - [`verify-credential-rotation.sh`](#verify-credential-rotationsh)
 - [API Testing Scripts](#api-testing-scripts)
   - [`api_endpoint_test.py`](#api_endpoint_testpy)
   - [`test_data_api.py`](#test_data_apipy)
+- [Backup TUI](#backup-tui)
 - [General Notes](#general-notes)
 - [Troubleshooting](#troubleshooting)
 
@@ -175,9 +179,9 @@ Test Summary
 ./scripts/load-test.sh [stack-name]
 
 # With custom parameters
-export DURATION=120                    # Test duration in seconds
-export CONCURRENT_USERS=100            # Number of concurrent users
-export REQUESTS_PER_SECOND=200         # Target requests per second
+export DURATION=120            # Test duration in seconds
+export CONCURRENT_USERS=100    # Number of concurrent users
+export REQUESTS_PER_SECOND=200 # Target requests per second
 ./scripts/load-test.sh OpenemrEcsStack
 ```
 
@@ -404,9 +408,6 @@ Waiting for stacks to be deleted (this may take 10-20 minutes)...
   aws cloudformation list-stacks --region <region> --stack-status-filter DELETE_IN_PROGRESS
   ```
 - The stack has automated cleanup for problematic resources (SES rules, backup recovery points, RDS deletion protection)
-
-**See Also:**
-- [UPGRADES-COMPLETE.md](../UPGRADES-COMPLETE.md) for infrastructure cleanup checklist
 
 ---
 
@@ -675,6 +676,40 @@ python3 scripts/api_endpoint_test.py <openemr-url> <username> <password>
 ```bash
 python3 scripts/test_data_api.py <openemr-url> <username> <password>
 ```
+
+---
+
+## Credential Rotation Scripts
+
+### `run-credential-rotation.sh`
+
+**Purpose:** Trigger credential rotation for the deployed OpenEMR stack.
+
+**Usage:**
+```bash
+./scripts/run-credential-rotation.sh
+```
+
+**See Also:** [docs/credential-rotation.md](../docs/credential-rotation.md) for full documentation.
+
+---
+
+### `verify-credential-rotation.sh`
+
+**Purpose:** Verify that credential rotation completed successfully.
+
+**Usage:**
+```bash
+./scripts/verify-credential-rotation.sh
+```
+
+---
+
+## Backup TUI
+
+The `backup-tui/` subdirectory contains an interactive Terminal User Interface (TUI) built with Go for managing and restoring AWS backups. It provides a visual alternative to the `restore-from-backup.sh` bash script.
+
+**See:** [backup-tui/README.md](backup-tui/README.md) for full documentation, installation, and usage instructions.
 
 ---
 

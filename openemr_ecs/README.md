@@ -23,19 +23,22 @@ The `openemr_ecs` package is organized into specialized modules, each responsibl
 
 ```
 openemr_ecs/
-├── __init__.py           # Package initialization
-├── stack.py              # Main stack orchestrator
-├── constants.py          # Shared constants and versions
-├── utils.py              # Utility functions
-├── validation.py         # Configuration validation
-├── network.py            # Network infrastructure
-├── storage.py            # Storage resources
-├── database.py           # Database components
-├── compute.py            # Compute resources
-├── security.py           # Security components
-├── analytics.py          # Analytics environment
-├── monitoring.py         # Monitoring and alarms
-└── cleanup.py            # Stack cleanup automation
+├── __init__.py          # Package initialization
+├── stack.py             # Main stack orchestrator
+├── constants.py         # Shared constants and versions
+├── version.py           # Version management
+├── utils.py             # Utility functions
+├── validation.py        # Configuration validation
+├── network.py           # Network infrastructure
+├── storage.py           # Storage resources
+├── database.py          # Database components
+├── compute.py           # Compute resources
+├── security.py          # Security components
+├── kms_keys.py          # KMS encryption keys
+├── nag_suppressions.py  # cdk-nag suppression rules
+├── analytics.py         # Analytics environment
+├── monitoring.py        # Monitoring and alarms
+└── cleanup.py           # Stack cleanup automation
 ```
 
 ## Core Modules
@@ -209,6 +212,31 @@ openemr_ecs/
 - `create_ecs_service_alarms()`: ECS service alarms
 - `create_alb_health_alarms()`: ALB health alarms
 
+### `kms_keys.py`
+
+**Purpose**: KMS encryption key management.
+
+**Creates**:
+- KMS keys for encrypting EFS, RDS, Secrets Manager, and CloudWatch Logs
+- Key policies and aliases
+
+### `nag_suppressions.py`
+
+**Purpose**: Manages cdk-nag rule suppressions.
+
+**Features**:
+- Suppresses known-safe cdk-nag warnings
+- Documents justification for each suppression
+- Keeps security audit trail clean
+
+### `version.py`
+
+**Purpose**: Version management for the project.
+
+**Features**:
+- Reads and exposes the project version
+- Used by stack for tagging and outputs
+
 ### `cleanup.py`
 
 **Purpose**: Automated cleanup during stack deletion.
@@ -228,6 +256,7 @@ openemr_ecs/
 
 ```
 stack.py
+├── kms_keys.py (no dependencies)
 ├── network.py (no dependencies)
 ├── storage.py (no dependencies)
 ├── database.py (depends on: network)
@@ -235,6 +264,7 @@ stack.py
 ├── security.py (depends on: network, storage)
 ├── analytics.py (depends on: network, storage, database)
 ├── monitoring.py (no dependencies)
+├── nag_suppressions.py (applied after all resources created)
 └── cleanup.py (no dependencies)
 ```
 

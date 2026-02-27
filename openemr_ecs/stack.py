@@ -68,7 +68,6 @@ class OpenemrEcsStack(Stack):
             "enable_bedrock_integration",
             "enable_data_api",
             "enable_global_accelerator",
-            "open_smtp_port",
             "configure_ses",
             "create_serverless_analytics_environment",
             "aurora_ml_inference_timeout",
@@ -291,6 +290,9 @@ class OpenemrEcsStack(Stack):
             self.mysql_ssl_enabled_variable,
         ) = valkey_result
 
+        # Create dual-slot secrets used by the credential rotation task
+        self.rds_slot_secret = database.create_rotation_slot_secrets()
+
         # Create EFS volumes (required for OpenEMR)
         efs_result = storage.create_efs_volumes(self.vpc, context)
         if not efs_result:
@@ -451,6 +453,19 @@ class OpenemrEcsStack(Stack):
         self.openemr_service.node.add_dependency(self.swarm_mode)
         self.openemr_service.node.add_dependency(self.mysql_port_var)
 
+        # Create one-off ECS task definition for zero-downtime credential rotation
+        self.credential_rotation_task_definition = compute.create_credential_rotation_task(
+            self.ecs_cluster,
+            self.log_group,
+            self.vpc,
+            self.ecs_task_sec_group,
+            self.efs_volume_configuration_for_sites_folder,
+            self.rds_slot_secret,
+            self.db_secret,
+            self.openemr_service.service.service_name,
+            self.alb.load_balancer_dns_name,
+        )
+
         # Create serverless analytics environment (optional)
         self.sagemaker_domain_id = None
         if is_true(context.get("create_serverless_analytics_environment")):
@@ -585,6 +600,28 @@ def handler(event, context):
                 actions=["cloudformation:UpdateTerminationProtection"],
                 resources=[f"arn:aws:cloudformation:{self.region}:{self.account}:stack/{self.stack_name}/*"],
             )
+        )
+
+        # Suppress cdk-nag findings for this one-shot operational Lambda
+        from .nag_suppressions import suppress_lambda_common_findings, suppress_lambda_role_common_findings
+
+        suppress_lambda_common_findings(
+            enable_protection_lambda,
+            reason_suffix="One-shot Lambda that sets stack termination protection.",
+        )
+        suppress_lambda_role_common_findings(enable_protection_lambda.role)
+        NagSuppressions.add_resource_suppressions(
+            enable_protection_lambda.role,
+            [
+                {
+                    "id": "AwsSolutions-IAM5",
+                    "reason": "Wildcard required for CloudFormation stack ARN to cover changesets and nested resources",
+                    "appliesTo": [
+                        f"Resource::arn:aws:cloudformation:{self.region}:<AWS::AccountId>:stack/{self.stack_name}/*",
+                    ],
+                },
+            ],
+            apply_to_children=True,
         )
 
         # Create the custom resource
@@ -798,6 +835,20 @@ def handler(event, context):
             "OpenEMRPasswordSecretARN",
             value=self.password.secret_arn,
             description="ARN of the Secrets Manager secret containing OpenEMR admin password",
+        )
+
+        # Credential rotation slot secrets
+        CfnOutput(
+            self,
+            "RdsSlotSecretARN",
+            value=self.rds_slot_secret.secret_arn,
+            description="ARN of Secrets Manager secret with RDS dual-slot credentials",
+        )
+        CfnOutput(
+            self,
+            "CredentialRotationTaskDefinitionArn",
+            value=self.credential_rotation_task_definition.task_definition_arn,
+            description="ARN of ECS task definition used for credential rotation runs",
         )
 
         # Stack termination protection status

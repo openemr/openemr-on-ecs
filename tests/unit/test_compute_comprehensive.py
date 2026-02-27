@@ -78,7 +78,9 @@ class TestContainerConfiguration:
             containers = task_props.get("Properties", {}).get("ContainerDefinitions", [])
             for container in containers:
                 image = container.get("Image", "")
-                if "openemr" in image.lower():
+                # Image can be string (from_registry) or dict (CDK asset intrinsic)
+                image_str = image if isinstance(image, str) else str(image)
+                if "openemr" in image_str.lower():
                     found_openemr_image = True
                     break
 

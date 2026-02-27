@@ -76,7 +76,7 @@ func main() {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to auto-discover CloudFormation stack: %v\n", err)
 			fmt.Fprintf(os.Stderr, "\nPlease specify a stack name using the -stack flag:\n")
-			fmt.Fprintf(os.Stderr, "  %s -stack YourStackName\n", os.Args[0])
+			fmt.Fprintln(os.Stderr, "  backup-tui -stack YourStackName")
 			cancel() // Cancel context before exiting
 			//nolint:gocritic // exitAfterDefer: we explicitly call cancel() before os.Exit
 			os.Exit(1)
@@ -138,16 +138,16 @@ Note: AWS credentials are REQUIRED to use this application. Configure them using
 Controls:
   ↑/↓            Navigate backup list
   Enter          Select backup / Confirm action
+  b/←/Backspace  Go back
   Esc/q          Quit application
   r              Refresh backup list
-  /              Search/filter backups
   ?              Show help
 
 Features:
   • Browse backups interactively
   • View backup details (size, creation date, status)
   • Initiate restore operations
-  • Monitor restore progress
   • Filter by resource type (RDS/EFS)
+  • Auto-discover stack name and backup vault
 `)
 }

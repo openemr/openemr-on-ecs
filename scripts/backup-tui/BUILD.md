@@ -1,5 +1,24 @@
 # Building the Backup TUI
 
+## Table of Contents
+
+- [Quick Start](#quick-start)
+  - [Using Make (Recommended)](#using-make-recommended)
+  - [Using Go Directly](#using-go-directly)
+  - [Using the Launcher Script](#using-the-launcher-script)
+- [Requirements](#requirements)
+- [Building](#building)
+  - [Build Options](#build-options)
+  - [Build Output](#build-output)
+- [Development Notes](#development-notes)
+- [Implementation Status](#implementation-status)
+  - [✅ Completed Features](#-completed-features)
+  - [🔄 Future Enhancements](#-future-enhancements)
+- [Testing](#testing)
+- [Installation](#installation)
+  - [Local Installation](#local-installation)
+  - [System Installation](#system-installation)
+
 ## Quick Start
 
 ### Using Make (Recommended)
@@ -38,13 +57,13 @@ make build
 ### Build Options
 
 ```bash
-make build              # Build for current platform
-make build-all          # Build for Linux, macOS, and Windows
-make build-linux        # Build for Linux (amd64)
-make build-darwin       # Build for macOS (amd64 and arm64)
-make build-windows      # Build for Windows (amd64)
-make clean              # Remove build artifacts
-make help               # Show all available targets
+make build         # Build for current platform
+make build-all     # Build for Linux, macOS, and Windows
+make build-linux   # Build for Linux (amd64)
+make build-darwin  # Build for macOS (amd64 and arm64)
+make build-windows # Build for Windows (amd64)
+make clean         # Remove build artifacts
+make help          # Show all available targets
 ```
 
 ### Build Output
@@ -78,16 +97,17 @@ The application structure:
 3. **Interactive UI** - Full TUI with keyboard navigation
 4. **Backup Vault Discovery** - Auto-discovers vault from stack name
 5. **Restore Job Initiation** - Starts restore jobs with proper metadata
+6. **Account ID Caching** - Account ID is fetched once during client initialization and cached for the session
+7. **Stack Name Auto-Discovery** - Automatically discovers the CloudFormation stack name if not provided
 
 ### 🔄 Future Enhancements
 
 1. **Restore Progress Monitoring** - Real-time monitoring of restore job status with progress updates
 2. **Search/Filter** - Interactive search within the backup list
 3. **Error Recovery** - Better handling of AWS API errors with retries and exponential backoff
-4. **Account ID Caching** - Cache account ID to avoid fetching on every startup
-5. **Multi-selection** - Select multiple backups for batch operations
-6. **Export Functionality** - Export backup list to CSV/JSON
-7. **Restore Job History** - View and monitor past restore jobs
+4. **Multi-selection** - Select multiple backups for batch operations
+5. **Export Functionality** - Export backup list to CSV/JSON
+6. **Restore Job History** - View and monitor past restore jobs
 
 ## Testing
 

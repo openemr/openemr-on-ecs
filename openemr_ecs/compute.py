@@ -7,6 +7,7 @@ from aws_cdk import (
     RemovalPolicy,
 )
 from aws_cdk import aws_ec2 as ec2
+from aws_cdk import aws_ecr_assets as ecr_assets
 from aws_cdk import aws_ecs as ecs
 from aws_cdk import aws_ecs_patterns as ecs_patterns
 from aws_cdk import aws_efs as efs
@@ -15,9 +16,11 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_kms as kms
 from aws_cdk import aws_logs as logs
 from aws_cdk import aws_s3 as s3
+from aws_cdk import aws_secretsmanager as secretsmanager
 from cdk_nag import NagSuppressions
 from constructs import Construct
 
+from .constants import StackConstants
 from .utils import get_resource_suffix, is_true
 
 
@@ -429,7 +432,7 @@ class ComputeComponents:
             "fi",
             'log "MySQL CA certificate deployed successfully"',
             # --- OpenEMR Bootstrap Reliability (RDS TLS + idempotent retries) ---
-            # OpenEMR 7.0.4's devtools library hard-codes `mariadb --skip-ssl` for setting globals.
+            # OpenEMR 8.0.0's devtools library hard-codes `mariadb --skip-ssl` for setting globals.
             # With Aurora's `require_secure_transport=ON`, that causes repeated failures AFTER a partial install,
             # which then leads to "Table already exists" on the next attempt.
             # We patch the library at container startup to remove `--skip-ssl` so the client negotiates TLS.
@@ -936,3 +939,133 @@ class ComputeComponents:
         # This security group is attached to the service above via the security_groups parameter.
 
         return openemr_service
+
+    def create_credential_rotation_task(
+        self,
+        ecs_cluster: ecs.Cluster,
+        log_group: logs.LogGroup,
+        vpc: ec2.Vpc,
+        ecs_task_sec_group: ec2.SecurityGroup,
+        efs_volume_configuration_for_sites_folder: ecs.EfsVolumeConfiguration,
+        rds_slot_secret: secretsmanager.Secret,
+        db_secret: secretsmanager.Secret,
+        openemr_service_name: str,
+        alb_dns_name: str,
+    ) -> ecs.FargateTaskDefinition:
+        """Create a one-off ECS task definition for credential rotation."""
+        rotation_task_definition = ecs.FargateTaskDefinition(
+            self.scope,
+            "CredentialRotationTaskDefinition",
+            cpu=512,
+            memory_limit_mib=1024,
+            runtime_platform=ecs.RuntimePlatform(cpu_architecture=ecs.CpuArchitecture.ARM64),
+        )
+
+        rotation_task_definition.add_volume(
+            name="SitesFolderVolume", efs_volume_configuration=efs_volume_configuration_for_sites_folder
+        )
+
+        rotation_container = rotation_task_definition.add_container(
+            "CredentialRotationContainer",
+            logging=ecs.LogDriver.aws_logs(stream_prefix="ecs/credential-rotation", log_group=log_group),
+            essential=True,
+            container_name="credential-rotation",
+            image=ecs.ContainerImage.from_asset(
+                "tools/credential-rotation",
+                platform=ecr_assets.Platform.LINUX_ARM64,
+                build_args={
+                    "PYTHON_VERSION": StackConstants.CREDENTIAL_ROTATION_PYTHON_VERSION,
+                },
+            ),
+            entry_point=["python", "-m", "credential_rotation.cli"],
+            command=["--log-json"],
+            environment={
+                "OPENEMR_SITES_MOUNT_ROOT": "/mnt/openemr-sites",
+                "RDS_SLOT_SECRET_ID": rds_slot_secret.secret_arn,
+                "RDS_ADMIN_SECRET_ID": db_secret.secret_arn,
+                "OPENEMR_ECS_CLUSTER": ecs_cluster.cluster_name,
+                "OPENEMR_ECS_SERVICE": openemr_service_name,
+                "OPENEMR_HEALTHCHECK_URL": f"https://{alb_dns_name}",
+            },
+        )
+
+        rotation_container.add_mount_points(
+            ecs.MountPoint(
+                container_path="/mnt/openemr-sites",
+                read_only=False,
+                source_volume="SitesFolderVolume",
+            )
+        )
+
+        rotation_task_definition.task_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "secretsmanager:GetSecretValue",
+                    "secretsmanager:DescribeSecret",
+                    "secretsmanager:PutSecretValue",
+                    "secretsmanager:UpdateSecretVersionStage",
+                ],
+                resources=[rds_slot_secret.secret_arn, db_secret.secret_arn],
+            )
+        )
+        rotation_task_definition.task_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["ecs:UpdateService", "ecs:DescribeServices"],
+                resources=["*"],
+            )
+        )
+
+        # KMS decrypt + encrypt required: decrypt for GetSecretValue, GenerateDataKey for PutSecretValue.
+        self.scope.kms_keys.central_key.grant_encrypt_decrypt(rotation_task_definition.task_role)
+
+        # Apply suppressions for least-privilege ECS task execution policies.
+        NagSuppressions.add_resource_suppressions(
+            rotation_task_definition.task_role,
+            [
+                {
+                    "id": "HIPAA.Security-IAMNoInlinePolicy",
+                    "reason": "Inline task role policy is required for one-off credential rotation task permissions",
+                },
+                {
+                    "id": "AwsSolutions-IAM5",
+                    "reason": "ECS service update/describe and KMS grants require scoped wildcard resources at runtime. KMS GenerateDataKey/ReEncrypt required for Secrets Manager PutSecretValue (https://docs.aws.amazon.com/secretsmanager/latest/userguide/security-encryption.html)",
+                    "appliesTo": [
+                        "Resource::*",
+                        "Action::kms:GenerateDataKey*",
+                        "Action::kms:ReEncrypt*",
+                    ],
+                },
+            ],
+            apply_to_children=True,
+        )
+        NagSuppressions.add_resource_suppressions(
+            rotation_task_definition,
+            [
+                {
+                    "id": "AwsSolutions-ECS2",
+                    "reason": "Environment variables only include non-sensitive runtime wiring (resource IDs and mount paths); secrets are fetched from Secrets Manager at runtime",
+                }
+            ],
+        )
+        NagSuppressions.add_resource_suppressions(
+            rotation_task_definition.execution_role,
+            [
+                {
+                    "id": "AwsSolutions-IAM5",
+                    "reason": "ECS execution role requires wildcard ECR auth token and log delivery permissions generated by CDK",
+                    "appliesTo": ["Resource::*"],
+                },
+                {
+                    "id": "HIPAA.Security-IAMNoInlinePolicy",
+                    "reason": "Inline execution role policy is generated by CDK for ECR/Logs access",
+                },
+            ],
+            apply_to_children=True,
+        )
+
+        # Establish dependency on target ECS service to ensure the service exists first.
+        rotation_task_definition.node.add_dependency(ecs_cluster)
+        rotation_task_definition.node.add_dependency(vpc)
+        rotation_task_definition.node.add_dependency(ecs_task_sec_group)
+
+        return rotation_task_definition

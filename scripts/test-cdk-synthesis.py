@@ -142,6 +142,118 @@ TEST_CONFIGURATIONS = [
             "enable_long_term_cloudtrail_monitoring": True,
         },
     },
+    # NOTE: configure_ses + route53_domain requires HostedZone.from_lookup()
+    # which needs a resolved AWS account. This path cannot be tested in CI
+    # with fake credentials. SES is exercised via unit tests instead.
+    {
+        "name": "ecs-exec-enabled",
+        "description": "ECS Exec enabled for container debugging",
+        "config": {
+            "enable_ecs_exec": True,
+            "enable_global_accelerator": False,
+            "enable_bedrock_integration": False,
+            "enable_data_api": False,
+            "create_serverless_analytics_environment": False,
+            "enable_monitoring_alarms": False,
+        },
+    },
+    {
+        "name": "rds-deletion-protection",
+        "description": "RDS deletion protection enabled",
+        "config": {
+            "rds_deletion_protection": True,
+            "enable_global_accelerator": False,
+            "enable_bedrock_integration": False,
+            "enable_data_api": False,
+            "create_serverless_analytics_environment": False,
+            "enable_monitoring_alarms": False,
+        },
+    },
+    {
+        "name": "rds-deletion-protection-override",
+        "description": "RDS deletion protection with destroy override (for teardown)",
+        "config": {
+            "rds_deletion_protection": True,
+            "disable_rds_deletion_protection_on_destroy": True,
+            "enable_global_accelerator": False,
+            "enable_bedrock_integration": False,
+            "enable_data_api": False,
+            "create_serverless_analytics_environment": False,
+            "enable_monitoring_alarms": False,
+        },
+    },
+    {
+        "name": "termination-protection",
+        "description": "Stack termination protection enabled",
+        "config": {
+            "enable_stack_termination_protection": True,
+            "enable_global_accelerator": False,
+            "enable_bedrock_integration": False,
+            "enable_data_api": False,
+            "create_serverless_analytics_environment": False,
+            "enable_monitoring_alarms": False,
+        },
+    },
+    {
+        "name": "ipv6-dual-stack",
+        "description": "IPv6 dual-stack security group rules",
+        "config": {
+            "security_group_ip_range_ipv4": "10.0.0.0/8",
+            "security_group_ip_range_ipv6": "2001:db8::/32",
+            "enable_global_accelerator": False,
+            "enable_bedrock_integration": False,
+            "enable_data_api": False,
+            "create_serverless_analytics_environment": False,
+            "enable_monitoring_alarms": False,
+        },
+    },
+    {
+        "name": "small-fargate",
+        "description": "Smaller Fargate task size (512 CPU / 1024 MiB)",
+        "config": {
+            "openemr_service_fargate_cpu": 512,
+            "openemr_service_fargate_memory": 1024,
+            "enable_global_accelerator": False,
+            "enable_bedrock_integration": False,
+            "enable_data_api": False,
+            "create_serverless_analytics_environment": False,
+            "enable_monitoring_alarms": False,
+        },
+    },
+    {
+        "name": "large-fargate",
+        "description": "Larger Fargate task size (4096 CPU / 8192 MiB)",
+        "config": {
+            "openemr_service_fargate_cpu": 4096,
+            "openemr_service_fargate_memory": 8192,
+            "enable_global_accelerator": False,
+            "enable_bedrock_integration": False,
+            "enable_data_api": False,
+            "create_serverless_analytics_environment": False,
+            "enable_monitoring_alarms": False,
+        },
+    },
+    {
+        "name": "kitchen-sink",
+        "description": "Every optional feature enabled simultaneously (except SES which requires hosted zone lookup)",
+        "config": {
+            "enable_global_accelerator": True,
+            "enable_bedrock_integration": True,
+            "enable_data_api": True,
+            "create_serverless_analytics_environment": True,
+            "enable_monitoring_alarms": True,
+            "monitoring_email": "ops@example.com",
+            "deployment_notification_email": "deploy@example.com",
+            "enable_ecs_exec": True,
+            "activate_openemr_apis": True,
+            "enable_patient_portal": True,
+            "enable_long_term_cloudtrail_monitoring": True,
+            "enable_stack_termination_protection": True,
+            "rds_deletion_protection": True,
+            "security_group_ip_range_ipv4": "10.0.0.0/8",
+            "security_group_ip_range_ipv6": "2001:db8::/32",
+        },
+    },
 ]
 
 # Dummy certificate ARN for synthesis testing

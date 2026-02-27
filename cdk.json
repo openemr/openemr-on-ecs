@@ -39,7 +39,6 @@
     "enable_bedrock_integration": "false",
     "enable_data_api": "false",
     "enable_global_accelerator": "false",
-    "open_smtp_port": "false",
     "configure_ses": "false",
     "create_serverless_analytics_environment": "false",
     "aurora_ml_inference_timeout": "30000",

@@ -22,8 +22,13 @@ The `docs/` directory contains visual assets that enhance the project documentat
 
 ### Architecture Diagrams
 
-- `Architecture.png` - High-level system architecture
+- **`../diagrams/architecture.png`** - High-level system architecture (generated from `diagrams/generate.py`)
 - `sagemaker_studio_architecture.png` - Serverless analytics environment architecture
+
+### Backup TUI Screenshots
+
+- `backup_tui_screenshot_1.png` - Backup TUI list view
+- `backup_tui_screenshot_2.png` - Backup TUI detail view
 
 ### Deployment Screenshots
 
@@ -126,7 +131,7 @@ Images are referenced in markdown files using relative paths:
 ```
 
 **Examples**:
-- In `README.md`: `![Architecture](./docs/images/Architecture.png)`
+- In `README.md`: `![Architecture](./diagrams/architecture.png)`
 - In `DETAILS.md`: `![Load Test Results](./docs/images/load_testing_cpu_and_memory_metrics.png)`
 
 ## Adding New Images

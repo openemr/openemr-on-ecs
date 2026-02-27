@@ -2,11 +2,46 @@
 
 <img src="logo/openemr_on_ecs_logo.png" alt="OpenEMR on ECS Logo" width="600">
 
-[![CI/CD Tests](https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml/badge.svg)](https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Version](https://img.shields.io/github/v/release/openemr/openemr-on-ecs?label=version&color=blue)](https://github.com/openemr/openemr-on-ecs/releases)
+<br/>
 
-*This deployment provides a production-ready OpenEMR system on Amazon ECS with Fargate for serverless compute, automatic container orchestration, elastic scaling, and an integrated monitoring, security, and observability stack.*
+[![License: MIT](https://img.shields.io/github/license/openemr/openemr-on-ecs?style=flat&color=yellow)](LICENSE)
+[![Version](https://img.shields.io/github/v/release/openemr/openemr-on-ecs?style=flat&label=version&color=blue)](https://github.com/openemr/openemr-on-ecs/releases)
+[![OpenEMR](https://img.shields.io/badge/OpenEMR-v8.0.0-2ea44f?style=flat)](https://hub.docker.com/r/openemr/openemr/tags)
+
+<table>
+<tr><td><b>Tests</b></td><td>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=pytest&label=CDK%20unit%20tests" alt="CDK Unit Tests"></a>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=pytest&label=credential%20rotation" alt="Credential Rotation Tests"></a>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=go&label=Go%20TUI%20tests" alt="Go TUI Tests"></a>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=docker&label=Docker%20Compose" alt="Docker Compose Tests"></a>
+</td></tr>
+<tr><td><b>Infra</b></td><td>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=amazonaws&label=CDK%20synth%20%2B%20cfn-lint" alt="CDK Synth"></a>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/cdk-config-matrix.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/cdk-config-matrix.yml?style=flat&logo=amazonaws&label=config%20matrix" alt="CDK Config Matrix"></a>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/monthly-version-check.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/monthly-version-check.yml?style=flat&logo=dependabot&label=version%20audit" alt="Version Audit"></a>
+</td></tr>
+<tr><td><b>Quality</b></td><td>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=python&logoColor=white&label=black%20%7C%20flake8%20%7C%20mypy%20%7C%20isort" alt="Python Quality"></a>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=go&label=go%20vet%20%7C%20golangci-lint" alt="Go Quality"></a>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=gnu-bash&label=shellcheck" alt="ShellCheck"></a>
+</td></tr>
+<tr><td><b>Security</b></td><td>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=opensourceinitiative&label=bandit%20SAST" alt="Bandit SAST"></a>
+  <img src="https://img.shields.io/badge/cdk--nag-HIPAA%20%2B%20AWS%20Solutions-8A2BE2?style=flat&logo=amazonaws" alt="CDK Nag">
+  <img src="https://img.shields.io/badge/KMS-encryption%20at%20rest-8A2BE2?style=flat&logo=amazonaws" alt="KMS Encryption">
+  <img src="https://img.shields.io/badge/HTTPS%2FTLS-encryption%20in%20transit-8A2BE2?style=flat&logo=letsencrypt&logoColor=white" alt="HTTPS/TLS">
+</td></tr>
+<tr><td><b>Stack</b></td><td>
+  <img src="https://img.shields.io/badge/Python-3.14-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white" alt="Go">
+  <img src="https://img.shields.io/badge/AWS_CDK-v2-FF9900?style=flat&logo=amazonaws&logoColor=white" alt="AWS CDK">
+  <img src="https://img.shields.io/badge/Fargate-serverless-FF9900?style=flat&logo=awsfargate&logoColor=white" alt="Fargate">
+  <img src="https://img.shields.io/badge/Aurora-MySQL-4479A1?style=flat&logo=mysql&logoColor=white" alt="Aurora MySQL">
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white" alt="Docker">
+</td></tr>
+</table>
+
+*Production-ready OpenEMR on Amazon ECS with Fargate, automatic scaling, and an integrated monitoring, security, and observability stack.*
 
 </div>
 
@@ -75,7 +110,7 @@ Transform your healthcare facility with enterprise-grade EHR system at a fractio
 - **Zero infrastructure management required**
 
 ## Architecture 
-![OpenEMR AWS Fargate Architecture](./docs/images/Architecture.png)
+![OpenEMR AWS Fargate Architecture](./diagrams/architecture.png)
 
 ### Component Relationships
 | Component | Purpose | Connects To | Scaling |
@@ -161,7 +196,7 @@ Key Assumptions:
     - 30 daily + 4 weekly + 1 monthly = ~35 backups per month
     - Cost: (35/1000) × $0.05 = $0.00175/month
   - Total AWS Backup Monthly Cost: **$0.05/month**
-- 2 Secrets Manager Secrets: **$0.80/month**
+- 3 Secrets Manager Secrets: **$1.20/month**
 - 1 WAF ACL with enhanced protection rules: **$5/month base + additional costs for managed rule groups**
   - Includes: AWS Managed Common Rule Set, SQL Injection Protection, Known Bad Inputs, Rate Limiting (2000 req/5min/IP), and Suspicious User-Agent blocking
 - 1 KMS Key: **$1/month**
@@ -244,46 +279,65 @@ Before starting, you'll need:
 
 ```
 .
-├── app.py                                          # CDK app entrypoint
-├── cdk.json                                        # CDK context (tunable defaults)
-├── requirements.txt                                # Python dependencies
-├── openemr_ecs/                                    # CDK stacks and modules
-│   ├── stack.py                                    # Orchestrator
-│   ├── compute.py                                  # ECS/Fargate service
-│   ├── network.py                                  # VPC, ALB, SGs
-│   ├── storage.py                                  # EFS, Backup
-│   ├── database.py                                 # Aurora config
-│   ├── security.py                                 # WAF, certs, DNS, SES
-│   ├── analytics.py                                # Optional analytics env
-│   ├── monitoring.py                               # CloudWatch alarms and SNS
-│   ├── validation.py                               # Configuration validation
-│   ├── utils.py                                    # Shared utilities
-│   └── constants.py                                # Shared constants/versions
-├── lambda/                                         # Lambda functions
-│   └── lambda_functions.py                         # Lambda code for triggers
-├── compose/                                        # Local docker-compose test rigs (basic & SSL)
-│   ├── docker-compose.test.yml                     # Basic test configuration
-│   └── docker-compose.test-ssl.yml                 # SSL test configuration
-├── scripts/                                        # Helper scripts for deployment, testing, and validation
-│   ├── validate-deployment-prerequisites.sh        # Pre-deployment validation
-│   ├── stress-test.sh                              # CDK stack stress testing
-│   ├── load-test.sh                                # Load testing for deployed application
-│   ├── restore-from-backup.sh                      # Restore from AWS Backup recovery points
-│   ├── test-startup.sh                             # Local container testing (basic)
-│   ├── test-startup-ssl.sh                         # Local container testing (with SSL)
-│   └── README.md                                   # Scripts documentation
-├── tests/                                          # Unit tests for CDK stack
-├── docs/                                           # Images and diagrams
-├── README.md                                       # This file
-├── GETTING-STARTED.md                              # Beginner-friendly setup guide
-├── README-TESTING.md                               # Local testing guide
-├── DEPLOYMENT-RELIABILITY.md                       # Deployment reliability improvements
-├── BACKUP-RESTORE-GUIDE.md                         # Backup and restore procedures
-├── DETAILS.md                                      # Deep configuration details
-├── ARCHITECTURE.md                                 # Architecture deep dive
-├── TROUBLESHOOTING.md                              # Common issues/solutions
-├── LICENSE                                         # Project license
-└── CHANGELOG.md                                    # Version history
+├── app.py                                   # CDK app entrypoint
+├── cdk.json                                 # CDK context (tunable defaults)
+├── requirements.txt                         # Python dependencies
+├── requirements-dev.txt                     # Dev/test dependencies
+├── pyproject.toml                           # Python project metadata
+├── openemr_ecs/                             # CDK stacks and modules
+│   ├── stack.py                             # Orchestrator
+│   ├── compute.py                           # ECS/Fargate service
+│   ├── network.py                           # VPC, ALB, SGs
+│   ├── storage.py                           # EFS, Backup
+│   ├── database.py                          # Aurora config
+│   ├── security.py                          # WAF, certs, DNS, SES
+│   ├── analytics.py                         # Optional analytics env
+│   ├── monitoring.py                        # CloudWatch alarms and SNS
+│   ├── kms_keys.py                          # KMS encryption keys
+│   ├── cleanup.py                           # Stack cleanup automation
+│   ├── nag_suppressions.py                  # cdk-nag suppression rules
+│   ├── validation.py                        # Configuration validation
+│   ├── utils.py                             # Shared utilities
+│   ├── constants.py                         # Shared constants/versions
+│   └── version.py                           # Version management
+├── lambda/                                  # Lambda functions
+│   └── lambda_functions.py                  # Lambda code for triggers
+├── compose/                                 # Local docker-compose test rigs (basic & SSL)
+│   ├── docker-compose.test.yml              # Basic test configuration
+│   └── docker-compose.test-ssl.yml          # SSL test configuration
+├── scripts/                                 # Helper scripts
+│   ├── validate-deployment-prerequisites.sh # Pre-deployment validation
+│   ├── stress-test.sh                       # CDK stack stress testing
+│   ├── test-cdk-synthesis.py                # Configuration matrix testing
+│   ├── load-test.sh                         # Load testing for deployed application
+│   ├── create-backup.sh                     # Create on-demand backups
+│   ├── list-backups.sh                      # List available backups
+│   ├── restore-from-backup.sh               # Restore from AWS Backup recovery points
+│   ├── cleanup-all-stacks.sh                # Delete all OpenEMR stacks
+│   ├── run-credential-rotation.sh           # Trigger credential rotation
+│   ├── verify-credential-rotation.sh        # Verify rotation completed
+│   ├── test-startup.sh                      # Local container testing (basic)
+│   ├── test-startup-ssl.sh                  # Local container testing (with SSL)
+│   ├── backup-tui/                          # Interactive TUI for backup management (Go)
+│   └── README.md                            # Scripts documentation
+├── tests/                                   # Unit tests for CDK stack
+├── tools/
+│   └── credential-rotation/                 # Dual-slot credential rotation tool
+├── diagrams/                                # Architecture diagrams (generated from CDK)
+│   ├── generate.py                          # AWS PDK diagram generation script
+│   ├── architecture.png                     # Compact architecture diagram
+│   └── architecture-full.png                # Full resource diagram
+├── docs/                                    # Images and diagrams
+├── README.md                                # This file
+├── GETTING-STARTED.md                       # Beginner-friendly setup guide
+├── README-TESTING.md                        # Local testing guide
+├── BACKUP-RESTORE-GUIDE.md                  # Backup and restore procedures
+├── DETAILS.md                               # Deep configuration details
+├── ARCHITECTURE.md                          # Architecture deep dive
+├── TROUBLESHOOTING.md                       # Common issues/solutions
+├── CONTRIBUTING.md                          # Contribution guidelines
+├── CODE_OF_CONDUCT.md                       # Code of conduct
+└── LICENSE                                  # Project license
 ```
 
 ## Access OpenEMR

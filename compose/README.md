@@ -217,7 +217,6 @@ Key components:
 
 - [README-TESTING.md](../README-TESTING.md) - Comprehensive local testing guide
 - [scripts/README.md](../scripts/README.md) - Helper script documentation
-- [DEPLOYMENT-RELIABILITY.md](../DEPLOYMENT-RELIABILITY.md) - Production deployment reliability
 
 ## Notes
 

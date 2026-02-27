@@ -6,6 +6,14 @@ documentation, we greatly value feedback and contributions from our community.
 Please read through this document before submitting any issues or pull requests to ensure we have all the necessary
 information to effectively respond to your bug report or contribution.
 
+## Table of Contents
+
+- [Reporting Bugs/Feature Requests](#reporting-bugsfeature-requests)
+- [Contributing via Pull Requests](#contributing-via-pull-requests)
+- [Finding contributions to work on](#finding-contributions-to-work-on)
+- [Code of Conduct](#code-of-conduct)
+- [Security issue notifications](#security-issue-notifications)
+- [Licensing](#licensing)
 
 ## Reporting Bugs/Feature Requests
 

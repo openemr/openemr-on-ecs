@@ -1,5 +1,6 @@
 # CDK
 cdk.out/
+diagrams/.cdk.out/
 *.pyc
 __pycache__/
 *.py[cod]
