@@ -35,18 +35,18 @@ func (m *mockCFN) DescribeStacks(_ context.Context, _ *cloudformation.DescribeSt
 }
 
 type mockBackup struct {
-	listVaultsOutput    *backup.ListBackupVaultsOutput
-	listVaultsErr       error
-	listRPOutput        *backup.ListRecoveryPointsByBackupVaultOutput
-	listRPErr           error
-	startRestoreOutput  *backup.StartRestoreJobOutput
-	startRestoreErr     error
-	listPlansOutput     *backup.ListBackupPlansOutput
-	listPlansErr        error
-	getPlanOutput       *backup.GetBackupPlanOutput
-	getPlanErr          error
-	listSelectionsOut   *backup.ListBackupSelectionsOutput
-	listSelectionsErr   error
+	listVaultsOutput   *backup.ListBackupVaultsOutput
+	listVaultsErr      error
+	listRPOutput       *backup.ListRecoveryPointsByBackupVaultOutput
+	listRPErr          error
+	startRestoreOutput *backup.StartRestoreJobOutput
+	startRestoreErr    error
+	listPlansOutput    *backup.ListBackupPlansOutput
+	listPlansErr       error
+	getPlanOutput      *backup.GetBackupPlanOutput
+	getPlanErr         error
+	listSelectionsOut  *backup.ListBackupSelectionsOutput
+	listSelectionsErr  error
 }
 
 func (m *mockBackup) ListBackupVaults(_ context.Context, _ *backup.ListBackupVaultsInput, _ ...func(*backup.Options)) (*backup.ListBackupVaultsOutput, error) {

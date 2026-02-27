@@ -35,13 +35,21 @@ class TestVPCCreation:
         template.has_resource_properties(
             "AWS::IAM::Role",
             assertions.Match.object_like(
-                {"AssumeRolePolicyDocument": assertions.Match.object_like(
-                    {"Statement": assertions.Match.array_with([
-                        assertions.Match.object_like({
-                            "Principal": {"Service": "vpc-flow-logs.amazonaws.com"},
-                        })
-                    ])}
-                )}
+                {
+                    "AssumeRolePolicyDocument": assertions.Match.object_like(
+                        {
+                            "Statement": assertions.Match.array_with(
+                                [
+                                    assertions.Match.object_like(
+                                        {
+                                            "Principal": {"Service": "vpc-flow-logs.amazonaws.com"},
+                                        }
+                                    )
+                                ]
+                            )
+                        }
+                    )
+                }
             ),
         )
 
@@ -49,7 +57,11 @@ class TestVPCCreation:
 class TestSecurityGroups:
     def test_db_security_group_exists(self, template):
         sgs = template.find_resources("AWS::EC2::SecurityGroup")
-        db_sgs = [lid for lid, res in sgs.items() if "db" in lid.lower() or "db" in str(res.get("Properties", {}).get("GroupDescription", "")).lower()]
+        db_sgs = [
+            lid
+            for lid, res in sgs.items()
+            if "db" in lid.lower() or "db" in str(res.get("Properties", {}).get("GroupDescription", "")).lower()
+        ]
         assert len(db_sgs) >= 1 or len(sgs) >= 3
 
     def test_valkey_security_group_exists(self, template):
@@ -76,11 +88,15 @@ class TestALB:
         template.has_resource_properties(
             "AWS::ElasticLoadBalancingV2::LoadBalancer",
             assertions.Match.object_like(
-                {"LoadBalancerAttributes": assertions.Match.array_with([
-                    assertions.Match.object_like(
-                        {"Key": "routing.http.drop_invalid_header_fields.enabled", "Value": "true"}
-                    ),
-                ])}
+                {
+                    "LoadBalancerAttributes": assertions.Match.array_with(
+                        [
+                            assertions.Match.object_like(
+                                {"Key": "routing.http.drop_invalid_header_fields.enabled", "Value": "true"}
+                            ),
+                        ]
+                    )
+                }
             ),
         )
 
@@ -88,11 +104,13 @@ class TestALB:
         template.has_resource_properties(
             "AWS::ElasticLoadBalancingV2::LoadBalancer",
             assertions.Match.object_like(
-                {"LoadBalancerAttributes": assertions.Match.array_with([
-                    assertions.Match.object_like(
-                        {"Key": "deletion_protection.enabled", "Value": "true"}
-                    ),
-                ])}
+                {
+                    "LoadBalancerAttributes": assertions.Match.array_with(
+                        [
+                            assertions.Match.object_like({"Key": "deletion_protection.enabled", "Value": "true"}),
+                        ]
+                    )
+                }
             ),
         )
 
@@ -108,9 +126,7 @@ class TestGlobalAccelerator:
             app.node.set_context(key, value)
         from openemr_ecs.stack import OpenemrEcsStack
 
-        stack = OpenemrEcsStack(
-            app, "AccelStack", env=cdk.Environment(account="123456789012", region="us-west-2")
-        )
+        stack = OpenemrEcsStack(app, "AccelStack", env=cdk.Environment(account="123456789012", region="us-west-2"))
         t = assertions.Template.from_stack(stack)
         t.resource_count_is("AWS::GlobalAccelerator::Accelerator", 1)
 
@@ -127,12 +143,10 @@ class TestAutoIPResolution:
         from openemr_ecs.stack import OpenemrEcsStack
 
         try:
-            stack = OpenemrEcsStack(
-                app, "AutoIPStack", env=cdk.Environment(account="123456789012", region="us-west-2")
-            )
+            stack = OpenemrEcsStack(app, "AutoIPStack", env=cdk.Environment(account="123456789012", region="us-west-2"))
             t = assertions.Template.from_stack(stack)
             t.resource_count_is("AWS::EC2::VPC", 1)
-        except (ValueError, OSError):
+        except ValueError, OSError:
             pytest.skip("No internet access to resolve auto IP")
 
     def test_explicit_cidr_does_not_raise(self, app, minimal_context):
@@ -142,8 +156,6 @@ class TestAutoIPResolution:
 
         from openemr_ecs.stack import OpenemrEcsStack
 
-        stack = OpenemrEcsStack(
-            app, "CIDRStack", env=cdk.Environment(account="123456789012", region="us-west-2")
-        )
+        stack = OpenemrEcsStack(app, "CIDRStack", env=cdk.Environment(account="123456789012", region="us-west-2"))
         t = assertions.Template.from_stack(stack)
         t.resource_count_is("AWS::EC2::VPC", 1)

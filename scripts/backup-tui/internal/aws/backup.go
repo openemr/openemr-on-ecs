@@ -24,12 +24,12 @@ import (
 // The client is initialized with AWS credentials and region, and maintains
 // service clients for Backup, RDS, CloudFormation, and STS services.
 type BackupClient struct {
-	client    BackupAPI              // AWS Backup service client
-	cfn       CloudFormationAPI      // CloudFormation service client for stack queries
-	rds       RDSAPI                 // RDS service client for cluster details
-	sts       *sts.Client            // STS service client for account ID
-	region    string                 // AWS region
-	accountID string                 // Cached AWS account ID
+	client    BackupAPI         // AWS Backup service client
+	cfn       CloudFormationAPI // CloudFormation service client for stack queries
+	rds       RDSAPI            // RDS service client for cluster details
+	sts       *sts.Client       // STS service client for account ID
+	region    string            // AWS region
+	accountID string            // Cached AWS account ID
 }
 
 // NewBackupClient creates a new BackupClient with AWS service clients

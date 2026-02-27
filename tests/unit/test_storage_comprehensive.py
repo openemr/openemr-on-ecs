@@ -34,9 +34,7 @@ class TestELBLogBucket:
     def test_elb_log_bucket_versioning(self, template):
         template.has_resource_properties(
             "AWS::S3::Bucket",
-            assertions.Match.object_like(
-                {"VersioningConfiguration": {"Status": "Enabled"}}
-            ),
+            assertions.Match.object_like({"VersioningConfiguration": {"Status": "Enabled"}}),
         )
 
     def test_elb_log_bucket_uses_sse_s3(self, template):
