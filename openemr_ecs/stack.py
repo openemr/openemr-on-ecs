@@ -68,7 +68,6 @@ class OpenemrEcsStack(Stack):
             "enable_bedrock_integration",
             "enable_data_api",
             "enable_global_accelerator",
-            "open_smtp_port",
             "configure_ses",
             "create_serverless_analytics_environment",
             "aurora_ml_inference_timeout",
