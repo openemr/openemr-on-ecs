@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/github/license/openemr/openemr-on-ecs?style=flat&color=yellow)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/openemr/openemr-on-ecs?style=flat&label=version&color=blue)](https://github.com/openemr/openemr-on-ecs/releases)
-[![Codecov](https://img.shields.io/codecov/c/github/openemr/openemr-on-ecs?style=flat&logo=codecov&label=coverage)](https://codecov.io/gh/openemr/openemr-on-ecs)
+[![OpenEMR](https://img.shields.io/badge/OpenEMR-v8.0.0-2ea44f?style=flat)](https://hub.docker.com/r/openemr/openemr/tags)
 
 <table>
 <tr><td><b>Tests</b></td><td>
