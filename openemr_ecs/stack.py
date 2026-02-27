@@ -602,6 +602,28 @@ def handler(event, context):
             )
         )
 
+        # Suppress cdk-nag findings for this one-shot operational Lambda
+        from .nag_suppressions import suppress_lambda_common_findings, suppress_lambda_role_common_findings
+
+        suppress_lambda_common_findings(
+            enable_protection_lambda,
+            reason_suffix="One-shot Lambda that sets stack termination protection.",
+        )
+        suppress_lambda_role_common_findings(enable_protection_lambda.role)
+        NagSuppressions.add_resource_suppressions(
+            enable_protection_lambda.role,
+            [
+                {
+                    "id": "AwsSolutions-IAM5",
+                    "reason": "Wildcard required for CloudFormation stack ARN to cover changesets and nested resources",
+                    "appliesTo": [
+                        f"Resource::arn:aws:cloudformation:{self.region}:<AWS::AccountId>:stack/{self.stack_name}/*",
+                    ],
+                },
+            ],
+            apply_to_children=True,
+        )
+
         # Create the custom resource
         CustomResource(
             self,

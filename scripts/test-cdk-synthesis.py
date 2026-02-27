@@ -142,21 +142,9 @@ TEST_CONFIGURATIONS = [
             "enable_long_term_cloudtrail_monitoring": True,
         },
     },
-    {
-        "name": "ses-email-forwarding",
-        "description": "SES email with forwarding (Route53 domain path instead of certificate ARN)",
-        "config": {
-            "certificate_arn": None,
-            "route53_domain": "example.com",
-            "configure_ses": True,
-            "email_forwarding_address": "admin@example.com",
-            "enable_global_accelerator": False,
-            "enable_bedrock_integration": False,
-            "enable_data_api": False,
-            "create_serverless_analytics_environment": False,
-            "enable_monitoring_alarms": False,
-        },
-    },
+    # NOTE: configure_ses + route53_domain requires HostedZone.from_lookup()
+    # which needs a resolved AWS account. This path cannot be tested in CI
+    # with fake credentials. SES is exercised via unit tests instead.
     {
         "name": "ecs-exec-enabled",
         "description": "ECS Exec enabled for container debugging",
@@ -247,10 +235,8 @@ TEST_CONFIGURATIONS = [
     },
     {
         "name": "kitchen-sink",
-        "description": "Every optional feature enabled simultaneously",
+        "description": "Every optional feature enabled simultaneously (except SES which requires hosted zone lookup)",
         "config": {
-            "certificate_arn": None,
-            "route53_domain": "example.com",
             "enable_global_accelerator": True,
             "enable_bedrock_integration": True,
             "enable_data_api": True,
@@ -258,8 +244,6 @@ TEST_CONFIGURATIONS = [
             "enable_monitoring_alarms": True,
             "monitoring_email": "ops@example.com",
             "deployment_notification_email": "deploy@example.com",
-            "configure_ses": True,
-            "email_forwarding_address": "admin@example.com",
             "enable_ecs_exec": True,
             "activate_openemr_apis": True,
             "enable_patient_portal": True,
