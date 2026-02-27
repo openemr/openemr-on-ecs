@@ -323,6 +323,10 @@ Before starting, you'll need:
 ├── tests/                                   # Unit tests for CDK stack
 ├── tools/
 │   └── credential-rotation/                 # Dual-slot credential rotation tool
+├── diagrams/                                # Architecture diagrams (generated from CDK)
+│   ├── generate.py                          # AWS PDK diagram generation script
+│   ├── architecture.png                     # Compact architecture diagram
+│   └── architecture-full.png                # Full resource diagram
 ├── docs/                                    # Images and diagrams
 ├── README.md                                # This file
 ├── GETTING-STARTED.md                       # Beginner-friendly setup guide
