@@ -4,8 +4,6 @@ Validates KMS key creation, key rotation settings, resource policies for
 CloudWatch Logs, SNS, Secrets Manager, S3, and CloudTrail.
 """
 
-import aws_cdk.assertions as assertions
-
 from tests.conftest import *  # noqa: F401,F403
 
 

@@ -5,8 +5,6 @@ Validates that constant values have correct formats, types, and ranges.
 
 import re
 
-import pytest
-
 from openemr_ecs.constants import StackConstants
 
 

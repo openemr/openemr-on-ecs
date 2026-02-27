@@ -4,8 +4,6 @@ Validates the cleanup Lambda function resource creation, IAM permissions,
 timeout, and the custom resource that triggers cleanup during stack deletion.
 """
 
-import aws_cdk.assertions as assertions
-
 from tests.conftest import *  # noqa: F401,F403
 
 

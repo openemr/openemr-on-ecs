@@ -29,6 +29,7 @@
   <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=opensourceinitiative&label=bandit%20SAST" alt="Bandit SAST"></a>
   <img src="https://img.shields.io/badge/cdk--nag-HIPAA%20%2B%20AWS%20Solutions-8A2BE2?style=flat&logo=amazonaws" alt="CDK Nag">
   <img src="https://img.shields.io/badge/KMS-encryption%20at%20rest-8A2BE2?style=flat&logo=amazonaws" alt="KMS Encryption">
+  <img src="https://img.shields.io/badge/HTTPS%2FTLS-encryption%20in%20transit-8A2BE2?style=flat&logo=letsencrypt&logoColor=white" alt="HTTPS/TLS">
 </td></tr>
 <tr><td><b>Stack</b></td><td>
   <img src="https://img.shields.io/badge/Python-3.14-3776AB?style=flat&logo=python&logoColor=white" alt="Python">

@@ -4,9 +4,7 @@ Validates EFS volumes, AWS Backup plan/vault, S3 log buckets,
 and optional CloudTrail logging through CDK template assertions.
 """
 
-import aws_cdk as cdk
 import aws_cdk.assertions as assertions
-import pytest
 
 from tests.conftest import *  # noqa: F401,F403
 
