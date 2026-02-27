@@ -168,7 +168,7 @@ After entering username and password we should be able to get access to the Open
 
 This solution uses a variety of AWS services including [Amazon ECS](https://aws.amazon.com/ecs/), [AWS Fargate](https://aws.amazon.com/fargate/), [AWS WAF](https://aws.amazon.com/waf/), [Amazon CloudWatch](https://aws.amazon.com/cloudwatch/). For a full list you can review the cdk stack. Architecture diagram below shows how this solution comes together.
 
-![alt text](./docs/images/Architecture.png)
+![OpenEMR AWS Fargate Architecture](./diagrams/architecture.png)
 
 # Cost
 

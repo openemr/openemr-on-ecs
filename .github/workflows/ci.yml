@@ -184,16 +184,16 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Format check (black)
-        run: black --check openemr_ecs/ tests/
+        run: black --check openemr_ecs/ tests/ diagrams/
 
       - name: Lint (flake8)
-        run: flake8 openemr_ecs/ tests/ --max-line-length=120 --extend-ignore=E203,W503,E501
+        run: flake8 openemr_ecs/ tests/ diagrams/ --max-line-length=120 --extend-ignore=E203,W503,E501
 
       - name: Type check (mypy)
-        run: mypy openemr_ecs/ --ignore-missing-imports
+        run: mypy openemr_ecs/ diagrams/ --ignore-missing-imports
 
       - name: Import sorting (isort)
-        run: isort --check-only openemr_ecs/ tests/
+        run: isort --check-only openemr_ecs/ tests/ diagrams/
 
   security-scan:
     name: Security Scan
