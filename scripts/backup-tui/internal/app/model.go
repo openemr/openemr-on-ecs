@@ -56,9 +56,9 @@ type Model struct {
 	activeFilter filterMode // Current in-app resource type filter
 
 	// Restore monitoring state
-	restoreJobID    string    // Active restore job ID being monitored
-	restoreStart    time.Time // When the restore was initiated
-	restoreStatus   *aws.RestoreJobStatus
+	restoreJobID  string    // Active restore job ID being monitored
+	restoreStart  time.Time // When the restore was initiated
+	restoreStatus *aws.RestoreJobStatus
 
 	// Restore metadata preview
 	restoreMetadata *aws.RestoreMetadata
@@ -69,13 +69,13 @@ type Model struct {
 type state int
 
 const (
-	stateLoading  state = iota // Initial state: discovering vault and loading backups
-	stateList                  // Main state: displaying list of backups
-	stateDetail                // Detail state: showing details of selected backup
-	stateConfirm               // Confirm state: confirming restore operation
-	stateHelp                  // Help state: displaying help screen
-	stateError                 // Error state: displaying error message
-	stateRestoring             // Restore monitoring: polling restore job status
+	stateLoading   state = iota // Initial state: discovering vault and loading backups
+	stateList                   // Main state: displaying list of backups
+	stateDetail                 // Detail state: showing details of selected backup
+	stateConfirm                // Confirm state: confirming restore operation
+	stateHelp                   // Help state: displaying help screen
+	stateError                  // Error state: displaying error message
+	stateRestoring              // Restore monitoring: polling restore job status
 )
 
 // filterMode represents the in-app resource type filter cycle.

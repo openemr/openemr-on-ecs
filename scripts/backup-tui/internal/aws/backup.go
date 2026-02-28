@@ -335,14 +335,14 @@ func (c *BackupClient) StartRestoreJob(ctx context.Context, rp RecoveryPoint, st
 
 // RestoreJobStatus represents the current status of a restore job.
 type RestoreJobStatus struct {
-	JobID          string
-	Status         string // PENDING, RUNNING, COMPLETED, ABORTED, FAILED
-	CreatedAt      time.Time
-	CompletedAt    time.Time
-	ResourceType   string
-	PercentDone    string
-	StatusMessage  string
-	IsTerminal     bool
+	JobID         string
+	Status        string // PENDING, RUNNING, COMPLETED, ABORTED, FAILED
+	CreatedAt     time.Time
+	CompletedAt   time.Time
+	ResourceType  string
+	PercentDone   string
+	StatusMessage string
+	IsTerminal    bool
 }
 
 // RestoreMetadata contains the parameters that will be used for a restore operation.

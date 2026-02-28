@@ -223,19 +223,19 @@ backup-tui/
 ├── internal/
 │   ├── app/
 │   │   ├── model.go                    # Main application model (Bubbletea)
-│   │   └── model_test.go              # Tests for application model (90+ tests)
+│   │   └── model_test.go               # Tests for application model (90+ tests)
 │   ├── aws/
-│   │   ├── interfaces.go              # AWS service interfaces for testability
-│   │   ├── backup.go                  # AWS Backup client
-│   │   ├── backup_client_test.go      # Tests for backup client (50+ tests)
-│   │   └── config.go                  # AWS config loading
+│   │   ├── interfaces.go               # AWS service interfaces for testability
+│   │   ├── backup.go                   # AWS Backup client
+│   │   ├── backup_client_test.go       # Tests for backup client (50+ tests)
+│   │   └── config.go                   # AWS config loading
 │   └── ui/
 │       ├── list.go                     # List view component
-│       ├── list_test.go               # Tests for list view (30+ tests)
-│       ├── detail.go                  # Detail view component
-│       ├── detail_test.go             # Tests for detail view (30+ tests)
-│       ├── help.go                    # Help screen component
-│       └── help_test.go              # Tests for help screen (20+ tests)
+│       ├── list_test.go                # Tests for list view (30+ tests)
+│       ├── detail.go                   # Detail view component
+│       ├── detail_test.go              # Tests for detail view (30+ tests)
+│       ├── help.go                     # Help screen component
+│       └── help_test.go                # Tests for help screen (20+ tests)
 └── .golangci.yml                       # Linter configuration
 ```
 

@@ -658,8 +658,8 @@ func TestRelativeTime_Exported(t *testing.T) {
 func TestFreshnessIndicator(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
-		name    string
-		t       time.Time
+		name     string
+		t        time.Time
 		notEmpty bool
 	}{
 		{"fresh (< 24h)", now.Add(-1 * time.Hour), true},

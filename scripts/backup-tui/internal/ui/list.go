@@ -15,12 +15,12 @@ import (
 // It handles cursor navigation, item selection, viewport scrolling,
 // and visual styling for the list of recovery points displayed to the user.
 type ListModel struct {
-	items     []string // Formatted backup items to display
-	cursor    int      // Currently selected item index (0-based)
-	offset    int      // Scroll offset (first visible item index)
-	height    int      // Available height for rendering (from window size)
-	width     int      // Available width for rendering (from window size)
-	pageSize  int      // Number of items visible in viewport
+	items    []string // Formatted backup items to display
+	cursor   int      // Currently selected item index (0-based)
+	offset   int      // Scroll offset (first visible item index)
+	height   int      // Available height for rendering (from window size)
+	width    int      // Available width for rendering (from window size)
+	pageSize int      // Number of items visible in viewport
 }
 
 // Styling constants for the list view component.
