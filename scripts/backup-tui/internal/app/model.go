@@ -276,11 +276,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.selectedIdx = m.listModel.SelectedIndex()
 
 		case stateDetail:
-			keyStr := msg.String()
-			if keyStr == "backspace" || keyStr == "b" || keyStr == "left" {
+			switch msg.String() {
+			case "backspace", "b", "left":
 				m.state = stateList
 				m.restoreMetadata = nil
-			} else if keyStr == "enter" {
+			case "enter":
 				m.state = stateConfirm
 				if m.selectedIdx < len(m.backups) {
 					cmds = append(cmds, m.fetchRestoreMetadata())
@@ -290,12 +290,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 
 		case stateConfirm:
-			keyStr := msg.String()
-			if keyStr == "y" || keyStr == "Y" {
+			switch msg.String() {
+			case "y", "Y":
 				m.restoreStart = time.Now()
 				m.statusMsg = "Restoring..."
 				cmds = append(cmds, m.initiateRestore())
-			} else if keyStr == "n" || keyStr == "N" || keyStr == "backspace" {
+			case "n", "N", "backspace":
 				m.state = stateDetail
 				m.restoreMetadata = nil
 			}
@@ -376,11 +376,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) View() tea.View {
 	var content string
 
-	if m.state == stateError {
+	switch m.state {
+	case stateError:
 		content = m.renderError()
-	} else if m.state == stateLoading {
+	case stateLoading:
 		content = m.renderLoading()
-	} else {
+	default:
 		var view string
 		switch m.state {
 		case stateList:
