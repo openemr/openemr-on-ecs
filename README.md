@@ -465,6 +465,27 @@ export DEPLOY_ACTUAL=true
 
 See [README-TESTING.md](README-TESTING.md) for detailed usage.
 
+### Backup Manager TUI
+
+An interactive terminal interface for browsing, inspecting, and restoring AWS Backup recovery points. Built with Go, Bubbletea v2, and Lipgloss v2.
+
+```bash
+cd scripts/backup-tui && go build -o backup-tui . && ./backup-tui
+```
+
+<table>
+<tr>
+<td width="50%"><strong>Backup List View</strong><br/>Browse all recovery points with type, relative time, size, and freshness coloring.<br/><br/><img src="docs/images/backup_tui_screenshot_1.png" alt="Backup List View" width="100%"></td>
+<td width="50%"><strong>Backup Detail View</strong><br/>Inspect a selected backup — resource type, status, ARN, and one-key restore.<br/><br/><img src="docs/images/backup_tui_screenshot_2.png" alt="Backup Detail View" width="100%"></td>
+</tr>
+<tr>
+<td width="50%"><strong>Restore Confirmation</strong><br/>Review restore parameters (cluster ID, subnet, security groups for RDS; file system, encryption for EFS) before confirming.<br/><br/><img src="docs/images/backup_tui_screenshot_3.png" alt="Restore Confirmation" width="100%"></td>
+<td width="50%"><strong>Live Restore Monitoring</strong><br/>Track restore job progress in real-time — job ID, elapsed time, status, and percent completion.<br/><br/><img src="docs/images/backup_tui_screenshot_4.png" alt="Restore Monitoring" width="100%"></td>
+</tr>
+</table>
+
+See [scripts/backup-tui/README.md](scripts/backup-tui/README.md) for full documentation, controls, and build instructions.
+
 ## Need Help?
 
 - **📚 New to this?** Start with [**GETTING-STARTED.md**](GETTING-STARTED.md) - a beginner-friendly step-by-step guide

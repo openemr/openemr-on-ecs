@@ -101,6 +101,20 @@ Each recovery point includes:
 
 ## Restoring from Backup
 
+### Using the Backup Manager TUI (Recommended)
+
+The interactive Backup Manager TUI provides the easiest way to browse, inspect, and restore backups. It auto-discovers your stack and backup vault, displays backups with freshness coloring and relative timestamps, shows restore metadata before confirmation, and monitors restore job progress in real-time.
+
+```bash
+cd scripts/backup-tui
+go build -o backup-tui .
+./backup-tui
+```
+
+![Backup Manager TUI](docs/images/backup_tui_screenshot_1.png)
+
+See [scripts/backup-tui/README.md](scripts/backup-tui/README.md) for full documentation, controls, and screenshots.
+
 ### Using the Restore Script
 
 The `scripts/restore-from-backup.sh` script provides an easy way to restore resources.
