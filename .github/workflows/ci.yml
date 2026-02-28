@@ -344,8 +344,11 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run tests
-        run: go test ./... -v
+      - name: Run tests with coverage
+        run: go test ./... -v -coverprofile=coverage.out -covermode=atomic
+
+      - name: Display coverage summary
+        run: go tool cover -func=coverage.out
 
   docker-compose-tests:
     name: Docker Compose Tests

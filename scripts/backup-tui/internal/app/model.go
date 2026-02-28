@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/compat"
 	"github.com/openemr/openemr-on-ecs/scripts/backup-tui/internal/aws"
 	"github.com/openemr/openemr-on-ecs/scripts/backup-tui/internal/ui"
 )
@@ -31,20 +33,35 @@ type Model struct {
 	resourceType string          // Optional filter: "RDS", "EFS", or "" for all
 
 	// UI state: Current view and component state
-	state       state          // Current application state (loading, list, detail, help, error)
+	state       state          // Current application state (loading, list, detail, confirm, help, error, restoring)
 	listModel   ui.ListModel   // List view component for displaying backups
 	detailModel ui.DetailModel // Detail view component for backup information
 	helpModel   ui.HelpModel   // Help screen component
 	statusMsg   string         // Status message displayed in status bar
 	err         error          // Error state (nil when no error)
 
+	// Spinner state for loading animation
+	spinnerFrame int
+
 	// AWS clients: Service clients for AWS operations
 	backupClient *aws.BackupClient // AWS Backup service client and related services
 
 	// Data: Application data and selections
 	backups         []aws.RecoveryPoint // Cached list of recovery points
+	allBackups      []aws.RecoveryPoint // Unfiltered list (before in-app filter)
 	selectedIdx     int                 // Index of currently selected backup in backups slice
 	vaultDiscovered bool                // Whether vault discovery has completed
+
+	// In-app filter state
+	activeFilter filterMode // Current in-app resource type filter
+
+	// Restore monitoring state
+	restoreJobID    string    // Active restore job ID being monitored
+	restoreStart    time.Time // When the restore was initiated
+	restoreStatus   *aws.RestoreJobStatus
+
+	// Restore metadata preview
+	restoreMetadata *aws.RestoreMetadata
 }
 
 // state represents the current application view/state.
@@ -52,12 +69,49 @@ type Model struct {
 type state int
 
 const (
-	stateLoading state = iota // Initial state: discovering vault and loading backups
-	stateList                 // Main state: displaying list of backups
-	stateDetail               // Detail state: showing details of selected backup
-	stateHelp                 // Help state: displaying help screen
-	stateError                // Error state: displaying error message
+	stateLoading  state = iota // Initial state: discovering vault and loading backups
+	stateList                  // Main state: displaying list of backups
+	stateDetail                // Detail state: showing details of selected backup
+	stateConfirm               // Confirm state: confirming restore operation
+	stateHelp                  // Help state: displaying help screen
+	stateError                 // Error state: displaying error message
+	stateRestoring             // Restore monitoring: polling restore job status
 )
+
+// filterMode represents the in-app resource type filter cycle.
+type filterMode int
+
+const (
+	filterAll filterMode = iota
+	filterRDS
+	filterEFS
+)
+
+func (f filterMode) String() string {
+	switch f {
+	case filterRDS:
+		return "RDS"
+	case filterEFS:
+		return "EFS"
+	default:
+		return "All"
+	}
+}
+
+func (f filterMode) next() filterMode {
+	switch f {
+	case filterAll:
+		return filterRDS
+	case filterRDS:
+		return filterEFS
+	default:
+		return filterAll
+	}
+}
+
+var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+type spinnerTickMsg time.Time
 
 // NewModel creates and initializes a new application Model.
 // This function sets up the initial state, initializes AWS clients, and prepares
@@ -113,13 +167,19 @@ func NewModel(ctx context.Context, stackName, vaultName, region, resourceType st
 // Note: These commands run concurrently. The model will receive messages when
 // they complete, triggering state transitions.
 func (m *Model) Init() tea.Cmd {
-	// Only start vault discovery if vault name not provided
-	// Backup loading will be triggered after vault discovery completes
+	cmds := []tea.Cmd{m.tickSpinner()}
 	if m.vaultName == "" {
-		return m.discoverVault() // Discover backup vault first
+		cmds = append(cmds, m.discoverVault())
+	} else {
+		cmds = append(cmds, m.loadBackups())
 	}
-	// If vault name already provided, load backups immediately
-	return m.loadBackups()
+	return tea.Batch(cmds...)
+}
+
+func (m *Model) tickSpinner() tea.Cmd {
+	return tea.Tick(80*time.Millisecond, func(t time.Time) tea.Msg {
+		return spinnerTickMsg(t)
+	})
 }
 
 // Update handles messages and updates the model state.
@@ -145,69 +205,106 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		// Handle global keyboard shortcuts (work in all states)
+	case spinnerTickMsg:
+		if m.state == stateLoading || m.state == stateRestoring {
+			m.spinnerFrame = (m.spinnerFrame + 1) % len(spinnerFrames)
+			cmds = append(cmds, m.tickSpinner())
+		}
+
+	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "q", "esc", "ctrl+c":
-			// Quit: exit help screen or quit application
+		case "q", "ctrl+c":
 			if m.state == stateHelp {
-				m.state = stateList // Exit help, return to list
+				m.state = stateList
 				return m, nil
 			}
-			return m, tea.Quit // Quit application
+			if m.state == stateConfirm {
+				m.state = stateDetail
+				return m, nil
+			}
+			if m.state == stateRestoring {
+				m.state = stateList
+				return m, nil
+			}
+			return m, tea.Quit
+		case "esc":
+			if m.state == stateHelp {
+				m.state = stateList
+				return m, nil
+			}
+			if m.state == stateConfirm {
+				m.state = stateDetail
+				return m, nil
+			}
+			if m.state == stateRestoring {
+				m.state = stateList
+				return m, nil
+			}
+			if m.state == stateDetail {
+				m.state = stateList
+				return m, nil
+			}
+			return m, tea.Quit
 		case "?":
-			// Toggle help screen (only from list or detail views)
 			if m.state == stateList || m.state == stateDetail {
 				m.state = stateHelp
 				return m, nil
 			}
 		case "r":
-			// Refresh: reload backup list (only from list view)
 			if m.state == stateList {
-				cmds = append(cmds, m.loadBackups())
+				m.state = stateLoading
+				cmds = append(cmds, m.loadBackups(), m.tickSpinner())
+			}
+		case "f":
+			if m.state == stateList {
+				m.cycleFilter()
 			}
 		}
 
-		// Handle state-specific keyboard input
 		switch m.state {
 		case stateList:
-			// List view: navigation and selection
 			if msg.String() == "enter" {
-				// Select backup: transition to detail view
 				if len(m.backups) > 0 && m.listModel.SelectedIndex() < len(m.backups) {
 					m.selectedIdx = m.listModel.SelectedIndex()
 					m.detailModel.SetRecoveryPoint(&m.backups[m.selectedIdx])
 					m.state = stateDetail
+					m.restoreMetadata = nil
 				}
 			}
-			// Delegate navigation (up/down) to list model
 			m.listModel, cmd = m.listModel.Update(msg)
 			cmds = append(cmds, cmd)
-			// Keep selectedIdx in sync with list model cursor
 			m.selectedIdx = m.listModel.SelectedIndex()
 
 		case stateDetail:
-			// Detail view: actions and navigation
 			keyStr := msg.String()
-			// Handle back navigation with multiple key options
-			if keyStr == "backspace" || keyStr == "b" || keyStr == "left" || msg.Type == tea.KeyLeft {
-				// Go back: return to list view
+			if keyStr == "backspace" || keyStr == "b" || keyStr == "left" {
 				m.state = stateList
-			} else if keyStr == "enter" || msg.Type == tea.KeyEnter {
-				// Initiate restore: start restore job
-				cmds = append(cmds, m.initiateRestore())
+				m.restoreMetadata = nil
+			} else if keyStr == "enter" {
+				m.state = stateConfirm
+				if m.selectedIdx < len(m.backups) {
+					cmds = append(cmds, m.fetchRestoreMetadata())
+				}
 			}
-			// Delegate to detail model (handles window resize, etc.)
 			m.detailModel, cmd = m.detailModel.Update(msg)
 			cmds = append(cmds, cmd)
 
+		case stateConfirm:
+			keyStr := msg.String()
+			if keyStr == "y" || keyStr == "Y" {
+				m.restoreStart = time.Now()
+				m.statusMsg = "Restoring..."
+				cmds = append(cmds, m.initiateRestore())
+			} else if keyStr == "n" || keyStr == "N" || keyStr == "backspace" {
+				m.state = stateDetail
+				m.restoreMetadata = nil
+			}
+
 		case stateHelp:
-			// Help view: delegate to help model (handles window resize)
 			m.helpModel, cmd = m.helpModel.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 
-	// Handle async operation results
 	case vaultDiscoveredMsg:
 		// Vault discovery completed
 		m.vaultName = msg.vaultName
@@ -222,29 +319,46 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case backupsLoadedMsg:
-		// Backup list loading completed
-		m.backups = msg.backups
 		if msg.err != nil {
 			m.err = msg.err
 			m.state = stateError
 		} else {
-			m.state = stateList                            // Transition to list view
-			m.listModel.SetItems(m.formatBackupsForList()) // Update list component
-			// Clear any previous status messages when backups are loaded
+			m.allBackups = msg.backups
+			m.applyFilter()
+			m.state = stateList
+			m.listModel.SetItems(m.formatBackupsForList())
 			m.statusMsg = ""
 		}
 
 	case restoreInitiatedMsg:
-		// Restore job initiation completed
-		m.statusMsg = fmt.Sprintf("Restore job started: %s", msg.jobID)
 		if msg.err != nil {
 			m.err = msg.err
 			m.state = stateError
+		} else {
+			m.restoreJobID = msg.jobID
+			m.state = stateRestoring
+			m.statusMsg = fmt.Sprintf("Restore job started: %s", msg.jobID)
+			cmds = append(cmds, m.pollRestoreStatus(), m.tickSpinner())
 		}
-		// Note: Restore job runs asynchronously; user should monitor via AWS console
+
+	case restoreStatusMsg:
+		if msg.err != nil {
+			m.statusMsg = fmt.Sprintf("Error checking restore: %v", msg.err)
+		} else {
+			m.restoreStatus = msg.status
+			if msg.status.IsTerminal {
+				m.statusMsg = fmt.Sprintf("Restore %s: %s", msg.status.Status, msg.status.StatusMessage)
+			} else if m.state == stateRestoring {
+				cmds = append(cmds, m.pollRestoreStatus())
+			}
+		}
+
+	case restoreMetadataMsg:
+		if msg.err == nil {
+			m.restoreMetadata = msg.metadata
+		}
 
 	case error:
-		// Generic error message (catch-all for unexpected errors)
 		m.err = msg
 		m.state = stateError
 	}
@@ -259,33 +373,39 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 //
 // Returns:
 //   - string: Rendered UI (includes header, main content, and status bar)
-func (m *Model) View() string {
-	// Handle error state: show error message
+func (m *Model) View() tea.View {
+	var content string
+
 	if m.state == stateError {
-		return m.renderError()
+		content = m.renderError()
+	} else if m.state == stateLoading {
+		content = m.renderLoading()
+	} else {
+		var view string
+		switch m.state {
+		case stateList:
+			view = m.renderList()
+		case stateDetail:
+			view = m.renderDetail()
+		case stateConfirm:
+			view = m.renderConfirm()
+		case stateHelp:
+			view = m.renderHelp()
+		case stateRestoring:
+			view = m.renderRestoring()
+		default:
+			view = "Unknown state"
+		}
+
+		statusBar := m.renderStatusBar()
+		keyHints := m.renderKeyHints()
+		content = lipgloss.JoinVertical(lipgloss.Left, view, statusBar, keyHints)
 	}
 
-	// Handle loading state: show loading indicator
-	if m.state == stateLoading {
-		return m.renderLoading()
-	}
-
-	// Render state-specific views
-	var view string
-	switch m.state {
-	case stateList:
-		view = m.renderList() // List view with header and backup list
-	case stateDetail:
-		view = m.renderDetail() // Detail view with header and backup details
-	case stateHelp:
-		view = m.renderHelp() // Help view with header and help content
-	default:
-		view = "Unknown state" // Fallback (should never occur)
-	}
-
-	// Add status bar at the bottom (shows backup count, status messages, etc.)
-	statusBar := m.renderStatusBar()
-	return lipgloss.JoinVertical(lipgloss.Left, view, statusBar)
+	v := tea.NewView(content)
+	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
+	return v
 }
 
 // renderLoading renders the loading state view.
@@ -294,18 +414,23 @@ func (m *Model) View() string {
 // Returns:
 //   - string: Loading message with styled border
 func (m *Model) renderLoading() string {
+	spinner := spinnerFrames[m.spinnerFrame]
+	label := "Loading backups..."
+	if !m.vaultDiscovered && m.vaultName == "" {
+		label = "Discovering backup vault..."
+	}
 	return lipgloss.NewStyle().
 		Padding(1, 2).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.AdaptiveColor{
-			Light: "62",
-			Dark:  "63",
+		BorderForeground(compat.AdaptiveColor{
+			Light: lipgloss.Color("62"),
+			Dark:  lipgloss.Color("63"),
 		}).
-		Foreground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "252",
+		Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("252"),
 		}).
-		Render("⏳ Loading backups...")
+		Render(fmt.Sprintf("%s %s", spinner, label))
 }
 
 // renderError renders the error state view.
@@ -396,9 +521,9 @@ func (m *Model) renderHeader() string {
 
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.AdaptiveColor{
-			Light: "62",
-			Dark:  "63",
+		Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("62"),
+			Dark:  lipgloss.Color("63"),
 		}).
 		MarginBottom(1)
 
@@ -412,9 +537,9 @@ func (m *Model) renderHeader() string {
 	regionInfo := fmt.Sprintf("Region: %s", m.region)
 
 	infoStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "248",
+		Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("248"),
 		}).
 		MarginBottom(1)
 
@@ -425,9 +550,21 @@ func (m *Model) renderHeader() string {
 		infoStyle.Render(regionInfo),
 	)
 
-	// Add resource type filter if specified
+	// Show active filter (CLI flag or in-app toggle)
+	var filterLabel string
 	if m.resourceType != "" {
-		filter := infoStyle.Render(fmt.Sprintf("Filter: %s", m.resourceType))
+		filterLabel = m.resourceType
+	}
+	if m.activeFilter != filterAll {
+		filterLabel = m.activeFilter.String()
+	}
+	if filterLabel != "" {
+		filterStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("229")).
+			Background(compat.AdaptiveColor{Light: lipgloss.Color("62"), Dark: lipgloss.Color("63")}).
+			Padding(0, 1).
+			Bold(true)
+		filter := filterStyle.Render(fmt.Sprintf("Filter: %s", filterLabel))
 		infoSection = lipgloss.JoinHorizontal(lipgloss.Left, infoSection, "  ", filter)
 	}
 
@@ -453,24 +590,24 @@ func (m *Model) renderStatusBar() string {
 
 	switch {
 	case m.statusMsg != "":
-		// Show status message (e.g., "Restore job started: job-123")
 		status = m.statusMsg
-		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("114")) // Green for success messages
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("114"))
 	case len(m.backups) > 0:
-		// Show backup count
-		status = fmt.Sprintf("✓ %d backup(s) found", len(m.backups))
-		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("114")) // Green
+		if m.activeFilter != filterAll && len(m.allBackups) != len(m.backups) {
+			status = fmt.Sprintf("✓ %d of %d backup(s) shown (%s)", len(m.backups), len(m.allBackups), m.activeFilter)
+		} else {
+			status = fmt.Sprintf("✓ %d backup(s) found", len(m.backups))
+		}
+		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("114"))
 	default:
-		// Show "no backups" message
-		// This can happen if: vault exists but is empty, all backups filtered out, or API issue
 		if m.vaultDiscovered && m.vaultName != "" {
 			status = fmt.Sprintf("○ No backups found in vault: %s", m.vaultName)
 		} else {
 			status = "○ No backups found"
 		}
-		statusStyle = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "248",
+		statusStyle = lipgloss.NewStyle().Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("248"),
 		})
 	}
 
@@ -478,24 +615,156 @@ func (m *Model) renderStatusBar() string {
 		Padding(0, 1).
 		Border(lipgloss.RoundedBorder()).
 		BorderTop(true).
-		BorderForeground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "238",
+		BorderForeground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("238"),
 		}).
 		Render(status)
 }
 
-// formatBackupsForList formats the backups slice into strings for display in the list.
-// Each backup is formatted as: "Type | Resource ID | Creation Date | Size"
-//
-// Returns:
-//   - []string: Formatted backup strings for the list component
+func (m *Model) renderConfirm() string {
+	header := m.renderHeader()
+
+	if m.selectedIdx >= len(m.backups) {
+		return lipgloss.JoinVertical(lipgloss.Left, header, "No backup selected")
+	}
+
+	rp := m.backups[m.selectedIdx]
+
+	warningStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("214")).
+		Bold(true)
+
+	boxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("214")).
+		Padding(1, 2).
+		MarginTop(1)
+
+	infoStyle := lipgloss.NewStyle().
+		Foreground(compat.AdaptiveColor{Light: lipgloss.Color("240"), Dark: lipgloss.Color("252")})
+
+	promptStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(compat.AdaptiveColor{Light: lipgloss.Color("232"), Dark: lipgloss.Color("255")}).
+		MarginTop(1)
+
+	yStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("114")).
+		Background(compat.AdaptiveColor{Light: lipgloss.Color("62"), Dark: lipgloss.Color("63")}).
+		Padding(0, 1)
+
+	nStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("196")).
+		Background(compat.AdaptiveColor{Light: lipgloss.Color("240"), Dark: lipgloss.Color("238")}).
+		Padding(0, 1)
+
+	sections := []string{
+		warningStyle.Render("⚠  Confirm Restore Operation"),
+		"",
+		infoStyle.Render(fmt.Sprintf("Resource:  %s (%s)", rp.ResourceID, rp.ResourceType)),
+		infoStyle.Render(fmt.Sprintf("Created:   %s (%s)", rp.CreationDate.Format("2006-01-02 15:04:05 MST"), relativeTime(rp.CreationDate))),
+		infoStyle.Render(fmt.Sprintf("Size:      %s", formatBytes(rp.BackupSizeInBytes))),
+	}
+
+	if m.restoreMetadata != nil {
+		meta := m.restoreMetadata
+		metaStyle := lipgloss.NewStyle().
+			Foreground(compat.AdaptiveColor{Light: lipgloss.Color("240"), Dark: lipgloss.Color("248")})
+
+		sections = append(sections, "")
+		sections = append(sections, metaStyle.Render("Restore Parameters:"))
+		switch meta.ResourceType {
+		case "RDS":
+			sections = append(sections, infoStyle.Render(fmt.Sprintf("  Cluster:    %s", meta.ClusterID)))
+			sections = append(sections, infoStyle.Render(fmt.Sprintf("  Subnet:     %s", meta.SubnetGroup)))
+			sections = append(sections, infoStyle.Render(fmt.Sprintf("  Security:   %s", meta.SecurityGroups)))
+		case "EFS":
+			sections = append(sections, infoStyle.Render(fmt.Sprintf("  File System: %s", meta.ResourceID)))
+			sections = append(sections, infoStyle.Render(fmt.Sprintf("  Encrypted:   %v", meta.Encrypted)))
+			sections = append(sections, infoStyle.Render("  In-place:    true"))
+		}
+	}
+
+	sections = append(sections,
+		"",
+		promptStyle.Render("Are you sure you want to restore this backup?"),
+		"",
+		lipgloss.JoinHorizontal(lipgloss.Left,
+			yStyle.Render("y"),
+			"  Yes, restore   ",
+			nStyle.Render("n"),
+			"  Cancel",
+		),
+	)
+
+	content := lipgloss.JoinVertical(lipgloss.Left, sections...)
+
+	return lipgloss.JoinVertical(lipgloss.Left, header, boxStyle.Render(content))
+}
+
+func (m *Model) renderKeyHints() string {
+	hintStyle := lipgloss.NewStyle().
+		Foreground(compat.AdaptiveColor{Light: lipgloss.Color("245"), Dark: lipgloss.Color("242")})
+
+	keyStyle := lipgloss.NewStyle().
+		Foreground(compat.AdaptiveColor{Light: lipgloss.Color("62"), Dark: lipgloss.Color("63")}).
+		Bold(true)
+
+	var hints string
+	switch m.state {
+	case stateList:
+		hints = fmt.Sprintf(
+			"%s navigate  %s select  %s filter  %s refresh  %s help  %s quit",
+			keyStyle.Render("↑↓"),
+			keyStyle.Render("enter"),
+			keyStyle.Render("f"),
+			keyStyle.Render("r"),
+			keyStyle.Render("?"),
+			keyStyle.Render("q"),
+		)
+	case stateDetail:
+		hints = fmt.Sprintf(
+			"%s restore  %s back  %s help  %s quit",
+			keyStyle.Render("enter"),
+			keyStyle.Render("b/←"),
+			keyStyle.Render("?"),
+			keyStyle.Render("q"),
+		)
+	case stateConfirm:
+		hints = fmt.Sprintf(
+			"%s confirm  %s cancel",
+			keyStyle.Render("y"),
+			keyStyle.Render("n/esc"),
+		)
+	case stateHelp:
+		hints = fmt.Sprintf(
+			"%s close help  %s quit",
+			keyStyle.Render("esc/?"),
+			keyStyle.Render("q"),
+		)
+	case stateRestoring:
+		hints = fmt.Sprintf(
+			"%s back to list (restore continues)",
+			keyStyle.Render("esc/q"),
+		)
+	default:
+		return ""
+	}
+
+	return hintStyle.Render(" " + hints)
+}
+
 func (m *Model) formatBackupsForList() []string {
 	items := make([]string, len(m.backups))
 	for i, backup := range m.backups {
 		date := backup.CreationDate.Format("2006-01-02 15:04:05")
+		relative := relativeTime(backup.CreationDate)
 		size := formatBytes(backup.BackupSizeInBytes)
-		items[i] = fmt.Sprintf("%s | %s | %s | %s", backup.ResourceType, backup.ResourceID, date, size)
+		dot := freshnessIndicator(backup.CreationDate)
+		items[i] = fmt.Sprintf("%s %s | %s | %s (%s) | %s", dot, backup.ResourceType, backup.ResourceID, date, relative, size)
 	}
 	return items
 }
@@ -546,6 +815,18 @@ type backupsLoadedMsg struct {
 type restoreInitiatedMsg struct {
 	jobID string // Restore job ID if successful (empty if error)
 	err   error  // Error if initiation failed (nil if success)
+}
+
+// restoreStatusMsg is sent when a restore job status poll completes.
+type restoreStatusMsg struct {
+	status *aws.RestoreJobStatus
+	err    error
+}
+
+// restoreMetadataMsg is sent when restore metadata lookup completes.
+type restoreMetadataMsg struct {
+	metadata *aws.RestoreMetadata
+	err      error
 }
 
 // Commands
@@ -628,22 +909,12 @@ func (m *Model) loadBackups() tea.Cmd {
 }
 
 // initiateRestore returns a command that initiates a restore job.
-// Uses the currently selected backup (m.selectedIdx) and queries CloudFormation/RDS
-// to get necessary metadata for the restore operation.
-//
-// Returns:
-//   - tea.Cmd: Command that sends restoreInitiatedMsg when complete
-//
-// Note: The restore job runs asynchronously in AWS. This command only initiates it.
-// Users should monitor restore progress via the AWS console or AWS CLI.
 func (m *Model) initiateRestore() tea.Cmd {
 	return func() tea.Msg {
-		// Validate selection
 		if m.selectedIdx >= len(m.backups) {
 			return restoreInitiatedMsg{err: fmt.Errorf("invalid backup selection")}
 		}
 
-		// Get selected backup and initiate restore
 		backup := m.backups[m.selectedIdx]
 		jobID, err := m.backupClient.StartRestoreJob(m.ctx, backup, m.stackName, m.vaultName)
 		if err != nil {
@@ -652,4 +923,153 @@ func (m *Model) initiateRestore() tea.Cmd {
 
 		return restoreInitiatedMsg{jobID: jobID}
 	}
+}
+
+// pollRestoreStatus returns a command that waits 5 seconds then checks restore job status.
+func (m *Model) pollRestoreStatus() tea.Cmd {
+	jobID := m.restoreJobID
+	return tea.Tick(5*time.Second, func(_ time.Time) tea.Msg {
+		status, err := m.backupClient.GetRestoreJobStatus(m.ctx, jobID)
+		return restoreStatusMsg{status: status, err: err}
+	})
+}
+
+// fetchRestoreMetadata returns a command that fetches restore parameters for preview.
+func (m *Model) fetchRestoreMetadata() tea.Cmd {
+	if m.selectedIdx >= len(m.backups) {
+		return nil
+	}
+	rp := m.backups[m.selectedIdx]
+	stackName := m.stackName
+	return func() tea.Msg {
+		meta, err := m.backupClient.GetRestoreMetadata(m.ctx, rp, stackName)
+		return restoreMetadataMsg{metadata: meta, err: err}
+	}
+}
+
+// renderRestoring renders the restore monitoring view with live status.
+func (m *Model) renderRestoring() string {
+	header := m.renderHeader()
+
+	spinner := spinnerFrames[m.spinnerFrame]
+
+	boxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(compat.AdaptiveColor{Light: lipgloss.Color("62"), Dark: lipgloss.Color("63")}).
+		Padding(1, 2).
+		MarginTop(1)
+
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(compat.AdaptiveColor{Light: lipgloss.Color("62"), Dark: lipgloss.Color("63")})
+
+	infoStyle := lipgloss.NewStyle().
+		Foreground(compat.AdaptiveColor{Light: lipgloss.Color("240"), Dark: lipgloss.Color("252")})
+
+	sections := []string{
+		titleStyle.Render(fmt.Sprintf("%s  Restore In Progress", spinner)),
+		"",
+		infoStyle.Render(fmt.Sprintf("Job ID:  %s", m.restoreJobID)),
+	}
+
+	elapsed := time.Since(m.restoreStart).Truncate(time.Second)
+	sections = append(sections, infoStyle.Render(fmt.Sprintf("Elapsed: %s", elapsed)))
+
+	if m.restoreStatus != nil {
+		rs := m.restoreStatus
+		statusColor := lipgloss.Color("114") // green
+		switch rs.Status {
+		case "FAILED", "ABORTED":
+			statusColor = lipgloss.Color("196") // red
+		case "PENDING", "RUNNING":
+			statusColor = lipgloss.Color("214") // yellow/orange
+		}
+		statusStyle := lipgloss.NewStyle().Foreground(statusColor).Bold(true)
+
+		sections = append(sections, "")
+		sections = append(sections, lipgloss.JoinHorizontal(lipgloss.Left,
+			infoStyle.Render("Status:  "),
+			statusStyle.Render(rs.Status),
+		))
+		if rs.PercentDone != "" {
+			sections = append(sections, infoStyle.Render(fmt.Sprintf("Progress: %s%%", rs.PercentDone)))
+		}
+		if rs.StatusMessage != "" {
+			sections = append(sections, infoStyle.Render(fmt.Sprintf("Message: %s", rs.StatusMessage)))
+		}
+		if rs.IsTerminal && !rs.CompletedAt.IsZero() {
+			duration := rs.CompletedAt.Sub(rs.CreatedAt).Truncate(time.Second)
+			sections = append(sections, infoStyle.Render(fmt.Sprintf("Duration: %s", duration)))
+		}
+	}
+
+	content := lipgloss.JoinVertical(lipgloss.Left, sections...)
+	return lipgloss.JoinVertical(lipgloss.Left, header, boxStyle.Render(content))
+}
+
+// cycleFilter advances the in-app filter and re-filters the backup list.
+func (m *Model) cycleFilter() {
+	m.activeFilter = m.activeFilter.next()
+	m.applyFilter()
+	m.listModel.SetItems(m.formatBackupsForList())
+}
+
+// applyFilter filters allBackups based on the active filter mode.
+func (m *Model) applyFilter() {
+	if m.activeFilter == filterAll {
+		m.backups = m.allBackups
+		return
+	}
+	filterStr := m.activeFilter.String()
+	filtered := make([]aws.RecoveryPoint, 0, len(m.allBackups))
+	for _, bp := range m.allBackups {
+		if bp.ResourceType == filterStr {
+			filtered = append(filtered, bp)
+		}
+	}
+	m.backups = filtered
+}
+
+// relativeTime returns a human-readable relative time string (e.g., "2h ago", "3d ago").
+func relativeTime(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		mins := int(d.Minutes())
+		return fmt.Sprintf("%dm ago", mins)
+	case d < 24*time.Hour:
+		hours := int(d.Hours())
+		return fmt.Sprintf("%dh ago", hours)
+	case d < 30*24*time.Hour:
+		days := int(d.Hours() / 24)
+		return fmt.Sprintf("%dd ago", days)
+	default:
+		months := int(d.Hours() / 24 / 30)
+		if months < 1 {
+			months = 1
+		}
+		return fmt.Sprintf("%dmo ago", months)
+	}
+}
+
+// freshnessIndicator returns a colored dot based on backup age.
+// Color numbers are ANSI 256 (Xterm) codes: 114=PaleGreen3, 214=Orange1, 196=Red1.
+// Full palette reference: https://www.ditig.com/256-colors-cheat-sheet
+func freshnessIndicator(t time.Time) string {
+	age := time.Since(t)
+	switch {
+	case age < 24*time.Hour:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("114")).Render("●") // green
+	case age < 7*24*time.Hour:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("214")).Render("●") // yellow
+	default:
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Render("●") // red
+	}
+}
+
+// RelativeTime is an exported wrapper for use by UI components.
+func RelativeTime(t time.Time) string {
+	return relativeTime(t)
 }

@@ -333,6 +333,92 @@ func (c *BackupClient) StartRestoreJob(ctx context.Context, rp RecoveryPoint, st
 	return aws.ToString(result.RestoreJobId), nil
 }
 
+// RestoreJobStatus represents the current status of a restore job.
+type RestoreJobStatus struct {
+	JobID          string
+	Status         string // PENDING, RUNNING, COMPLETED, ABORTED, FAILED
+	CreatedAt      time.Time
+	CompletedAt    time.Time
+	ResourceType   string
+	PercentDone    string
+	StatusMessage  string
+	IsTerminal     bool
+}
+
+// RestoreMetadata contains the parameters that will be used for a restore operation.
+type RestoreMetadata struct {
+	ResourceType   string
+	ResourceID     string
+	ClusterID      string
+	SubnetGroup    string
+	SecurityGroups string
+	Encrypted      bool
+	NewFileSystem  bool
+}
+
+// GetRestoreJobStatus queries the current status of a restore job.
+func (c *BackupClient) GetRestoreJobStatus(ctx context.Context, jobID string) (*RestoreJobStatus, error) {
+	result, err := c.client.DescribeRestoreJob(ctx, &backup.DescribeRestoreJobInput{
+		RestoreJobId: aws.String(jobID),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to describe restore job: %w", err)
+	}
+
+	status := &RestoreJobStatus{
+		JobID:         aws.ToString(result.RestoreJobId),
+		Status:        string(result.Status),
+		ResourceType:  aws.ToString(result.ResourceType),
+		PercentDone:   aws.ToString(result.PercentDone),
+		StatusMessage: aws.ToString(result.StatusMessage),
+	}
+
+	if result.CreationDate != nil {
+		status.CreatedAt = *result.CreationDate
+	}
+	if result.CompletionDate != nil {
+		status.CompletedAt = *result.CompletionDate
+	}
+
+	switch status.Status {
+	case "COMPLETED", "FAILED", "ABORTED":
+		status.IsTerminal = true
+	}
+
+	return status, nil
+}
+
+// GetRestoreMetadata prepares and returns the metadata that would be used
+// for a restore operation, without actually starting the restore.
+func (c *BackupClient) GetRestoreMetadata(ctx context.Context, rp RecoveryPoint, stackName string) (*RestoreMetadata, error) {
+	meta := &RestoreMetadata{
+		ResourceType: rp.ResourceType,
+		ResourceID:   rp.ResourceID,
+	}
+
+	switch rp.ResourceType {
+	case "RDS":
+		dbClusterID, err := c.getRDSClusterIDFromStack(ctx, stackName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get RDS cluster ID: %w", err)
+		}
+
+		subnetGroup, securityGroups, err := c.getRDSClusterDetails(ctx, dbClusterID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get RDS cluster details: %w", err)
+		}
+
+		meta.ClusterID = dbClusterID
+		meta.SubnetGroup = subnetGroup
+		meta.SecurityGroups = securityGroups
+	case "EFS":
+		meta.Encrypted = true
+		meta.NewFileSystem = false
+	}
+
+	return meta, nil
+}
+
 // RecoveryPoint represents a backup recovery point with its metadata.
 // This struct provides a simplified, application-friendly representation
 // of AWS Backup recovery points, abstracting away AWS SDK-specific types.

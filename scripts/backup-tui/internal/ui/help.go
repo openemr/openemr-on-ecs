@@ -4,8 +4,9 @@
 package ui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/compat"
 )
 
 // HelpModel manages the state and rendering of the help screen.
@@ -17,22 +18,24 @@ type HelpModel struct {
 }
 
 // Styling constants for the help screen component.
+// Color numbers are ANSI 256 (Xterm) color codes.
+// Reference: https://www.ditig.com/256-colors-cheat-sheet
 var (
 	// helpStyle styles the main help container
 	helpStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.AdaptiveColor{
-			Light: "62", // Purple/blue border
-			Dark:  "63",
+			BorderForeground(compat.AdaptiveColor{
+			Light: lipgloss.Color("62"), // Purple/blue border
+			Dark:  lipgloss.Color("63"),
 		}).
 		Padding(1, 2)
 
 	// titleStyle styles the help screen title
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.AdaptiveColor{
-			Light: "62",
-			Dark:  "63",
+			Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("62"),
+			Dark:  lipgloss.Color("63"),
 		}).
 		MarginBottom(1)
 
@@ -40,27 +43,27 @@ var (
 	sectionStyle = lipgloss.NewStyle().
 			MarginTop(1).
 			MarginBottom(1).
-			Foreground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "248",
+			Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("248"),
 		}).
 		Bold(true)
 
 	// keyStyle styles keyboard shortcut keys (e.g., "Enter", "↑/↓")
 	keyStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("229")). // Light yellow text
-			Background(lipgloss.AdaptiveColor{
-			Light: "62", // Purple/blue background
-			Dark:  "63",
+			Background(compat.AdaptiveColor{
+			Light: lipgloss.Color("62"), // Purple/blue background
+			Dark:  lipgloss.Color("63"),
 		}).
 		Padding(0, 1).
 		Bold(true)
 
 	// descStyle styles the description text next to keyboard shortcuts
 	descStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "252",
+			Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("252"),
 		}).
 		MarginLeft(2)
 )
@@ -109,22 +112,28 @@ func (m HelpModel) View() string {
 		"",
 		sectionStyle.Render("Navigation:"),
 		formatHelpItem("↑/↓, k/j", "Navigate backup list"),
+		formatHelpItem("PgUp/PgDn", "Scroll one page up/down"),
+		formatHelpItem("Home/g", "Jump to first backup"),
+		formatHelpItem("End/G", "Jump to last backup"),
 		formatHelpItem("Enter", "Select backup / Confirm action"),
-		formatHelpItem("b, ←", "Go back"),
+		formatHelpItem("b, ←, Esc", "Go back"),
 		"",
 		sectionStyle.Render("Actions:"),
+		formatHelpItem("f", "Cycle filter: All → RDS → EFS"),
 		formatHelpItem("r", "Refresh backup list"),
-		formatHelpItem("/", "Search/filter (coming soon)"),
+		formatHelpItem("Enter", "Restore backup (from detail view)"),
+		formatHelpItem("y / n", "Confirm or cancel restore"),
 		"",
 		sectionStyle.Render("General:"),
 		formatHelpItem("?", "Show/hide this help"),
-		formatHelpItem("q, Esc", "Quit application"),
+		formatHelpItem("q", "Quit application"),
 		"",
 		sectionStyle.Render("Tips:"),
-		descStyle.Render("• Backups are listed with creation date and size"),
-		descStyle.Render("• Select a backup and press Enter to view details"),
-		descStyle.Render("• Initiate restore from the detail view"),
-		descStyle.Render("• Use -type flag to filter by RDS or EFS"),
+		descStyle.Render("• Backups are color-coded by age: green (<24h), yellow (1-7d), red (>7d)"),
+		descStyle.Render("• Press f to cycle through resource type filters without restarting"),
+		descStyle.Render("• Restore progress is monitored live after confirmation"),
+		descStyle.Render("• You can press Esc during restore monitoring to return to the list"),
+		descStyle.Render("• Use -type flag to pre-filter by RDS or EFS at launch"),
 	}
 
 	content := lipgloss.JoinVertical(lipgloss.Left, sections...)

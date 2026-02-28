@@ -19,6 +19,7 @@ type BackupAPI interface {
 	ListBackupVaults(ctx context.Context, params *backup.ListBackupVaultsInput, optFns ...func(*backup.Options)) (*backup.ListBackupVaultsOutput, error)
 	ListRecoveryPointsByBackupVault(ctx context.Context, params *backup.ListRecoveryPointsByBackupVaultInput, optFns ...func(*backup.Options)) (*backup.ListRecoveryPointsByBackupVaultOutput, error)
 	StartRestoreJob(ctx context.Context, params *backup.StartRestoreJobInput, optFns ...func(*backup.Options)) (*backup.StartRestoreJobOutput, error)
+	DescribeRestoreJob(ctx context.Context, params *backup.DescribeRestoreJobInput, optFns ...func(*backup.Options)) (*backup.DescribeRestoreJobOutput, error)
 	ListBackupPlans(ctx context.Context, params *backup.ListBackupPlansInput, optFns ...func(*backup.Options)) (*backup.ListBackupPlansOutput, error)
 	GetBackupPlan(ctx context.Context, params *backup.GetBackupPlanInput, optFns ...func(*backup.Options)) (*backup.GetBackupPlanOutput, error)
 	ListBackupSelections(ctx context.Context, params *backup.ListBackupSelectionsInput, optFns ...func(*backup.Options)) (*backup.ListBackupSelectionsOutput, error)

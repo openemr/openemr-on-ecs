@@ -15,7 +15,7 @@ import (
 	"strings"
 	"syscall"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/openemr/openemr-on-ecs/scripts/backup-tui/internal/app"
 	"github.com/openemr/openemr-on-ecs/scripts/backup-tui/internal/aws"
 )
@@ -88,10 +88,7 @@ func main() {
 	// Initialize the application model with configuration
 	model := app.NewModel(ctx, finalStackName, *vaultName, *region, *resourceType)
 
-	// Create and run the Bubbletea program
-	// WithAltScreen enables full-screen terminal mode for better UI experience
-	// WithMouseCellMotion enables mouse support (optional but enhances UX)
-	p := tea.NewProgram(model, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running application: %v\n", err)
 		os.Exit(1)
