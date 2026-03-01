@@ -12,7 +12,7 @@
 <tr><td><b>Tests</b></td><td>
   <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=pytest&label=CDK%20unit%20tests" alt="CDK Unit Tests"></a>
   <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=pytest&label=credential%20rotation" alt="Credential Rotation Tests"></a>
-  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=go&label=Go%20TUI%20tests" alt="Go TUI Tests"></a>
+  <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=go&label=backup%20TUI%20tests" alt="Backup TUI Tests"></a>
   <a href="https://github.com/openemr/openemr-on-ecs/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/openemr/openemr-on-ecs/ci.yml?style=flat&logo=docker&label=Docker%20Compose" alt="Docker Compose Tests"></a>
 </td></tr>
 <tr><td><b>Infra</b></td><td>
@@ -30,6 +30,7 @@
   <img src="https://img.shields.io/badge/cdk--nag-HIPAA%20%2B%20AWS%20Solutions-8A2BE2?style=flat&logo=amazonaws" alt="CDK Nag">
   <img src="https://img.shields.io/badge/KMS-encryption%20at%20rest-8A2BE2?style=flat&logo=amazonaws" alt="KMS Encryption">
   <img src="https://img.shields.io/badge/HTTPS%2FTLS-encryption%20in%20transit-8A2BE2?style=flat&logo=letsencrypt&logoColor=white" alt="HTTPS/TLS">
+  <a href="tools/credential-rotation/README.md"><img src="https://img.shields.io/badge/credential%20rotation-available-2ea44f?style=flat&logo=keycdn&logoColor=white" alt="Credential Rotation"></a>
 </td></tr>
 <tr><td><b>Stack</b></td><td>
   <img src="https://img.shields.io/badge/Python-3.14-3776AB?style=flat&logo=python&logoColor=white" alt="Python">
@@ -463,6 +464,27 @@ export DEPLOY_ACTUAL=true
 - **`scripts/test-startup-ssl.sh`** - Test container startup locally with SSL certificates
 
 See [README-TESTING.md](README-TESTING.md) for detailed usage.
+
+### Backup Manager TUI
+
+An interactive terminal interface for browsing, inspecting, and restoring AWS Backup recovery points. Built with Go, Bubbletea v2, and Lipgloss v2.
+
+```bash
+cd scripts/backup-tui && go build -o backup-tui . && ./backup-tui
+```
+
+<table>
+<tr>
+<td width="50%"><strong>Backup List View</strong><br/>Browse all recovery points with type, relative time, size, and freshness coloring.<br/><br/><img src="docs/images/backup_tui_screenshot_1.png" alt="Backup List View" width="100%"></td>
+<td width="50%"><strong>Backup Detail View</strong><br/>Inspect a selected backup — resource type, status, ARN, and one-key restore.<br/><br/><img src="docs/images/backup_tui_screenshot_2.png" alt="Backup Detail View" width="100%"></td>
+</tr>
+<tr>
+<td width="50%"><strong>Restore Confirmation</strong><br/>Review restore parameters (cluster ID, subnet, security groups for RDS; file system, encryption for EFS) before confirming.<br/><br/><img src="docs/images/backup_tui_screenshot_3.png" alt="Restore Confirmation" width="100%"></td>
+<td width="50%"><strong>Live Restore Monitoring</strong><br/>Track restore job progress in real-time — job ID, elapsed time, status, and percent completion.<br/><br/><img src="docs/images/backup_tui_screenshot_4.png" alt="Restore Monitoring" width="100%"></td>
+</tr>
+</table>
+
+See [scripts/backup-tui/README.md](scripts/backup-tui/README.md) for full documentation, controls, and build instructions.
 
 ## Need Help?
 

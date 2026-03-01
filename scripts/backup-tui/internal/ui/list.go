@@ -4,29 +4,37 @@
 package ui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"fmt"
+
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/compat"
 )
 
 // ListModel manages the state and rendering of the backup list view.
-// It handles cursor navigation, item selection, and visual styling for
-// the list of recovery points displayed to the user.
+// It handles cursor navigation, item selection, viewport scrolling,
+// and visual styling for the list of recovery points displayed to the user.
 type ListModel struct {
-	items  []string // Formatted backup items to display
-	cursor int      // Currently selected item index (0-based)
-	height int      // Available height for rendering (from window size)
-	width  int      // Available width for rendering (from window size)
+	items    []string // Formatted backup items to display
+	cursor   int      // Currently selected item index (0-based)
+	offset   int      // Scroll offset (first visible item index)
+	height   int      // Available height for rendering (from window size)
+	width    int      // Available width for rendering (from window size)
+	pageSize int      // Number of items visible in viewport
 }
 
 // Styling constants for the list view component.
 // These styles use adaptive colors that work well in both light and dark terminals.
+//
+// Color numbers are ANSI 256 (Xterm) color codes.
+// Reference: https://www.ditig.com/256-colors-cheat-sheet
 var (
 	// listItemStyle styles unselected list items
 	listItemStyle = lipgloss.NewStyle().
 			PaddingLeft(2).
-			Foreground(lipgloss.AdaptiveColor{
-			Light: "240", // Dark gray for light terminals
-			Dark:  "252", // Light gray for dark terminals
+			Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"), // Dark gray for light terminals
+			Dark:  lipgloss.Color("252"), // Light gray for dark terminals
 		}).
 		MarginRight(1)
 
@@ -35,9 +43,9 @@ var (
 				PaddingLeft(1).
 				PaddingRight(1).
 				Foreground(lipgloss.Color("229")). // Light yellow text
-				Background(lipgloss.AdaptiveColor{
-			Light: "62", // Purple/blue background
-			Dark:  "63", // Slightly brighter for dark terminals
+				Background(compat.AdaptiveColor{
+			Light: lipgloss.Color("62"), // Purple/blue background
+			Dark:  lipgloss.Color("63"), // Slightly brighter for dark terminals
 		}).
 		Bold(true).
 		MarginRight(1)
@@ -46,15 +54,15 @@ var (
 	listHeaderStyle = lipgloss.NewStyle().
 			BorderStyle(lipgloss.RoundedBorder()).
 			BorderBottom(true).
-			BorderForeground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "238",
+			BorderForeground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("238"),
 		}).
 		PaddingBottom(1).
 		MarginBottom(1).
-		Foreground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "248",
+		Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("248"),
 		}).
 		Bold(true)
 )
@@ -87,22 +95,62 @@ func (m ListModel) Init() tea.Cmd {
 func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		// Store window dimensions for proper rendering
 		m.width = msg.Width
 		m.height = msg.Height
-	case tea.KeyMsg:
+		m.pageSize = max(m.height-8, 5) // Reserve space for header, status bar, key hints
+	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "up", "k": // Move cursor up (vim-style 'k' key supported)
+		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
 			}
-		case "down", "j": // Move cursor down (vim-style 'j' key supported)
+		case "down", "j":
 			if m.cursor < len(m.items)-1 {
 				m.cursor++
 			}
+		case "pgup":
+			m.cursor -= m.visibleItems()
+			if m.cursor < 0 {
+				m.cursor = 0
+			}
+		case "pgdown":
+			m.cursor += m.visibleItems()
+			if m.cursor >= len(m.items) {
+				m.cursor = len(m.items) - 1
+			}
+			if m.cursor < 0 {
+				m.cursor = 0
+			}
+		case "home", "g":
+			m.cursor = 0
+		case "end", "G":
+			if len(m.items) > 0 {
+				m.cursor = len(m.items) - 1
+			}
 		}
 	}
+	m.adjustOffset()
 	return m, nil
+}
+
+func (m ListModel) visibleItems() int {
+	if m.pageSize > 0 {
+		return m.pageSize
+	}
+	return 20
+}
+
+func (m *ListModel) adjustOffset() {
+	visible := m.visibleItems()
+	if m.cursor < m.offset {
+		m.offset = m.cursor
+	}
+	if m.cursor >= m.offset+visible {
+		m.offset = m.cursor - visible + 1
+	}
+	if m.offset < 0 {
+		m.offset = 0
+	}
 }
 
 // View renders the list component as a string.
@@ -112,7 +160,6 @@ func (m ListModel) Update(msg tea.Msg) (ListModel, tea.Cmd) {
 // Returns:
 //   - string: Rendered list view with header and items
 func (m ListModel) View() string {
-	// Handle empty list case
 	if len(m.items) == 0 {
 		return lipgloss.NewStyle().
 			Foreground(lipgloss.Color("240")).
@@ -120,20 +167,43 @@ func (m ListModel) View() string {
 			Render("No backups found")
 	}
 
-	// Render column header with border
 	header := listHeaderStyle.Render("Type | Resource ID | Creation Date | Size")
 
-	// Render each item, highlighting the selected one
+	visible := m.visibleItems()
+	end := m.offset + visible
+	if end > len(m.items) {
+		end = len(m.items)
+	}
+
 	var items []string
-	for i, item := range m.items {
+
+	if m.offset > 0 {
+		scrollUpStyle := lipgloss.NewStyle().
+			Foreground(compat.AdaptiveColor{Light: lipgloss.Color("245"), Dark: lipgloss.Color("242")}).
+			PaddingLeft(2)
+		items = append(items, scrollUpStyle.Render(fmt.Sprintf("  ↑ %d more above", m.offset)))
+	}
+
+	for i := m.offset; i < end; i++ {
 		if i == m.cursor {
-			// Selected item: use highlight style with arrow indicator
-			items = append(items, selectedItemStyle.Render("▶ "+item))
+			items = append(items, selectedItemStyle.Render("▶ "+m.items[i]))
 		} else {
-			// Unselected item: use normal style with spacing
-			items = append(items, listItemStyle.Render("  "+item))
+			items = append(items, listItemStyle.Render("  "+m.items[i]))
 		}
 	}
+
+	remaining := len(m.items) - end
+	if remaining > 0 {
+		scrollDownStyle := lipgloss.NewStyle().
+			Foreground(compat.AdaptiveColor{Light: lipgloss.Color("245"), Dark: lipgloss.Color("242")}).
+			PaddingLeft(2)
+		items = append(items, scrollDownStyle.Render(fmt.Sprintf("  ↓ %d more below", remaining)))
+	}
+
+	posStyle := lipgloss.NewStyle().
+		Foreground(compat.AdaptiveColor{Light: lipgloss.Color("245"), Dark: lipgloss.Color("242")}).
+		PaddingLeft(2)
+	items = append(items, posStyle.Render(fmt.Sprintf("  %d/%d", m.cursor+1, len(m.items))))
 
 	list := lipgloss.JoinVertical(lipgloss.Left, items...)
 	return lipgloss.JoinVertical(lipgloss.Left, header, list)

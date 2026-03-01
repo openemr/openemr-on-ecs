@@ -707,9 +707,28 @@ python3 scripts/test_data_api.py <openemr-url> <username> <password>
 
 ## Backup TUI
 
-The `backup-tui/` subdirectory contains an interactive Terminal User Interface (TUI) built with Go for managing and restoring AWS backups. It provides a visual alternative to the `restore-from-backup.sh` bash script.
+The `backup-tui/` subdirectory contains an interactive Terminal User Interface (TUI) built with Go, Bubbletea v2, and Lipgloss v2 for managing and restoring AWS backups. It provides a visual alternative to the `restore-from-backup.sh` bash script.
 
-**See:** [backup-tui/README.md](backup-tui/README.md) for full documentation, installation, and usage instructions.
+**Key features:**
+- Auto-discovers CloudFormation stack and backup vault
+- Lists all recovery points with type, relative timestamps, size, and freshness coloring
+- In-app filtering by resource type (press `f` to cycle All → RDS → EFS)
+- Restore metadata preview before confirmation (shows cluster ID, subnet, security groups for RDS; file system, encryption for EFS)
+- Live restore monitoring with real-time status polling
+
+**Quick start:**
+```bash
+cd scripts/backup-tui
+go build -o backup-tui .
+./backup-tui
+
+# Or with explicit options
+./backup-tui -stack MyStackName -region us-east-1 -type EFS
+```
+
+![Backup TUI](../docs/images/backup_tui_screenshot_1.png)
+
+**See:** [backup-tui/README.md](backup-tui/README.md) for full documentation, all screenshots, controls, and build instructions.
 
 ---
 

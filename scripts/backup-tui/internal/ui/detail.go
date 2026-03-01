@@ -6,9 +6,12 @@ package ui
 
 import (
 	"fmt"
+	"image/color"
+	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/compat"
 	"github.com/openemr/openemr-on-ecs/scripts/backup-tui/internal/aws"
 )
 
@@ -22,39 +25,41 @@ type DetailModel struct {
 }
 
 // Styling constants for the detail view component.
+// Color numbers are ANSI 256 (Xterm) color codes.
+// Reference: https://www.ditig.com/256-colors-cheat-sheet
 var (
 	// detailStyle styles the main detail container with border and padding
 	detailStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.AdaptiveColor{
-			Light: "62", // Purple/blue border
-			Dark:  "63", // Slightly brighter for dark terminals
+			BorderForeground(compat.AdaptiveColor{
+			Light: lipgloss.Color("62"), // Purple/blue border
+			Dark:  lipgloss.Color("63"), // Slightly brighter for dark terminals
 		}).
 		Padding(1, 2).
 		MarginTop(1)
 
 	// labelStyle styles field labels (e.g., "Resource Type:", "Status:")
 	labelStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.AdaptiveColor{
-			Light: "240", // Dark gray for light terminals
-			Dark:  "248", // Light gray for dark terminals
+			Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"), // Dark gray for light terminals
+			Dark:  lipgloss.Color("248"), // Light gray for dark terminals
 		}).
 		Bold(true).
 		Width(20) // Fixed width for alignment
 
 	// valueStyle styles field values
 	valueStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.AdaptiveColor{
-			Light: "232", // Very dark for light terminals
-			Dark:  "252", // Very light for dark terminals
+			Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("232"), // Very dark for light terminals
+			Dark:  lipgloss.Color("252"), // Very light for dark terminals
 		})
 
 	// buttonStyle styles the action button (e.g., "Press ENTER to initiate restore")
 	buttonStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("229")). // Light yellow text
-			Background(lipgloss.AdaptiveColor{
-			Light: "62", // Purple/blue background
-			Dark:  "63",
+			Background(compat.AdaptiveColor{
+			Light: lipgloss.Color("62"), // Purple/blue background
+			Dark:  lipgloss.Color("63"),
 		}).
 		Padding(0, 2).
 		MarginTop(1).
@@ -63,15 +68,15 @@ var (
 	// infoBoxStyle styles the help/info box at the bottom
 	infoBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "238",
+			BorderForeground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("238"),
 		}).
 		Padding(1).
 		MarginTop(1).
-		Foreground(lipgloss.AdaptiveColor{
-			Light: "240",
-			Dark:  "248",
+		Foreground(compat.AdaptiveColor{
+			Light: lipgloss.Color("240"),
+			Dark:  lipgloss.Color("248"),
 		})
 )
 
@@ -120,13 +125,16 @@ func (m DetailModel) View() string {
 
 	var sections []string
 
-	// Basic Information Section
-	// Display key recovery point attributes in a formatted layout
+	dateStr := rp.CreationDate.Format("2006-01-02 15:04:05 MST")
+	relStr := DetailRelativeTime(rp.CreationDate)
+	freshColor := DetailFreshnessColor(rp.CreationDate)
+	dateStyle := lipgloss.NewStyle().Foreground(freshColor)
+
 	basicInfo := lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Left, labelStyle.Render("Resource Type:"), valueStyle.Render(rp.ResourceType)),
 		lipgloss.JoinHorizontal(lipgloss.Left, labelStyle.Render("Resource ID:"), valueStyle.Render(rp.ResourceID)),
 		lipgloss.JoinHorizontal(lipgloss.Left, labelStyle.Render("Status:"), valueStyle.Render(rp.Status)),
-		lipgloss.JoinHorizontal(lipgloss.Left, labelStyle.Render("Created:"), valueStyle.Render(rp.CreationDate.Format("2006-01-02 15:04:05 MST"))),
+		lipgloss.JoinHorizontal(lipgloss.Left, labelStyle.Render("Created:"), dateStyle.Render(fmt.Sprintf("%s (%s)", dateStr, relStr))),
 		lipgloss.JoinHorizontal(lipgloss.Left, labelStyle.Render("Size:"), valueStyle.Render(formatBytes(rp.BackupSizeInBytes))),
 	)
 
@@ -138,18 +146,15 @@ func (m DetailModel) View() string {
 
 	sections = append(sections, basicInfo, "", arnRow)
 
-	// Action Button
-	// Prominent button to initiate restore operation
-	actionButton := buttonStyle.Render("Press ENTER to initiate restore")
+	actionButton := buttonStyle.Render("Press ENTER to restore this backup")
 
 	sections = append(sections, "", actionButton)
 
-	// Instructions/Help Section
-	// Quick reference for keyboard shortcuts
 	instructions := infoBoxStyle.Render(
 		"Controls:\n" +
-			"  ENTER - Initiate restore\n" +
+			"  ENTER - Restore (with confirmation)\n" +
 			"  b/←   - Go back to list\n" +
+			"  ?     - Help\n" +
 			"  q     - Quit",
 	)
 
@@ -192,6 +197,46 @@ func formatBytes(bytes int64) string {
 	}
 	// Format with one decimal place and appropriate unit (K, M, G, T, P, E)
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// DetailRelativeTime and DetailFreshnessColor are function variables
+// that can be set by the app layer to provide relative time and freshness
+// coloring without circular imports. Defaults are provided.
+var (
+	DetailRelativeTime   = defaultRelativeTime
+	DetailFreshnessColor = defaultFreshnessColor
+)
+
+func defaultRelativeTime(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	case d < 30*24*time.Hour:
+		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
+	default:
+		months := int(d.Hours() / 24 / 30)
+		if months < 1 {
+			months = 1
+		}
+		return fmt.Sprintf("%dmo ago", months)
+	}
+}
+
+func defaultFreshnessColor(t time.Time) color.Color {
+	age := time.Since(t)
+	switch {
+	case age < 24*time.Hour:
+		return lipgloss.Color("114")
+	case age < 7*24*time.Hour:
+		return lipgloss.Color("214")
+	default:
+		return lipgloss.Color("196")
+	}
 }
 
 // truncateString truncates a string to the specified maximum length,
