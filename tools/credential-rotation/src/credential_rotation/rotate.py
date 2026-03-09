@@ -50,8 +50,12 @@ class RotationOrchestrator:
         active_slot = rds_state.slot(active)
         standby_slot = rds_state.slot(standby)
 
-        self._ensure_slot_initialized(standby_slot, fallback_host=active_slot["host"], fallback_db=active_slot["dbname"])
-        self._ensure_slot_initialized(active_slot, fallback_host=standby_slot["host"], fallback_db=standby_slot["dbname"])
+        self._ensure_slot_initialized(
+            standby_slot, fallback_host=active_slot["host"], fallback_db=active_slot["dbname"]
+        )
+        self._ensure_slot_initialized(
+            active_slot, fallback_host=standby_slot["host"], fallback_db=standby_slot["dbname"]
+        )
 
         if not self.ctx.dry_run:
             for slot_name in ("A", "B"):
@@ -280,8 +284,12 @@ class RotationOrchestrator:
             conn.close()
 
         pymysql.connect(
-            host=host, port=port, user=username, password=new_password,
-            connect_timeout=5, ssl={"ssl": {}},
+            host=host,
+            port=port,
+            user=username,
+            password=new_password,
+            connect_timeout=5,
+            ssl={"ssl": {}},
         ).close()
 
         admin["password"] = new_password
@@ -297,8 +305,11 @@ class RotationOrchestrator:
 
         try:
             pymysql.connect(
-                host=host, port=port, user=admin["username"],
-                password=admin["password"], connect_timeout=5,
+                host=host,
+                port=port,
+                user=admin["username"],
+                password=admin["password"],
+                connect_timeout=5,
                 ssl={"ssl": {}},
             ).close()
         except pymysql.OperationalError:
@@ -312,8 +323,11 @@ class RotationOrchestrator:
             if slot.get("username") == admin["username"]:
                 try:
                     pymysql.connect(
-                        host=host, port=port, user=admin["username"],
-                        password=slot["password"], connect_timeout=5,
+                        host=host,
+                        port=port,
+                        user=admin["username"],
+                        password=slot["password"],
+                        connect_timeout=5,
                         ssl={"ssl": {}},
                     ).close()
                 except pymysql.OperationalError:

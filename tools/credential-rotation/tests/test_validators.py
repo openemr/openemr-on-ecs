@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from credential_rotation.validators import (
     ValidationError,
     validate_openemr_health,

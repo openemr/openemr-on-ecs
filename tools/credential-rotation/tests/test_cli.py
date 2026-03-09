@@ -1,10 +1,7 @@
 """Tests for cli module: argument parsing, main entrypoint, fix_permissions."""
 
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from credential_rotation.cli import build_parser, fix_permissions, main
 

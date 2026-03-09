@@ -1,6 +1,6 @@
 """Tests for app_refresh module: force_new_ecs_deployment."""
 
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from credential_rotation.app_refresh import force_new_ecs_deployment
 
@@ -14,9 +14,7 @@ class TestForceNewEcsDeployment:
         force_new_ecs_deployment("us-east-1", "my-cluster", "my-service")
 
         mock_client_ctor.assert_called_once_with("ecs", region_name="us-east-1")
-        ecs.update_service.assert_called_once_with(
-            cluster="my-cluster", service="my-service", forceNewDeployment=True
-        )
+        ecs.update_service.assert_called_once_with(cluster="my-cluster", service="my-service", forceNewDeployment=True)
         ecs.get_waiter.assert_called_once_with("services_stable")
         waiter = ecs.get_waiter.return_value
         waiter.wait.assert_called_once_with(

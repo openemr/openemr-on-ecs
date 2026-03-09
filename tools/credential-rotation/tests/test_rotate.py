@@ -1,17 +1,16 @@
 """Tests for rotate module: RotationOrchestrator logic, from_env, slot helpers, full rotation flow."""
 
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pymysql
 import pytest
-
 from credential_rotation.rotate import RotationContext, RotationOrchestrator, main_json_error
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_ctx(tmp_path: Path, dry_run: bool = True) -> RotationContext:
     return RotationContext(
@@ -26,8 +25,9 @@ def _make_ctx(tmp_path: Path, dry_run: bool = True) -> RotationContext:
     )
 
 
-def _write_sqlconf(tmp_path: Path, host="db-a", port="3306", username="openemr_a",
-                   password="pass-a", dbname="openemr") -> Path:
+def _write_sqlconf(
+    tmp_path: Path, host="db-a", port="3306", username="openemr_a", password="pass-a", dbname="openemr"
+) -> Path:
     default_dir = tmp_path / "default"
     default_dir.mkdir(parents=True, exist_ok=True)
     sqlconf = default_dir / "sqlconf.php"
@@ -61,8 +61,10 @@ class _FakeSecrets:
     def __init__(self, rds_payload, admin_payload=None):
         self._rds = dict(rds_payload)
         self._admin = admin_payload or {
-            "username": "dbadmin", "password": "adminpw",
-            "host": "db-a", "port": "3306",
+            "username": "dbadmin",
+            "password": "adminpw",
+            "host": "db-a",
+            "port": "3306",
         }
 
     def get_secret(self, secret_id):
@@ -92,6 +94,7 @@ def _default_rds_payload(active="A"):
 # ---------------------------------------------------------------------------
 # _slot_matches_sqlconf
 # ---------------------------------------------------------------------------
+
 
 class TestSlotMatchesSqlconf:
     def _orch(self, tmp_path):
@@ -137,6 +140,7 @@ class TestSlotMatchesSqlconf:
 # _ensure_slot_initialized
 # ---------------------------------------------------------------------------
 
+
 class TestEnsureSlotInitialized:
     def _orch(self, tmp_path):
         return RotationOrchestrator(_make_ctx(tmp_path))
@@ -168,6 +172,7 @@ class TestEnsureSlotInitialized:
 # ---------------------------------------------------------------------------
 # from_env
 # ---------------------------------------------------------------------------
+
 
 class TestFromEnv:
     REQUIRED_ENV = {
@@ -201,14 +206,17 @@ class TestFromEnv:
         assert orch.ctx.openemr_health_url == "https://example.com/health"
         assert orch.ctx.dry_run is False
 
-    @pytest.mark.parametrize("missing_var", [
-        "AWS_REGION",
-        "RDS_SLOT_SECRET_ID",
-        "RDS_ADMIN_SECRET_ID",
-        "OPENEMR_SITES_MOUNT_ROOT",
-        "OPENEMR_ECS_CLUSTER",
-        "OPENEMR_ECS_SERVICE",
-    ])
+    @pytest.mark.parametrize(
+        "missing_var",
+        [
+            "AWS_REGION",
+            "RDS_SLOT_SECRET_ID",
+            "RDS_ADMIN_SECRET_ID",
+            "OPENEMR_SITES_MOUNT_ROOT",
+            "OPENEMR_ECS_CLUSTER",
+            "OPENEMR_ECS_SERVICE",
+        ],
+    )
     def test_missing_required_env_raises(self, monkeypatch, missing_var):
         for k, v in self.REQUIRED_ENV.items():
             monkeypatch.setenv(k, v)
@@ -233,6 +241,7 @@ class TestFromEnv:
 # main_json_error
 # ---------------------------------------------------------------------------
 
+
 class TestMainJsonError:
     def test_formats_error(self):
         result = main_json_error(RuntimeError("something broke"))
@@ -241,6 +250,7 @@ class TestMainJsonError:
 
     def test_returns_valid_json(self):
         import json
+
         parsed = json.loads(main_json_error(ValueError("bad")))
         assert parsed["status"] == "error"
         assert parsed["error"] == "bad"
@@ -249,6 +259,7 @@ class TestMainJsonError:
 # ---------------------------------------------------------------------------
 # Dry-run rotation: config matches active slot A -> performs standby update
 # ---------------------------------------------------------------------------
+
 
 class TestDryRunRotationActiveA:
     @patch("credential_rotation.rotate.validate_rds_connection")
@@ -268,6 +279,7 @@ class TestDryRunRotationActiveA:
 # Dry-run rotation: config matches active slot B -> _rotate_old_slot path
 # ---------------------------------------------------------------------------
 
+
 class TestDryRunRotationActiveB:
     def test_config_matches_active_b_dry_run(self, tmp_path):
         _write_sqlconf(tmp_path, host="db-b", username="openemr_b", password="pass-b")
@@ -282,6 +294,7 @@ class TestDryRunRotationActiveB:
 # ---------------------------------------------------------------------------
 # _rotate_old_slot (dry_run=True)
 # ---------------------------------------------------------------------------
+
 
 class TestRotateOldSlotDryRun:
     def test_generates_new_password_but_no_mutation(self, tmp_path):
@@ -299,6 +312,7 @@ class TestRotateOldSlotDryRun:
 # ---------------------------------------------------------------------------
 # _upsert_openemr_db_user
 # ---------------------------------------------------------------------------
+
 
 class TestUpsertOpenemrDbUser:
     @patch("credential_rotation.rotate.pymysql.connect")
@@ -348,6 +362,7 @@ class TestUpsertOpenemrDbUser:
 # _load_admin_secret
 # ---------------------------------------------------------------------------
 
+
 class TestLoadAdminSecret:
     @patch("credential_rotation.rotate.pymysql.connect")
     def test_primary_password_works(self, mock_connect, tmp_path):
@@ -376,11 +391,13 @@ class TestLoadAdminSecret:
         orch.secrets = _FakeSecrets(rds_payload, admin_payload=admin_payload)
 
         call_count = [0]
+
         def side_effect(**kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
                 raise pymysql.OperationalError("auth failed")
             return MagicMock()
+
         mock_connect.side_effect = side_effect
 
         result = orch._load_admin_secret()
@@ -404,6 +421,7 @@ class TestLoadAdminSecret:
 # ---------------------------------------------------------------------------
 # _rotate_admin_password
 # ---------------------------------------------------------------------------
+
 
 class TestRotateAdminPassword:
     @patch("credential_rotation.rotate.pymysql.connect")
@@ -434,6 +452,7 @@ class TestRotateAdminPassword:
 # sync_db_users
 # ---------------------------------------------------------------------------
 
+
 class TestSyncDbUsers:
     @patch("credential_rotation.rotate.validate_rds_connection")
     @patch("credential_rotation.rotate.pymysql.connect")
@@ -459,6 +478,7 @@ class TestSyncDbUsers:
 # Full rotation flow: non-dry-run with rollback on failure
 # ---------------------------------------------------------------------------
 
+
 class TestFullRotationRollback:
     @patch("credential_rotation.rotate.force_new_ecs_deployment")
     @patch("credential_rotation.rotate.validate_openemr_health")
@@ -466,8 +486,7 @@ class TestFullRotationRollback:
     @patch("credential_rotation.rotate.atomic_write")
     @patch("credential_rotation.rotate.pymysql.connect")
     def test_rollback_on_ecs_deployment_failure(
-        self, mock_connect, mock_atomic_write, mock_validate_rds,
-        mock_health, mock_ecs_deploy, tmp_path
+        self, mock_connect, mock_atomic_write, mock_validate_rds, mock_health, mock_ecs_deploy, tmp_path
     ):
         _write_sqlconf(tmp_path, host="db-a", username="openemr_a", password="pass-a")
         ctx = _make_ctx(tmp_path, dry_run=False)
@@ -483,10 +502,12 @@ class TestFullRotationRollback:
         conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
         call_count = [0]
+
         def ecs_side_effect(**kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
                 raise RuntimeError("ECS deployment timeout")
+
         mock_ecs_deploy.side_effect = ecs_side_effect
 
         with pytest.raises(RuntimeError, match="ECS deployment timeout"):
@@ -500,6 +521,7 @@ class TestFullRotationRollback:
 # ---------------------------------------------------------------------------
 # RotationContext dataclass
 # ---------------------------------------------------------------------------
+
 
 class TestRotationContext:
     def test_fields(self):

@@ -42,7 +42,9 @@ def validate_openemr_health(health_url: str | None, timeout_seconds: int = 10) -
         return
 
     try:
-        response = requests.get(health_url, timeout=timeout_seconds, verify=False, allow_redirects=False)
+        response = requests.get(
+            health_url, timeout=timeout_seconds, verify=False, allow_redirects=False
+        )  # nosec B501 - internal health probe behind ALB; rotation task cannot validate ALB cert
         if response.status_code not in (200, 301, 302):
             print(f"WARNING: OpenEMR health probe returned status {response.status_code}")
     except Exception as exc:

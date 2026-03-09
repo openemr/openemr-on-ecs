@@ -44,9 +44,10 @@ jobs:
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing \
-            --cov-fail-under=10 \
+            --cov-fail-under=90 \
             --maxfail=1 \
             --disable-warnings \
+            -n auto \
             -m "not integration" \
             -q
 
@@ -96,6 +97,7 @@ jobs:
             --cov=credential_rotation \
             --cov-report=xml:coverage-credential-rotation.xml \
             --cov-report=term-missing \
+            --cov-fail-under=80 \
             --maxfail=1 \
             -q
 
@@ -182,16 +184,16 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Format check (black)
-        run: black --check openemr_ecs/ tests/ diagrams/
+        run: black --check openemr_ecs/ tests/ diagrams/ tools/credential-rotation/
 
       - name: Lint (flake8)
-        run: flake8 openemr_ecs/ tests/ diagrams/ --max-line-length=120 --extend-ignore=E203,W503,E501
+        run: flake8 openemr_ecs/ tests/ diagrams/ tools/credential-rotation/ --max-line-length=120 --extend-ignore=E203,W503,E501
 
       - name: Type check (mypy)
         run: mypy openemr_ecs/ diagrams/ --ignore-missing-imports
 
       - name: Import sorting (isort)
-        run: isort --check-only openemr_ecs/ tests/ diagrams/
+        run: isort --check-only openemr_ecs/ tests/ diagrams/ tools/credential-rotation/
 
   security-scan:
     name: Security Scan
@@ -212,7 +214,7 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Security scan (bandit)
-        run: bandit -r openemr_ecs/ -ll
+        run: bandit -r openemr_ecs/ tools/credential-rotation/src/ -ll
 
   shellcheck:
     name: Shell Script Validation
