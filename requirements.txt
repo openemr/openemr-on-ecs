@@ -2,7 +2,7 @@ aws-cdk-lib==2.240.0
 constructs==10.5.0
 cdk-nag==2.37.55
 aws-pdk==0.26.15
-requests==2.32.5
+requests==2.33.0
 boto3>=1.42.58
 
 # Credential rotation tool (tools/credential-rotation)
