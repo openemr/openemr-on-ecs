@@ -39,7 +39,7 @@ class StackConstants:
     # Base image: python:{version}-slim. Update when upgrading the rotation container.
 
     # Container Image Version
-    OPENEMR_VERSION = "8.0.0"
+    OPENEMR_VERSION = "8.1.0"
     # Use the second-latest tagged version for the "openemr/openemr" docker container.
     # This is typically the stable version (latest may be a release candidate).
     # Update this to match the OpenEMR version you want to deploy.

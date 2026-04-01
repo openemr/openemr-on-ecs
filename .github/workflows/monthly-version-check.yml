@@ -312,27 +312,25 @@ jobs:
           openemr_stable_tag = None
           openemr_error = None
           try:
-              response = requests.get(
-                  "https://hub.docker.com/v2/repositories/openemr/openemr/tags?page_size=50&ordering=-last_updated",
-                  timeout=30,
-              )
-              response.raise_for_status()
-              data = response.json()
               tags = []
-              for entry in data.get("results", []):
-                  tag_name = entry.get("name")
-                  if not tag_name or not re.fullmatch(r"\d+\.\d+\.\d+", tag_name):
-                      continue
-                  tags.append(
-                      (
-                          tag_name,
-                          entry.get("last_updated") or "",
-                      )
-                  )
-              tags.sort(key=lambda item: item[1], reverse=True)
+              url = "https://hub.docker.com/v2/repositories/openemr/openemr/tags?page_size=100"
+              while url:
+                  response = requests.get(url, timeout=30)
+                  response.raise_for_status()
+                  data = response.json()
+                  for entry in data.get("results", []):
+                      tag_name = entry.get("name")
+                      if not tag_name or not re.fullmatch(r"\d+\.\d+\.\d+", tag_name):
+                          continue
+                      tags.append(tag_name)
+                  url = data.get("next")
+              tags.sort(
+                  key=lambda t: tuple(int(p) for p in t.split(".")),
+                  reverse=True,
+              )
               if tags:
-                  openemr_latest_tag = tags[0][0]
-                  openemr_stable_tag = tags[1][0] if len(tags) > 1 else tags[0][0]
+                  openemr_latest_tag = tags[0]
+                  openemr_stable_tag = tags[1] if len(tags) > 1 else tags[0]
               else:
                   openemr_error = "No semantic version tags found"
           except Exception as exc:  # pylint: disable=broad-except
