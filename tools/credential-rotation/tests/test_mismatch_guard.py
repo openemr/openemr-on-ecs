@@ -1,8 +1,6 @@
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
 from credential_rotation.rotate import RotationContext, RotationOrchestrator
 
 
@@ -113,8 +111,20 @@ def test_sqlconf_matches_neither_slot_bootstraps(mock_health, mock_validate_rds,
     orchestrator.secrets = _FakeSecrets(
         rds_payload={
             "active_slot": "A",
-            "A": {"host": "db-a", "port": "3306", "username": "openemr_a", "password": "placeholder", "dbname": "openemr"},
-            "B": {"host": "db-b", "port": "3306", "username": "openemr_b", "password": "placeholder", "dbname": "openemr"},
+            "A": {
+                "host": "db-a",
+                "port": "3306",
+                "username": "openemr_a",
+                "password": "placeholder",
+                "dbname": "openemr",
+            },
+            "B": {
+                "host": "db-b",
+                "port": "3306",
+                "username": "openemr_b",
+                "password": "placeholder",
+                "dbname": "openemr",
+            },
         },
     )
     orchestrator._upsert_openemr_db_user = lambda _: None

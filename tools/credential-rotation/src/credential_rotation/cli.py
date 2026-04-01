@@ -26,8 +26,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Rotate OpenEMR RDS credentials with dual slots")
     parser.add_argument("--dry-run", action="store_true", help="Evaluate flow without mutating state")
     parser.add_argument("--log-json", action="store_true", help="Emit structured JSON status output")
-    parser.add_argument("--fix-permissions", action="store_true", help="Only fix sqlconf.php permissions (chmod 644), then exit")
-    parser.add_argument("--sync-db-users", action="store_true", help="Sync RDS users (openemr_a, openemr_b) to match slot secret passwords; no flip, no sqlconf change")
+    parser.add_argument(
+        "--fix-permissions", action="store_true", help="Only fix sqlconf.php permissions (chmod 644), then exit"
+    )
+    parser.add_argument(
+        "--sync-db-users",
+        action="store_true",
+        help="Sync RDS users (openemr_a, openemr_b) to match slot secret passwords; no flip, no sqlconf change",
+    )
     return parser
 
 

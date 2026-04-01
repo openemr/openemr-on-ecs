@@ -24,9 +24,7 @@ def discover_runtime_paths(sites_mount_root: str) -> RuntimeConfigPaths:
     sites_root = Path(sites_mount_root)
     sqlconf_path = sites_root / "default" / "sqlconf.php"
     if not sqlconf_path.exists():
-        raise FileNotFoundError(
-            f"OpenEMR sqlconf.php not found at discovered path: {sqlconf_path}"
-        )
+        raise FileNotFoundError(f"OpenEMR sqlconf.php not found at discovered path: {sqlconf_path}")
 
     # This deployment currently does not persist Redis/Valkey auth settings in an
     # EFS-backed file. Cache endpoint/TLS are injected as environment variables.

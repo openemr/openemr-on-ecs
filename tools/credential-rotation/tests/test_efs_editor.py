@@ -1,7 +1,6 @@
 """Tests for parse_sqlconf and render_sqlconf in efs_editor module."""
 
 import pytest
-
 from credential_rotation.efs_editor import parse_sqlconf, render_sqlconf
 
 SAMPLE_SQLCONF = """\

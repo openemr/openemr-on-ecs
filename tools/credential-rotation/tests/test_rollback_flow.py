@@ -2,8 +2,7 @@ import os
 from pathlib import Path
 
 import pytest
-
-from credential_rotation.rotate import RotationOrchestrator, RotationContext
+from credential_rotation.rotate import RotationContext, RotationOrchestrator
 
 _requires_root = pytest.mark.skipif(os.getuid() != 0, reason="atomic_write chowns to apache; requires root")
 

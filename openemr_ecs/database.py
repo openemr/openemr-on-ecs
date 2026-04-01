@@ -176,11 +176,10 @@ class DatabaseComponents:
         # Get resource suffix for consistent naming
         suffix = get_resource_suffix(context)
 
-        # Create database cluster
+        # Create database cluster with CloudWatch Database Insights (Advanced mode).
         # NOTE: When Performance Insights is enabled at the cluster level, CDK requires that
         # each instance's Performance Insights settings (enable + retention) match the cluster.
-        # If we omit instance-level retention, the instance defaults to 7 days, which triggers
-        # a synth-time ValidationError when the cluster is configured for LONG_TERM (731 days).
+        # Database Insights Advanced requires Performance Insights enabled with 15-month retention.
 
         if is_true(context.get("enable_data_api")):
             self.db_instance = rds.DatabaseCluster(
@@ -192,11 +191,12 @@ class DatabaseComponents:
                 writer=rds.ClusterInstance.serverless_v2(
                     "writer",
                     enable_performance_insights=True,
-                    performance_insight_retention=rds.PerformanceInsightRetention.LONG_TERM,
+                    performance_insight_retention=rds.PerformanceInsightRetention.MONTHS_15,
                 ),
                 enable_data_api=True,
+                database_insights_mode=rds.DatabaseInsightsMode.ADVANCED,
                 enable_performance_insights=True,
-                performance_insight_retention=rds.PerformanceInsightRetention.LONG_TERM,
+                performance_insight_retention=rds.PerformanceInsightRetention.MONTHS_15,
                 serverless_v2_min_capacity=0.5,  # Minimum 0.5 ACU to prevent complete shutdown causing connection delays
                 serverless_v2_max_capacity=256,
                 storage_encrypted=True,
@@ -207,7 +207,7 @@ class DatabaseComponents:
                         "reader",
                         scale_with_writer=True,
                         enable_performance_insights=True,
-                        performance_insight_retention=rds.PerformanceInsightRetention.LONG_TERM,
+                        performance_insight_retention=rds.PerformanceInsightRetention.MONTHS_15,
                     )
                 ],
                 security_groups=[db_sec_group],
@@ -225,10 +225,11 @@ class DatabaseComponents:
                 writer=rds.ClusterInstance.serverless_v2(
                     "writer",
                     enable_performance_insights=True,
-                    performance_insight_retention=rds.PerformanceInsightRetention.LONG_TERM,
+                    performance_insight_retention=rds.PerformanceInsightRetention.MONTHS_15,
                 ),
+                database_insights_mode=rds.DatabaseInsightsMode.ADVANCED,
                 enable_performance_insights=True,
-                performance_insight_retention=rds.PerformanceInsightRetention.LONG_TERM,
+                performance_insight_retention=rds.PerformanceInsightRetention.MONTHS_15,
                 serverless_v2_min_capacity=0.5,  # Minimum 0.5 ACU to prevent complete shutdown causing connection delays
                 serverless_v2_max_capacity=256,
                 storage_encrypted=True,
@@ -239,7 +240,7 @@ class DatabaseComponents:
                         "reader",
                         scale_with_writer=True,
                         enable_performance_insights=True,
-                        performance_insight_retention=rds.PerformanceInsightRetention.LONG_TERM,
+                        performance_insight_retention=rds.PerformanceInsightRetention.MONTHS_15,
                     )
                 ],
                 security_groups=[db_sec_group],
@@ -278,7 +279,7 @@ class DatabaseComponents:
                 },
                 {
                     "id": "HIPAA.Security-RDSEnhancedMonitoringEnabled",
-                    "reason": "Enhanced monitoring is not available for Aurora Serverless v2. Using Performance Insights with LONG_TERM retention (731 days) and CloudWatch Logs (audit, error, general, slowquery) instead",
+                    "reason": "Enhanced monitoring is not available for Aurora Serverless v2. Using CloudWatch Database Insights Advanced mode with 15-month retention and CloudWatch Logs (audit, error, general, slowquery) instead",
                 },
             ],
             apply_to_children=True,

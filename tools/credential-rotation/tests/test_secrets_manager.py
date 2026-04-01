@@ -1,7 +1,6 @@
 """Tests for secrets_manager module: slot selection, password generation, SlotSecretState."""
 
 import pytest
-
 from credential_rotation.secrets_manager import (
     SecretsManagerSlots,
     SlotSecretState,
