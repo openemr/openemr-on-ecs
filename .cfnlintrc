@@ -18,7 +18,7 @@ ignore_checks:
   
   # E3690: Aurora MySQL engine version validation out of date
   # Suppressing for:
-  # - 8.0.mysql_aurora.3.11.0 (valid Aurora MySQL version released 2024)
+  # - 8.0.mysql_aurora.3.12.0 (valid Aurora MySQL version; cfn-lint catalogue may lag)
   - E3690
   
   # W3005: Redundant dependency warnings
