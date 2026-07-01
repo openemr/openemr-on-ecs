@@ -13,9 +13,9 @@ from aws_cdk import aws_globalaccelerator as ga
 from aws_cdk import aws_globalaccelerator_endpoints as ga_endpoints
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_logs as logs
-from cdk_nag import NagSuppressions
 from constructs import Construct
 
+from .nag_suppressions import acknowledge_findings
 from .utils import is_true
 
 
@@ -93,8 +93,8 @@ class NetworkComponents:
         # Close the default security group (HIPAA requirement)
         # The default SG is created automatically and must be explicitly restricted
         # We document that it's closed via suppression (cannot be deleted, AWS limitation)
-        # For cdk-nag compliance, we add a suppression noting that we close it via other means
-        NagSuppressions.add_resource_suppressions(
+        # For cdk-nag compliance, we acknowledge that we close it via other means
+        acknowledge_findings(
             self.vpc,
             [
                 {
@@ -104,9 +104,9 @@ class NetworkComponents:
             ],
         )
 
-        # Suppress IGW route warnings - these are required for ALB internet connectivity
+        # Acknowledge IGW route warnings - these are required for ALB internet connectivity
         for subnet in self.vpc.public_subnets:
-            NagSuppressions.add_resource_suppressions(
+            acknowledge_findings(
                 subnet,
                 [
                     {
@@ -114,7 +114,6 @@ class NetworkComponents:
                         "reason": "Public subnets require IGW routes for Application Load Balancer internet connectivity. ALB is protected by security groups with IP allowlisting.",
                     },
                 ],
-                apply_to_children=True,
             )
 
         return self.vpc
@@ -134,14 +133,10 @@ class NetworkComponents:
             self.scope, "db-sec-group", vpc=vpc, allow_all_outbound=False  # Prevent accidental data exfiltration
         )
 
-        # Suppress false positives for database port (resolved via intrinsic function)
-        NagSuppressions.add_resource_suppressions(
+        # Acknowledge false positives for database port (resolved via intrinsic function)
+        acknowledge_findings(
             self.db_sec_group,
             [
-                {
-                    "id": "CdkNagValidationFailure",
-                    "reason": "Database security group uses RDS cluster port (Fn::GetAtt) - cdk_nag cannot validate at synth time",
-                },
                 {
                     "id": "HIPAA.Security-EC2RestrictedCommonPorts",
                     "reason": "Database security group port (3306) is restricted to VPC resources only - false positive due to intrinsic function",
@@ -151,7 +146,6 @@ class NetworkComponents:
                     "reason": "Database security group does not expose SSH (port 22) - false positive due to intrinsic function for database port",
                 },
             ],
-            apply_to_children=True,
         )
 
         # Valkey/Redis security group - only allows connections from ECS tasks
@@ -160,9 +154,9 @@ class NetworkComponents:
         # Load balancer security group - allows inbound from configured IP ranges
         self.lb_sec_group = ec2.SecurityGroup(self.scope, "lb-sec-group", vpc=vpc, allow_all_outbound=False)
 
-        # Suppress AwsSolutions-EC23 for ALB - it's intentionally public-facing for web traffic
+        # Acknowledge AwsSolutions-EC23 for ALB - it's intentionally public-facing for web traffic
         # The security group rules are properly scoped below based on user-provided CIDR blocks
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             self.lb_sec_group,
             [
                 {

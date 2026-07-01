@@ -6,7 +6,10 @@ a diagram directly from the CDK construct tree.  This keeps the diagram in
 sync with the actual infrastructure definition -- no manual updates needed.
 
 Requirements:
-    pip install aws-pdk
+    Install into a separate virtualenv from the main app (see
+    diagrams/requirements.txt -- aws-pdk pins cdk-nag<3.0.0, which conflicts
+    with the cdk-nag v3 used by the main app's requirements.txt):
+        pip install -r diagrams/requirements.txt
     brew install graphviz   # macOS  (or: sudo apt-get install graphviz)
 
 Usage (from the project root):

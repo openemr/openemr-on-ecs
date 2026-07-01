@@ -13,8 +13,10 @@ from openemr_ecs.stack import OpenemrEcsStack
 def main() -> None:
     """Build and synthesise the CDK application."""
     app = cdk.App()
-    cdk.Aspects.of(app).add(AwsSolutionsChecks(verbose=True))
-    cdk.Aspects.of(app).add(HIPAASecurityChecks(verbose=True))
+    cdk.Validations.of(app).add_plugins(
+        AwsSolutionsChecks(app, verbose=True),
+        HIPAASecurityChecks(app, verbose=True),
+    )
 
     # Derive the deployment environment from the CLI defaults so one synth template
     # can target the account/region currently configured for the CDK user.

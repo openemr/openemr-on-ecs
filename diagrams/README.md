@@ -16,9 +16,10 @@ This directory contains the **diagram-as-code** source for the project's archite
 ## Quick Start
 
 ```bash
-# One-time setup
+# One-time setup -- use a SEPARATE virtualenv from the main app
 brew install graphviz        # macOS (or: sudo apt-get install graphviz)
-pip install -r requirements.txt   # includes aws-pdk
+python3 -m venv .venv-diagrams && source .venv-diagrams/bin/activate
+pip install -r diagrams/requirements.txt   # includes aws-pdk
 
 # Generate the diagram (run from project root)
 python diagrams/generate.py
@@ -26,14 +27,16 @@ python diagrams/generate.py
 
 This produces `diagrams/architecture.png` (compact view) and `diagrams/architecture-full.png` (all resources), referenced by the project README.
 
+> **Note:** `aws-pdk` pins `cdk-nag<3.0.0`, which conflicts with the `cdk-nag` v3 used by the main CDK app (see the root `requirements.txt`). Install `diagrams/requirements.txt` into its own virtualenv rather than combining it with the root `requirements.txt`.
+
 ## Prerequisites
 
 | Dependency | Version | Install | Purpose |
 |---|---|---|---|
 | **Python** | 3.9+ | Already required by the CDK stack | Runtime |
 | **Graphviz** | Any recent | `brew install graphviz` (macOS) / `sudo apt-get install graphviz` (Linux) | Rendering engine |
-| **aws-pdk** | Latest | `pip install aws-pdk` (included in `requirements.txt`) | CDK graph + diagram plugin |
-| **aws-cdk-lib** | 2.x | Already in `requirements.txt` | CDK constructs |
+| **aws-pdk** | Latest | `pip install -r diagrams/requirements.txt` (separate virtualenv) | CDK graph + diagram plugin |
+| **aws-cdk-lib** | 2.x | Included in `diagrams/requirements.txt` | CDK constructs |
 
 Graphviz provides the `dot` layout engine that converts the graph into a PNG. The AWS PDK provides the `CdkGraph` framework and `CdkGraphDiagramPlugin` that extract the architecture graph from CDK source code and render it.
 
@@ -116,7 +119,7 @@ Diagram generation is a development-time concern. Keeping it in a standalone scr
 | Problem | Solution |
 |---|---|
 | `command not found: dot` | Install Graphviz: `brew install graphviz` (macOS) or `sudo apt-get install graphviz` (Linux) |
-| `ModuleNotFoundError: No module named 'aws_pdk'` | `pip install aws-pdk` or `pip install -r requirements.txt` |
+| `ModuleNotFoundError: No module named 'aws_pdk'` | `pip install -r diagrams/requirements.txt` (in its own virtualenv) |
 | `ModuleNotFoundError: No module named 'openemr_ecs'` | Run from the **project root**: `python diagrams/generate.py` |
 | `No diagrams found` after running | Check that Graphviz is installed and the `dot` binary is on your `PATH` |
 | Diagram looks too cluttered | Switch the preset to `FilterPreset.COMPACT` or add custom exclude filters |

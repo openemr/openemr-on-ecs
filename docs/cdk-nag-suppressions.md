@@ -21,7 +21,7 @@ This document explains why certain CDK Nag findings are suppressed in the OpenEM
 - [VPC and Network](#vpc-and-network)
   - [Public Subnet IGW Routes (HIPAA.Security-VPCNoUnrestrictedRouteToIGW)](#public-subnet-igw-routes-hipaasecurity-vpcnounrestrictedroutetoigw)
   - [Default Security Group (HIPAA.Security-VPCDefaultSecurityGroupClosed)](#default-security-group-hipaasecurity-vpcdefaultsecuritygroupclosed)
-  - [VPC Endpoint Security Groups (CdkNagValidationFailure)](#vpc-endpoint-security-groups-cdknagvalidationfailure)
+  - [VPC Endpoint Security Groups (HIPAA.Security-EC2RestrictedCommonPorts / -EC2RestrictedSSH)](#vpc-endpoint-security-groups-hipaasecurity-ec2restrictedcommonports--ec2restrictedssh)
 - [RDS Configuration](#rds-configuration)
   - [Default Port (AwsSolutions-RDS11)](#default-port-awssolutions-rds11)
   - [Backtrack Not Enabled (AwsSolutions-RDS14)](#backtrack-not-enabled-awssolutions-rds14)
@@ -120,9 +120,9 @@ OpenEMR container uses environment variables for:
 - Default SG is not used - all resources use explicitly created SGs
 - Cannot be deleted (AWS limitation) but documented as closed
 
-### VPC Endpoint Security Groups (CdkNagValidationFailure)
+### VPC Endpoint Security Groups (HIPAA.Security-EC2RestrictedCommonPorts / -EC2RestrictedSSH)
 - VPC CIDR blocks resolved at deploy time via CloudFormation intrinsic functions
-- Cannot be validated at synth time
+- Cannot be validated at synth time, so cdk-nag flags a false positive
 - Security group rules are correctly configured at runtime
 
 ## RDS Configuration

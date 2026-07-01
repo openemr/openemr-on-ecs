@@ -344,15 +344,24 @@ def test_configuration(
         if result.returncode == 0:
             success(f"Synthesis successful for {config_name}")
 
-            # Check for cdk-nag errors in output
-            if "[Error at" in result.stdout or "[Error at" in result.stderr:
+            # Check for cdk-nag / Policy Validation errors in output. As of cdk-nag v3
+            # (which runs via the CDK Policy Validation Framework), unacknowledged
+            # findings are reported as lines starting with "ERROR " at column 0, e.g.:
+            #   ERROR The IAM entity contains wildcard permissions ... (AwsSolutions)
+            # This is unrelated to indented "ERROR:" lines that may appear inside
+            # embedded container scripts in the synthesized template output.
+            nag_error_lines = [
+                line
+                for line in (result.stdout + result.stderr).split("\n")
+                if line.startswith("ERROR ")
+            ]
+            if nag_error_lines:
                 error_msg = "CDK Nag errors found in output"
                 error(error_msg)
                 if verbose:
                     print("\n--- CDK Nag Errors ---")
-                    for line in (result.stdout + result.stderr).split("\n"):
-                        if "[Error at" in line:
-                            print(line)
+                    for line in nag_error_lines:
+                        print(line)
                     print("--- End CDK Nag Errors ---\n")
                 return False, error_msg
 

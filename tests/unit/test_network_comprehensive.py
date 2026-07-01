@@ -146,7 +146,7 @@ class TestAutoIPResolution:
             stack = OpenemrEcsStack(app, "AutoIPStack", env=cdk.Environment(account="123456789012", region="us-west-2"))
             t = assertions.Template.from_stack(stack)
             t.resource_count_is("AWS::EC2::VPC", 1)
-        except ValueError, OSError:
+        except (ValueError, OSError):
             pytest.skip("No internet access to resolve auto IP")
 
     def test_explicit_cidr_does_not_raise(self, app, minimal_context):

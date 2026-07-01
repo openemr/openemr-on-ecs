@@ -15,7 +15,6 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as _lambda
 from aws_cdk import aws_secretsmanager as secretsmanager
 from aws_cdk import aws_ssm as ssm
-from cdk_nag import NagSuppressions
 from constructs import Construct
 
 from .analytics import AnalyticsComponents
@@ -27,6 +26,7 @@ from .constants import StackConstants
 from .database import DatabaseComponents
 from .kms_keys import KmsKeys
 from .monitoring import MonitoringComponents
+from .nag_suppressions import acknowledge_findings
 from .network import NetworkComponents
 from .security import SecurityComponents
 from .storage import StorageComponents
@@ -610,7 +610,7 @@ def handler(event, context):
             reason_suffix="One-shot Lambda that sets stack termination protection.",
         )
         suppress_lambda_role_common_findings(enable_protection_lambda.role)
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             enable_protection_lambda.role,
             [
                 {
@@ -621,7 +621,6 @@ def handler(event, context):
                     ],
                 },
             ],
-            apply_to_children=True,
         )
 
         # Create the custom resource
@@ -662,7 +661,7 @@ def handler(event, context):
         )
 
         # Suppress rotation warnings for admin password (manually rotated by administrators)
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             self.password,
             [
                 {

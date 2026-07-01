@@ -16,9 +16,9 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_kms as kms
 from aws_cdk import aws_logs as logs
 from aws_cdk import aws_s3 as s3
-from cdk_nag import NagSuppressions
 from constructs import Construct
 
+from .nag_suppressions import acknowledge_findings
 from .utils import get_resource_suffix
 
 
@@ -72,7 +72,7 @@ class StorageComponents:
         )
 
         # Suppress replication and KMS requirements for access log bucket
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             elb_access_log_bucket,
             [
                 {
@@ -117,7 +117,7 @@ class StorageComponents:
         )
 
         # Suppress replication and KMS requirements for ELB logs (ALB limitation)
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             self.elb_log_bucket,
             [
                 {
@@ -189,7 +189,7 @@ class StorageComponents:
         )
 
         # Suppress findings for access log bucket
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             cloudtrail_access_log_bucket,
             [
                 {
@@ -223,7 +223,7 @@ class StorageComponents:
         )
 
         # Suppress replication for CloudTrail (data is immutable audit log)
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             self.cloudtrail_log_bucket,
             [
                 {
@@ -272,7 +272,7 @@ class StorageComponents:
         if cloudtrail_log_role:
             logs_role_policy = cloudtrail_log_role.node.try_find_child("DefaultPolicy")
             if logs_role_policy:
-                NagSuppressions.add_resource_suppressions(
+                acknowledge_findings(
                     logs_role_policy,
                     [
                         {
@@ -413,7 +413,7 @@ class StorageComponents:
         )
 
         # Suppress AWS managed policy warnings for backup service role
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             backup_role,
             [
                 {

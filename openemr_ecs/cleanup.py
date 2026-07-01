@@ -15,8 +15,9 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as _lambda
 from aws_cdk import aws_rds as rds
 from aws_cdk import aws_ses as ses
-from cdk_nag import NagSuppressions
 from constructs import Construct
+
+from .nag_suppressions import acknowledge_findings
 
 
 class CleanupComponents:
@@ -448,7 +449,7 @@ def handler(event, context):
 
         # Add suppressions for cleanup Lambda (custom resource for stack deletion)
         # This Lambda requires broad permissions as it cleans up multiple resource types
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             self.cleanup_lambda,
             [
                 {
@@ -471,7 +472,7 @@ def handler(event, context):
         )
 
         # Add suppressions for cleanup Lambda's IAM role
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             self.cleanup_lambda.role,
             [
                 {
@@ -487,7 +488,6 @@ def handler(event, context):
                     "appliesTo": ["Resource::*"],
                 },
             ],
-            apply_to_children=True,
         )
 
         # Grant necessary permissions (creates DefaultPolicy)
@@ -530,7 +530,7 @@ def handler(event, context):
         self.cleanup_lambda.add_to_role_policy(cleanup_policy)
 
         # Suppress inline policy for DefaultPolicy (after grant creates it)
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             self.cleanup_lambda.role.node.find_child("DefaultPolicy").node.find_child("Resource"),
             [
                 {

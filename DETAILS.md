@@ -630,17 +630,19 @@ Note that using this functionality will incur extra costs. Information on pricin
 
 ### Using cdk_nag
 
-We instrumented this project with [cdk_nag](https://github.com/cdklabs/cdk-nag). In your app.py file we placed 2 commented out cdk_nag checks.
+We instrumented this project with [cdk_nag](https://github.com/cdklabs/cdk-nag). The `AwsSolutionsChecks` and `HIPAASecurityChecks` packs are enabled by default in `app.py`:
 
 ```python
 from cdk_nag import AwsSolutionsChecks, HIPAASecurityChecks
 
 app = cdk.App()
-cdk.Aspects.of(app).add(AwsSolutionsChecks(verbose=True))
-cdk.Aspects.of(app).add(HIPAASecurityChecks(verbose=True))
+cdk.Validations.of(app).add_plugins(
+    AwsSolutionsChecks(app, verbose=True),
+    HIPAASecurityChecks(app, verbose=True),
+)
 ```
 
-If you'd like you can enable the cdk_nag checks and fix any issues found therein. While this may assist with complying with certain aspects of HIPAA we make no claims that this alone will result in compliance with HIPAA. Please see the general disclaimer at the top of this README for more information. 
+Findings that are expected (and safe) for this architecture are acknowledged in code via the `acknowledge_findings()` helper in `openemr_ecs/nag_suppressions.py`, with the rationale for each documented in [docs/cdk-nag-suppressions.md](docs/cdk-nag-suppressions.md). Any new finding surfaced by `cdk synth` will need to be addressed or acknowledged before deployment. While this may assist with complying with certain aspects of HIPAA we make no claims that this alone will result in compliance with HIPAA. Please see the general disclaimer at the top of this README for more information. 
 
 ### Container Vulnerabilities
 

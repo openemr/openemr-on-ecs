@@ -12,10 +12,9 @@ from aws_cdk import aws_iam as iam
 from aws_cdk import aws_rds as rds
 from aws_cdk import aws_secretsmanager as secretsmanager
 from aws_cdk import aws_ssm as ssm
-from cdk_nag import NagSuppressions
 from constructs import Construct
 
-from .nag_suppressions import suppress_vpc_endpoint_security_group_findings
+from .nag_suppressions import acknowledge_findings, suppress_vpc_endpoint_security_group_findings
 from .utils import get_resource_suffix, is_true
 
 
@@ -83,8 +82,8 @@ class DatabaseComponents:
             ),
         )
 
-        # Suppress rotation warnings - Aurora manages credentials automatically
-        NagSuppressions.add_resource_suppressions(
+        # Acknowledge rotation warnings - Aurora manages credentials automatically
+        acknowledge_findings(
             self.db_secret,
             [
                 {
@@ -144,8 +143,8 @@ class DatabaseComponents:
             if context.get("aurora_ml_inference_timeout"):
                 parameters["aurora_ml_inference_timeout"] = str(context.get("aurora_ml_inference_timeout"))
 
-            # Suppress wildcard resource warnings for Bedrock foundation models
-            NagSuppressions.add_resource_suppressions(
+            # Acknowledge wildcard resource warnings for Bedrock foundation models
+            acknowledge_findings(
                 database_ml_role,
                 [
                     {
@@ -158,7 +157,6 @@ class DatabaseComponents:
                         "reason": "Inline policy is required for RDS Aurora ML integration with Bedrock - provides least-privilege access to foundation models",
                     },
                 ],
-                apply_to_children=True,
             )
 
         parameter_group = rds.ParameterGroup(
@@ -249,8 +247,8 @@ class DatabaseComponents:
                 deletion_protection=deletion_protection_enabled,
             )
 
-        # Add RDS suppressions for intentional configurations
-        NagSuppressions.add_resource_suppressions(
+        # Add RDS acknowledgments for intentional configurations
+        acknowledge_findings(
             self.db_instance,
             [
                 {
@@ -282,7 +280,6 @@ class DatabaseComponents:
                     "reason": "Enhanced monitoring is not available for Aurora Serverless v2. Using CloudWatch Database Insights Advanced mode with 15-month retention and CloudWatch Logs (audit, error, general, slowquery) instead",
                 },
             ],
-            apply_to_children=True,
         )
 
         # Configure Bedrock integration if enabled
@@ -306,17 +303,13 @@ class DatabaseComponents:
                 description="Security group for Bedrock Runtime VPC endpoint",
             )
 
-            # Suppress false positives for Bedrock endpoint security group
+            # Acknowledge false positives for Bedrock endpoint security group
             suppress_vpc_endpoint_security_group_findings(bedrock_sg, "Bedrock Runtime")
 
-            # Suppress CDK Nag validation failures for intrinsic function (database port)
-            NagSuppressions.add_resource_suppressions(
+            # Acknowledge findings for intrinsic function (database port)
+            acknowledge_findings(
                 bedrock_sg,
                 [
-                    {
-                        "id": "CdkNagValidationFailure",
-                        "reason": "Security group port uses intrinsic function (database cluster endpoint port) which cannot be validated at synth time - port is determined at deployment",
-                    },
                     {
                         "id": "HIPAA.Security-EC2RestrictedCommonPorts",
                         "reason": "Bedrock endpoint security group port (3306) is restricted to VPC resources only - false positive due to intrinsic function",
@@ -326,7 +319,6 @@ class DatabaseComponents:
                         "reason": "Bedrock endpoint security group does not expose SSH (port 22) - false positive due to intrinsic function for database port",
                     },
                 ],
-                apply_to_children=True,
             )
 
             bedrock_runtime_interface_endpoint = vpc.add_interface_endpoint(
@@ -456,7 +448,7 @@ class DatabaseComponents:
             ),
         )
 
-        NagSuppressions.add_resource_suppressions(
+        acknowledge_findings(
             self.rds_slot_secret,
             [
                 {
