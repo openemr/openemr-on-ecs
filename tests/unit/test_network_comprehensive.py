@@ -19,12 +19,8 @@ class TestVPCCreation:
         template.has_resource_properties("AWS::EC2::VPC", {"CidrBlock": "10.0.0.0/16"})
 
     def test_two_availability_zones(self, template):
-        private = template.find_resources(
-            "AWS::EC2::Subnet", {"Properties": {"MapPublicIpOnLaunch": False}}
-        )
-        public = template.find_resources(
-            "AWS::EC2::Subnet", {"Properties": {"MapPublicIpOnLaunch": False}}
-        )
+        private = template.find_resources("AWS::EC2::Subnet", {"Properties": {"MapPublicIpOnLaunch": False}})
+        public = template.find_resources("AWS::EC2::Subnet", {"Properties": {"MapPublicIpOnLaunch": False}})
         assert len(private) >= 2
         assert len(public) >= 2
 
@@ -50,9 +46,7 @@ class TestVPCCreation:
                                 [
                                     assertions.Match.object_like(
                                         {
-                                            "Principal": {
-                                                "Service": "vpc-flow-logs.amazonaws.com"
-                                            },
+                                            "Principal": {"Service": "vpc-flow-logs.amazonaws.com"},
                                         }
                                     )
                                 ]
@@ -70,9 +64,7 @@ class TestSecurityGroups:
         db_sgs = [
             lid
             for lid, res in sgs.items()
-            if "db" in lid.lower()
-            or "db"
-            in str(res.get("Properties", {}).get("GroupDescription", "")).lower()
+            if "db" in lid.lower() or "db" in str(res.get("Properties", {}).get("GroupDescription", "")).lower()
         ]
         assert len(db_sgs) >= 1 or len(sgs) >= 3
 
@@ -122,9 +114,7 @@ class TestALB:
                 {
                     "LoadBalancerAttributes": assertions.Match.array_with(
                         [
-                            assertions.Match.object_like(
-                                {"Key": "deletion_protection.enabled", "Value": "true"}
-                            ),
+                            assertions.Match.object_like({"Key": "deletion_protection.enabled", "Value": "true"}),
                         ]
                     )
                 }
@@ -171,7 +161,7 @@ class TestAutoIPResolution:
             )
             t = assertions.Template.from_stack(stack)
             t.resource_count_is("AWS::EC2::VPC", 1)
-        except (ValueError, OSError):
+        except ValueError, OSError:
             pytest.skip("No internet access to resolve auto IP")
 
     def test_explicit_cidr_does_not_raise(self, app, minimal_context):
