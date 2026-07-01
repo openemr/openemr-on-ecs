@@ -19,8 +19,12 @@ class TestVPCCreation:
         template.has_resource_properties("AWS::EC2::VPC", {"CidrBlock": "10.0.0.0/16"})
 
     def test_two_availability_zones(self, template):
-        private = template.find_resources("AWS::EC2::Subnet", {"Properties": {"MapPublicIpOnLaunch": False}})
-        public = template.find_resources("AWS::EC2::Subnet", {"Properties": {"MapPublicIpOnLaunch": False}})
+        private = template.find_resources(
+            "AWS::EC2::Subnet", {"Properties": {"MapPublicIpOnLaunch": False}}
+        )
+        public = template.find_resources(
+            "AWS::EC2::Subnet", {"Properties": {"MapPublicIpOnLaunch": False}}
+        )
         assert len(private) >= 2
         assert len(public) >= 2
 
@@ -28,7 +32,11 @@ class TestVPCCreation:
         template.resource_count_is("AWS::EC2::FlowLog", 1)
         template.has_resource_properties(
             "AWS::EC2::FlowLog",
-            {"ResourceType": "VPC", "TrafficType": "ALL", "LogDestinationType": "cloud-watch-logs"},
+            {
+                "ResourceType": "VPC",
+                "TrafficType": "ALL",
+                "LogDestinationType": "cloud-watch-logs",
+            },
         )
 
     def test_flow_logs_iam_role(self, template):
@@ -42,7 +50,9 @@ class TestVPCCreation:
                                 [
                                     assertions.Match.object_like(
                                         {
-                                            "Principal": {"Service": "vpc-flow-logs.amazonaws.com"},
+                                            "Principal": {
+                                                "Service": "vpc-flow-logs.amazonaws.com"
+                                            },
                                         }
                                     )
                                 ]
@@ -60,7 +70,9 @@ class TestSecurityGroups:
         db_sgs = [
             lid
             for lid, res in sgs.items()
-            if "db" in lid.lower() or "db" in str(res.get("Properties", {}).get("GroupDescription", "")).lower()
+            if "db" in lid.lower()
+            or "db"
+            in str(res.get("Properties", {}).get("GroupDescription", "")).lower()
         ]
         assert len(db_sgs) >= 1 or len(sgs) >= 3
 
@@ -92,7 +104,10 @@ class TestALB:
                     "LoadBalancerAttributes": assertions.Match.array_with(
                         [
                             assertions.Match.object_like(
-                                {"Key": "routing.http.drop_invalid_header_fields.enabled", "Value": "true"}
+                                {
+                                    "Key": "routing.http.drop_invalid_header_fields.enabled",
+                                    "Value": "true",
+                                }
                             ),
                         ]
                     )
@@ -107,7 +122,9 @@ class TestALB:
                 {
                     "LoadBalancerAttributes": assertions.Match.array_with(
                         [
-                            assertions.Match.object_like({"Key": "deletion_protection.enabled", "Value": "true"}),
+                            assertions.Match.object_like(
+                                {"Key": "deletion_protection.enabled", "Value": "true"}
+                            ),
                         ]
                     )
                 }
@@ -126,7 +143,11 @@ class TestGlobalAccelerator:
             app.node.set_context(key, value)
         from openemr_ecs.stack import OpenemrEcsStack
 
-        stack = OpenemrEcsStack(app, "AccelStack", env=cdk.Environment(account="123456789012", region="us-west-2"))
+        stack = OpenemrEcsStack(
+            app,
+            "AccelStack",
+            env=cdk.Environment(account="123456789012", region="us-west-2"),
+        )
         t = assertions.Template.from_stack(stack)
         t.resource_count_is("AWS::GlobalAccelerator::Accelerator", 1)
 
@@ -143,7 +164,11 @@ class TestAutoIPResolution:
         from openemr_ecs.stack import OpenemrEcsStack
 
         try:
-            stack = OpenemrEcsStack(app, "AutoIPStack", env=cdk.Environment(account="123456789012", region="us-west-2"))
+            stack = OpenemrEcsStack(
+                app,
+                "AutoIPStack",
+                env=cdk.Environment(account="123456789012", region="us-west-2"),
+            )
             t = assertions.Template.from_stack(stack)
             t.resource_count_is("AWS::EC2::VPC", 1)
         except (ValueError, OSError):
@@ -156,6 +181,10 @@ class TestAutoIPResolution:
 
         from openemr_ecs.stack import OpenemrEcsStack
 
-        stack = OpenemrEcsStack(app, "CIDRStack", env=cdk.Environment(account="123456789012", region="us-west-2"))
+        stack = OpenemrEcsStack(
+            app,
+            "CIDRStack",
+            env=cdk.Environment(account="123456789012", region="us-west-2"),
+        )
         t = assertions.Template.from_stack(stack)
         t.resource_count_is("AWS::EC2::VPC", 1)
