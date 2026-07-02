@@ -2,6 +2,7 @@
 cdk.out/
 cdk.context.json
 diagrams/.cdk.out/
+diagrams/*.dot
 *.pyc
 __pycache__/
 *.py[cod]
