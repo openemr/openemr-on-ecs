@@ -1,9 +1,15 @@
 FROM python:3.14-alpine@sha256:a1321512d6a287428c50dcdf2ab3857761127e03a23b1f648e9c1c0de59288f8 AS base
 
+# The Alpine release branch is fixed by the digest-pinned base image above.
+# Do not add exact "package=version" pins here: Alpine mirrors serve only the
+# current build of each package for a branch, so an exact pin turns every
+# upstream security or bugfix rebuild into a build failure without making the
+# image any more reproducible. tests/tools/test_openemr_import_worker.py
+# enforces this.
 RUN apk add --no-cache \
-      ca-certificates=20260611-r0 \
-      curl=8.21.0-r0 \
-      mariadb-client=11.8.8-r0 \
+      ca-certificates \
+      curl \
+      mariadb-client \
     && curl --fail --silent --show-error --location \
       --output /etc/ssl/certs/aws-rds-global.pem \
       https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem \

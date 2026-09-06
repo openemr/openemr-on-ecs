@@ -64,8 +64,9 @@ Execution uses:
   conditional release (the version ID is retained as diagnostic evidence);
 - a dormant ARM64 Fargate task definition;
 - an OpenEMR target image pinned by both official release tag and ARM64 digest;
-- a digest-pinned worker base image, version-pinned Alpine packages,
-  hash-locked Python artifacts, and a checksummed RDS CA bundle;
+- a digest-pinned worker base image (which fixes the Alpine release branch the
+  worker's packages resolve from), hash-locked Python artifacts, and a
+  checksummed RDS CA bundle;
 - private subnets, no public IP, and a dedicated no-ingress security group with
   only MySQL, NFS, and HTTPS egress;
 - an IAM-authorized import-only sites EFS access point, with write and

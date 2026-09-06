@@ -8,6 +8,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import subprocess
 import tarfile
 from datetime import datetime
@@ -772,3 +773,59 @@ def test_temporary_database_user_cleanup_runs_when_setup_fails(
 
     assert len(calls) == 3
     assert calls[-1] == b"DROP USER IF EXISTS 'oe_import_0123456789abcdef'@'%';\n"
+
+
+_DOCKERFILE = Path(__file__).resolve().parents[2] / "tools" / "openemr-import-worker" / "Dockerfile"
+
+
+def _dockerfile_instructions() -> list[str]:
+    """Return Dockerfile instructions with comments dropped and continuations joined."""
+    instructions: list[str] = []
+    pending = ""
+    for raw in _DOCKERFILE.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.endswith("\\"):
+            pending += line[:-1] + " "
+            continue
+        instructions.append((pending + line).strip())
+        pending = ""
+    assert not pending, "Dockerfile ends with a dangling line continuation"
+    return instructions
+
+
+def _apk_add_packages(instructions: list[str]) -> list[str]:
+    packages: list[str] = []
+    for instruction in instructions:
+        if not instruction.startswith("RUN "):
+            continue
+        for command in re.split(r"\s*(?:&&|\|\||;)\s*", instruction[len("RUN ") :]):
+            tokens = command.split()
+            if tokens[:2] != ["apk", "add"]:
+                continue
+            packages.extend(token for token in tokens[2:] if not token.startswith("-"))
+    return packages
+
+
+def test_import_worker_base_image_is_digest_pinned() -> None:
+    instructions = _dockerfile_instructions()
+    base = [line for line in instructions if line.startswith("FROM ") and " AS base" in line]
+
+    assert len(base) == 1
+    assert re.search(r"@sha256:[0-9a-f]{64}\b", base[0]), base[0]
+
+
+def test_import_worker_apk_packages_are_not_exactly_pinned() -> None:
+    """Alpine mirrors drop superseded package builds, so exact pins break the build.
+
+    The base image digest fixes the Alpine release branch; within it, apk only
+    ever resolves the branch's current security/bugfix rebuild of each package.
+    An exact ``package=version`` pin adds no reproducibility and fails the build
+    the moment upstream ships a rebuild (see the September 2026 curl breakage).
+    """
+    packages = _apk_add_packages(_dockerfile_instructions())
+
+    assert set(packages) == {"ca-certificates", "curl", "mariadb-client"}
+    pinned = [package for package in packages if any(operator in package for operator in ("=", "<", ">", "~"))]
+    assert not pinned, f"apk version constraints break once Alpine mirrors drop the superseded build: {pinned}"
