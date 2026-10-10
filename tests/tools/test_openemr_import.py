@@ -221,7 +221,7 @@ def _sql_dump(
             b"-- MySQL dump 10.13\n",
             b"CREATE TABLE `version` (`v_major` int, `v_minor` int, `v_patch` int, "
             b"`v_realpatch` int, `v_tag` varchar(31), `v_database` int, `v_acl` int);\n",
-            (f"INSERT INTO `version` VALUES ({major},{minor},{patch},0,''," f"{database_version},13);\n").encode(),
+            (f"INSERT INTO `version` VALUES ({major},{minor},{patch},0,'',{database_version},13);\n").encode(),
             b"CREATE TABLE `patient_data` (`id` bigint, `name` text);\n",
             b"INSERT INTO `patient_data` VALUES (1,'" + patient_marker + b"');\n",
         )
@@ -340,7 +340,7 @@ def _execution_context_and_receipt() -> tuple[StackContext, ExecutionReceipt]:
         task_security_group_id="sg-import",
         private_subnet_ids=("subnet-one", "subnet-two"),
         database_arn="arn:aws:rds:us-east-1:111122223333:cluster:openemr",
-        efs_arn=("arn:aws:elasticfilesystem:us-east-1:111122223333:" "file-system/fs-openemr"),
+        efs_arn=("arn:aws:elasticfilesystem:us-east-1:111122223333:file-system/fs-openemr"),
     )
     receipt = ExecutionReceipt(
         schema_version=4,
@@ -475,7 +475,7 @@ def test_inspection_binds_sql_site_and_schema_versions(tmp_path: Path) -> None:
     "unsafe_sql",
     (
         b"CREATE/**/PROCEDURE unsafe_proc() SELECT 1;\n",
-        b"CREATE/*x*/TRIGGER unsafe_trigger BEFORE INSERT ON patient_data " b"FOR EACH ROW SET NEW.pid = NEW.pid;\n",
+        b"CREATE/*x*/TRIGGER unsafe_trigger BEFORE INSERT ON patient_data FOR EACH ROW SET NEW.pid = NEW.pid;\n",
         b"/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`%`*/ "
         b"/*!50003 TRIGGER unsafe_trigger BEFORE INSERT ON patient_data "
         b"FOR EACH ROW SET NEW.pid = NEW.pid */;\n",
@@ -499,7 +499,7 @@ def test_offline_inspection_rejects_comment_split_stored_code_and_commands(
 def test_offline_inspection_ignores_block_commented_version_row() -> None:
     commented_version = _sql_dump().split(b"INSERT INTO", 1)[1]
     dump = io.BytesIO(
-        b"-- MySQL dump\nCREATE TABLE `version` (`v_major` tinyint);\n" b"/* INSERT INTO" + commented_version + b" */\n"
+        b"-- MySQL dump\nCREATE TABLE `version` (`v_major` tinyint);\n/* INSERT INTO" + commented_version + b" */\n"
     )
 
     with pytest.raises(ToolError, match="authoritative OpenEMR version"):
@@ -865,7 +865,7 @@ def test_failed_import_abort_restores_service_and_cleans_retry_scope(
     )
     monkeypatch.setattr(
         "tools.openemr_import.aws.start_cleanup_task",
-        lambda *args, attempt, **kwargs: (cleanup_attempts.append(attempt) or "cleanup-task"),
+        lambda *args, attempt, **kwargs: cleanup_attempts.append(attempt) or "cleanup-task",
     )
     monkeypatch.setattr(
         "tools.openemr_import.aws.wait_for_task",
@@ -1138,7 +1138,7 @@ def test_cleanup_reuses_uncertain_attempt_then_increments_known_failure(
     )
     monkeypatch.setattr(
         "tools.openemr_import.aws.start_cleanup_task",
-        lambda *args, attempt, **kwargs: (attempts.append(attempt) or "cleanup-task"),
+        lambda *args, attempt, **kwargs: attempts.append(attempt) or "cleanup-task",
     )
     monkeypatch.setattr(
         "tools.openemr_import.aws.wait_for_task",
@@ -1258,7 +1258,7 @@ def test_policy_target_uses_constants_without_importing_stack() -> None:
     """The planner follows the deployment pin without constructing a CDK stack."""
 
     repository = Path(__file__).resolve().parents[2]
-    completed = subprocess.run(  # nosec B603
+    completed = subprocess.run(
         [
             sys.executable,
             "-c",

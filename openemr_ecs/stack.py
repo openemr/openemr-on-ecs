@@ -252,12 +252,14 @@ class OpenemrEcsStack(Stack):
         # Handle certificate from ARN if provided (takes precedence over creating new cert via route53_domain)
         # Certificate is required - this should have been validated earlier, but ensure we have one
         if context.get("certificate_arn"):
-            if self.certificate:
+            if context.get("route53_domain"):
                 # Both were provided - use the ARN and log a warning
                 print(
                     f"WARNING: Both route53_domain and certificate_arn provided. Using certificate_arn: {context.get('certificate_arn')}"
                 )
-            self.certificate = acm.Certificate.from_certificate_arn(self, "domainCert", str(context.get("certificate_arn")))  # type: ignore
+            self.certificate = acm.Certificate.from_certificate_arn(
+                self, "domainCert", str(context.get("certificate_arn"))
+            )  # type: ignore
 
         # Safety check: Certificate is required for HTTPS (should have been caught by validation, but verify)
         if not self.certificate:

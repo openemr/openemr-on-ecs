@@ -1,4 +1,4 @@
 # Versions aligned with repo root requirements.txt
-boto3==1.43.85
-pymysql==1.2.0
+boto3==1.43.106
+pymysql==1.2.3
 requests==2.34.2

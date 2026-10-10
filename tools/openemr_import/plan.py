@@ -186,8 +186,7 @@ def create_plan(
     site_ids = tuple(site.site_id for site in inspection.sites)
     if site_ids != ("default",):
         blockers.append(
-            "First-release execution supports exactly one site named 'default'; "
-            "multisite remains inspect-and-plan only"
+            "First-release execution supports exactly one site named 'default'; multisite remains inspect-and-plan only"
         )
     if inspection.custom_code_detected:
         blockers.append("Custom executable code is never copied automatically; review and port it separately")

@@ -8,6 +8,7 @@ import json
 import re
 import tarfile
 import tempfile
+import zlib
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -428,8 +429,7 @@ def _from_native_backup(path: Path, limits: ArchiveLimits) -> Iterator[_Artifact
                 extracted = archive.extractfile(member)
                 if extracted is None:
                     raise ToolError("Native backup artifact could not be read")
-                if target is None:
-                    raise ToolError("Native backup artifact target was not selected")
+                assert target is not None  # every branch that sets artifact_kind also sets target
                 size, sha = _copy_bounded(
                     extracted,
                     target,
@@ -534,7 +534,7 @@ def _inspect_sql(
             if identity is not None and candidate != identity:
                 raise ToolError("SQL dump contains conflicting OpenEMR version rows")
             identity = candidate
-    except (gzip.BadGzipFile, EOFError, OSError) as exc:
+    except (gzip.BadGzipFile, EOFError, OSError, zlib.error) as exc:
         raise ToolError("SQL dump compression is malformed") from exc
     finally:
         handle.seek(0)
@@ -629,7 +629,7 @@ def inspect_source(
             manual_review.append("Native backup contained additional top-level artifacts that will be ignored")
         if artifacts.source_kind == "native-openemr-backup" and archive_scan.openemr_version is None:
             unsupported.append(
-                "Native backup must contain version.php; --source-version cannot " "authorize automatic execution"
+                "Native backup must contain version.php; --source-version cannot authorize automatic execution"
             )
         if version is None:
             unsupported.append("Source OpenEMR version was not detected")

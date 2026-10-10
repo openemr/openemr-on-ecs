@@ -1,7 +1,7 @@
 services:
   # Simulate the ECS container startup for testing
   openemr-test:
-    image: openemr/openemr:8.3.0@sha256:761ba06db2db6fc356a978f20f16bcd805529610ec64e646019b1d9b440a3a3c
+    image: openemr/openemr:8.4.1@sha256:22bc7022e0fb3f88909d87a428849038a722a736634c1dbbae2f07e92ab362ad
     platform: linux/arm64
     container_name: openemr-container-test
     # Exact copy of startup script from compute.py - matches production ECS deployment

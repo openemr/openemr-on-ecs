@@ -8,7 +8,7 @@ import json
 import os
 
 # A subprocess is required for this transparent fixed-executable proxy.
-import subprocess  # nosec B404
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -32,7 +32,7 @@ def main() -> int:
     try:
         # The executable is a validated absolute Docker path; arguments are
         # forwarded as an argv list without a shell.
-        completed = subprocess.run(  # nosec B603
+        completed = subprocess.run(
             [str(real_docker), *sys.argv[1:]],
             check=False,
         )

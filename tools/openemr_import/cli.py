@@ -273,7 +273,7 @@ def _assert_execution_confirmations(args: argparse.Namespace, plan: ImportPlan) 
     missing = [flag for flag, accepted in required.items() if not accepted]
     if missing:
         raise ToolError("Execution is locked; explicit acknowledgements are missing: " + ", ".join(missing))
-    expected = f"IMPORT:{args.account_id}:{args.region}:{args.stack_name}:" f"{plan.configuration_fingerprint}"
+    expected = f"IMPORT:{args.account_id}:{args.region}:{args.stack_name}:{plan.configuration_fingerprint}"
     if args.confirmation_token != expected:
         raise ToolError("Confirmation token mismatch. After reviewing the plan and target, pass: " + expected)
 
@@ -869,14 +869,14 @@ def _reconcile_launch_command(args: argparse.Namespace) -> int:
     migration_id = str(state["migration_id"])
     expected = f"RECONCILE:{migration_id}"
     if not args.allow_aws_execution or args.confirmation_token != expected:
-        raise ToolError("Launch reconciliation requires --allow-aws-execution and " f"--confirmation-token {expected}")
+        raise ToolError(f"Launch reconciliation requires --allow-aws-execution and --confirmation-token {expected}")
     if (
         args.minimum_unknown_age_minutes < 1
         or args.maximum_unknown_age_minutes <= args.minimum_unknown_age_minutes
         or args.maximum_unknown_age_minutes > 55
     ):
         raise ToolError(
-            "Uncertain-launch reconciliation requires a positive minimum and a " "larger maximum of at most 55 minutes"
+            "Uncertain-launch reconciliation requires a positive minimum and a larger maximum of at most 55 minutes"
         )
     try:
         unknown_at = datetime.fromisoformat(str(state["outcome_unknown_at"]).replace("Z", "+00:00"))
@@ -977,7 +977,7 @@ def _reconcile_launch_command(args: argparse.Namespace) -> int:
             "has expired; investigate manually without restoring or deleting evidence"
         )
     if not args.confirm_no_task_launched:
-        raise ToolError("No ECS task was found. Restoring and cleaning requires " "--confirm-no-task-launched")
+        raise ToolError("No ECS task was found. Restoring and cleaning requires --confirm-no-task-launched")
     if find_import_tasks(context, session=session, migration_id=migration_id):
         raise ToolError("An ECS task appeared during reconciliation; rerun reconciliation")
     service_recovery_required = (
@@ -1067,20 +1067,6 @@ def _failed_worker_authorizes_abort(status: dict[str, Any]) -> bool:
         "target-validation",
         "recovery-baseline",
     }
-
-
-def _failed_import_authorizes_abort(status: dict[str, Any]) -> bool:
-    service = status.get("service", {})
-    autoscaling = status.get("autoscaling", {})
-    return (
-        _failed_worker_authorizes_abort(status)
-        and isinstance(service, dict)
-        and service.get("desired_count") == 0
-        and service.get("running_count") == 0
-        and service.get("pending_count") == 0
-        and isinstance(autoscaling, dict)
-        and autoscaling.get("suspended") is True
-    )
 
 
 def _interrupted_mutation_authorizes_recovery(status: dict[str, Any]) -> bool:

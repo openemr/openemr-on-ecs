@@ -331,7 +331,7 @@ Same license as the main OpenEMR on ECS project.
 
 ## See Also
 
-- [Backup and Restore Guide](../../BACKUP-RESTORE-GUIDE.md) - Comprehensive backup and restore procedures
+- [Backup and Restore Guide](../../docs/guides/backup-and-restore.md) - Comprehensive backup and restore procedures
 - [Bubbletea Documentation](https://charm.land/bubbletea)
 - [Lipgloss Documentation](https://charm.land/lipgloss)
 - [AWS Backup Documentation](https://docs.aws.amazon.com/aws-backup/)

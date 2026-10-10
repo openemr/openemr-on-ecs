@@ -234,10 +234,6 @@ class TestSendEmail:
     def _make_ses_event(self, message_id="test-msg-id"):
         return {"Records": [{"ses": {"mail": {"messageId": message_id}}}]}
 
-    @pytest.mark.xfail(
-        reason="Upstream Lambda passes bytes + wrong subtype to MIMEText; non-multipart path needs a fix",
-        strict=True,
-    )
     @patch.dict(
         "os.environ",
         {

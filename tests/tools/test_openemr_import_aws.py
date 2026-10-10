@@ -73,7 +73,7 @@ class _CloudFormation:
         return {
             "Stacks": [
                 {
-                    "StackId": ("arn:aws:cloudformation:us-east-1:123456789012:" f"stack/{StackName}/identifier"),
+                    "StackId": (f"arn:aws:cloudformation:us-east-1:123456789012:stack/{StackName}/identifier"),
                     "StackStatus": "CREATE_COMPLETE",
                     "CreationTime": datetime(2026, 7, 31, tzinfo=UTC),
                     "Outputs": [{"OutputKey": key, "OutputValue": value} for key, value in self.outputs.items()],
@@ -104,7 +104,7 @@ class _Ecs:
         self.run_arguments = kwargs
         return {
             "failures": [],
-            "tasks": [{"taskArn": ("arn:aws:ecs:us-east-1:123456789012:" "task/openemr/0123456789abcdef")}],
+            "tasks": [{"taskArn": ("arn:aws:ecs:us-east-1:123456789012:task/openemr/0123456789abcdef")}],
         }
 
 
@@ -217,7 +217,7 @@ def _context() -> StackContext:
         task_security_group_id="sg-012345",
         private_subnet_ids=("subnet-0123abcd", "subnet-4567efab"),
         database_arn="arn:aws:rds:us-east-1:123456789012:cluster:openemr",
-        efs_arn=("arn:aws:elasticfilesystem:us-east-1:123456789012:" "file-system/fs-012345"),
+        efs_arn=("arn:aws:elasticfilesystem:us-east-1:123456789012:file-system/fs-012345"),
         database_security_group_id="sg-db012345",
         efs_security_group_id="sg-ef5012345",
         efs_access_point_id="fsap-012345",
@@ -647,7 +647,7 @@ def test_upload_binds_bucket_owner_and_customer_managed_kms_key(tmp_path: Path) 
         "ExpectedBucketOwner": "123456789012",
         "ServerSideEncryption": "aws:kms",
         "SSEKMSKeyId": _context().staging_kms_key_arn,
-        "Tagging": ("MigrationId=import-0123456789abcdef" "&DataClass=ImportSource"),
+        "Tagging": ("MigrationId=import-0123456789abcdef&DataClass=ImportSource"),
     }
 
 

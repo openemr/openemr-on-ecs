@@ -280,7 +280,7 @@ def render_markdown(history: dict[str, Any]) -> str:
             "## Source and reproduction",
             "",
             "- Machine-readable history: `e2e-results/history.json`",
-            "- Runner guide: `LIVE-E2E.md`",
+            "- Runner guide: `docs/maintainers/live-e2e.md`",
             "- Regenerate this report without contacting AWS:",
             "",
             "```bash",
@@ -424,7 +424,7 @@ def _latest_successful(run: dict[str, Any]) -> list[str]:
     return [
         f"- Run: `{run['run_id']}` at {run['started_at']}",
         f"- Source: `{run['repository']}` branch `{run['branch']}` commit `{run['git_commit']}`",
-        f"- Configuration: `{run['profile']}` in `{run['region']}` " f"(`{run['configuration_fingerprint']}`)",
+        f"- Configuration: `{run['profile']}` in `{run['region']}` (`{run['configuration_fingerprint']}`)",
         f"- Safe stack identifier: `{run['safe_stack_id']}`; bootstrap: `{run['bootstrap_state']}`",
         f"- Total E2E time: {_display_phase(run, 'total')}",
         f"- Total deployment time (including assets): "

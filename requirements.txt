@@ -1,9 +1,9 @@
-aws-cdk-lib==2.267.0
+aws-cdk-lib==2.272.0
 constructs==10.8.1
 cdk-nag==3.0.2
 requests==2.34.2
-boto3==1.43.85
+boto3==1.43.106
 packaging==26.3
 
 # Credential rotation tool (tools/credential-rotation)
-pymysql==1.2.0
+pymysql==1.2.3

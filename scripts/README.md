@@ -549,7 +549,7 @@ Enter recovery point number (1-3): 1
 - Monitor restore progress using CloudWatch or the script's built-in monitoring.
 
 **See Also:**
-- [BACKUP-RESTORE-GUIDE.md](../BACKUP-RESTORE-GUIDE.md) for comprehensive backup and restore documentation
+- [the backup and restore guide](../docs/guides/backup-and-restore.md) for comprehensive backup and restore documentation
 - [AWS Backup Documentation](https://docs.aws.amazon.com/aws-backup/)
 
 ---
@@ -565,7 +565,7 @@ Enter recovery point number (1-3): 1
 ./scripts/test-startup.sh
 ```
 
-See [README-TESTING.md](../README-TESTING.md) for detailed usage.
+See the [local testing guide](../docs/guides/local-testing.md) for detailed usage.
 
 ---
 
@@ -578,7 +578,7 @@ See [README-TESTING.md](../README-TESTING.md) for detailed usage.
 ./scripts/test-startup-ssl.sh
 ```
 
-See [README-TESTING.md](../README-TESTING.md) for detailed usage.
+See the [local testing guide](../docs/guides/local-testing.md) for detailed usage.
 
 ---
 
@@ -594,7 +594,7 @@ Compose stack.
 ```
 
 This is a slow integration harness. It uses synthetic data only and does not
-contact AWS. See [IMPORTING-OPENEMR.md](../IMPORTING-OPENEMR.md) for coverage
+contact AWS. See [the import guide](../docs/guides/importing-openemr.md) for coverage
 and limitations.
 
 ---
@@ -621,7 +621,7 @@ fingerprint with the worker's own hashing, preserves `exclude_columns` and the
 unfingerprinted bootstrap-identity tables, and verifies the worker's
 fresh-target policy against the result. It uses synthetic local data only and
 does not contact AWS. Run it whenever the pinned OpenEMR container baseline
-changes. See [IMPORTING-OPENEMR.md](../IMPORTING-OPENEMR.md) for the import
+changes. See [the import guide](../docs/guides/importing-openemr.md) for the import
 worker design.
 
 ---
@@ -663,7 +663,7 @@ worker design.
 ./scripts/port_forward_to_rds.sh <cluster-name> <db-hostname>
 ```
 
-See [DETAILS.md](../DETAILS.md#using-ecs-exec) for detailed usage.
+See the [database access guide](../docs/guides/database-access.md#turn-on-ecs-exec) for detailed usage.
 
 ---
 
@@ -739,7 +739,7 @@ python3 scripts/test_data_api.py <openemr-url> <username> <password>
 ./scripts/run-credential-rotation.sh
 ```
 
-**See Also:** [docs/credential-rotation.md](../docs/credential-rotation.md) for full documentation.
+**See Also:** [the credential rotation guide](../docs/guides/credential-rotation.md) for full documentation.
 
 ---
 

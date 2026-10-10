@@ -406,9 +406,7 @@ def test_floci_mocked_runner_e2e(
     failure_detail = ""
     if state_path.is_file():
         state = json.loads(state_path.read_text(encoding="utf-8"))
-        failure_detail = (
-            f" failure_type={state.get('failure_type')!r}" f" failure_detail={state.get('failure_detail')!r}"
-        )
+        failure_detail = f" failure_type={state.get('failure_type')!r} failure_detail={state.get('failure_detail')!r}"
     assert result.status == "passed", (
         f"status={result.status} failure_phase={result.failure_phase} "
         f"cleanup={result.cleanup_status} notes={result.notes}{failure_detail}"

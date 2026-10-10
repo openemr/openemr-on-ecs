@@ -396,7 +396,7 @@ def test_live_stack_synthesis_satisfies_guarded_template_policy() -> None:
 
 def test_default_stack_synthesis_retains_production_lifecycle_and_names() -> None:
     context = {
-        "certificate_arn": ("arn:aws:acm:us-east-1:123456789012:" "certificate/00000000-0000-4000-8000-000000000000"),
+        "certificate_arn": ("arn:aws:acm:us-east-1:123456789012:certificate/00000000-0000-4000-8000-000000000000"),
         "security_group_ip_range_ipv4": "8.8.8.8/32",
         "rds_deletion_protection": "true",
         "enable_long_term_cloudtrail_monitoring": "false",
@@ -1060,7 +1060,7 @@ def test_cleanup_allows_only_generated_timing_changes(
 ) -> None:
     root = _root(tmp_path)
     runner = LiveE2ERunner(root=root)
-    status_output = " M docs/deployment-timing.md\n M e2e-results/history.json\n"
+    status_output = " M docs/maintainers/deployment-timing.md\n M e2e-results/history.json\n"
 
     def fake_run_command(
         argv: tuple[str, ...],
@@ -1749,7 +1749,7 @@ def test_tagged_resource_discovery_rejects_run_tag_outside_owned_stack() -> None
                     yield {
                         "ResourceTagMappingList": [
                             {
-                                "ResourceARN": ("arn:aws:ec2:us-east-1:123456789012:" "vpc/vpc-unrelated"),
+                                "ResourceARN": ("arn:aws:ec2:us-east-1:123456789012:vpc/vpc-unrelated"),
                                 "Tags": [
                                     {"Key": "LiveE2ERunId", "Value": run_id},
                                     {

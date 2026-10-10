@@ -29,7 +29,7 @@ def _collect_tables(database: str) -> dict[str, dict[str, object]]:
         baseline = import_worker.FRESH_SEED_BASELINE[table]
         count_output = import_worker._run_mysql(
             database,
-            f"--execute=SELECT COUNT(*) FROM `{table}`",  # nosec B608
+            f"--execute=SELECT COUNT(*) FROM `{table}`",  # noqa: S608
         )
         entry: dict[str, object] = {"rows": int(count_output.splitlines()[-1])}
         entry["sha256"] = (

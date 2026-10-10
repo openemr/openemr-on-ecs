@@ -57,21 +57,11 @@ _ALLOWED_EXTENSIONS = {
     ".yml",
 }
 _TOP_LEVEL_FILES = {
-    ".flake8",
     ".gitignore",
     ".pre-commit-config.yaml",
-    "ARCHITECTURE.md",
-    "BACKUP-RESTORE-GUIDE.md",
     "CODE_OF_CONDUCT.md",
     "CONTRIBUTING.md",
-    "DETAILS.md",
-    "GETTING-STARTED.md",
-    "IMPORTING-OPENEMR.md",
-    "KNOWLEDGE-MCP.md",
-    "MAINTAINERS.md",
-    "README-TESTING.md",
     "README.md",
-    "TROUBLESHOOTING.md",
     "VERSION",
     "app.py",
     "cdk.json",
@@ -106,11 +96,11 @@ _VERSION_METADATA_FIELDS = {
 _TOPICS: dict[str, dict[str, Any]] = {
     "project-purpose": {
         "summary": "Deploy a secure, resilient OpenEMR environment on AWS ECS Fargate with CDK.",
-        "sources": ["README.md", "GETTING-STARTED.md"],
+        "sources": ["README.md", "docs/get-started/README.md"],
     },
     "architecture": {
         "summary": "The stack combines edge routing, private ECS tasks, Aurora, Valkey, EFS, and AWS Backup.",
-        "sources": ["ARCHITECTURE.md", "openemr_ecs/stack.py"],
+        "sources": ["docs/reference/architecture.md", "openemr_ecs/stack.py"],
     },
     "cdk": {
         "summary": "app.py creates OpenemrEcsStack; feature constructs live under openemr_ecs/.",
@@ -118,59 +108,59 @@ _TOPICS: dict[str, dict[str, Any]] = {
     },
     "ecs-fargate": {
         "summary": "OpenEMR runs as ARM64 Fargate tasks with shared EFS storage.",
-        "sources": ["ARCHITECTURE.md", "openemr_ecs/compute.py"],
+        "sources": ["docs/reference/architecture.md", "openemr_ecs/compute.py"],
     },
     "networking": {
         "summary": "Public edge resources route to tasks in private subnets with explicit security-group paths.",
-        "sources": ["ARCHITECTURE.md", "openemr_ecs/network.py"],
+        "sources": ["docs/reference/architecture.md", "openemr_ecs/network.py"],
     },
     "alb": {
         "summary": "An Application Load Balancer performs public TLS termination and HTTPS target checks.",
-        "sources": ["ARCHITECTURE.md", "openemr_ecs/compute.py"],
+        "sources": ["docs/reference/architecture.md", "openemr_ecs/compute.py"],
     },
     "waf": {
         "summary": "AWS WAF protections are attached at the application edge.",
-        "sources": ["DETAILS.md", "openemr_ecs/security.py"],
+        "sources": ["docs/reference/security-and-compliance.md", "openemr_ecs/security.py"],
     },
     "tls": {
         "summary": "The deployment requires Route 53-managed ACM or an explicit certificate ARN.",
-        "sources": ["GETTING-STARTED.md", "openemr_ecs/security.py"],
+        "sources": ["docs/guides/https-and-dns.md", "openemr_ecs/security.py"],
     },
     "route53": {
         "summary": "Route 53 can provide DNS validation and application records for an owned hosted zone.",
-        "sources": ["GETTING-STARTED.md", "openemr_ecs/security.py"],
+        "sources": ["docs/guides/https-and-dns.md", "openemr_ecs/security.py"],
     },
     "global-accelerator": {
         "summary": "Global Accelerator is an optional edge path and has separate cost implications.",
-        "sources": ["DETAILS.md", "openemr_ecs/network.py"],
+        "sources": ["docs/guides/optional-features.md", "openemr_ecs/network.py"],
     },
     "aurora": {
         "summary": "Aurora MySQL Serverless v2 stores application data with encrypted connections and backups.",
-        "sources": ["ARCHITECTURE.md", "openemr_ecs/database.py"],
+        "sources": ["docs/reference/architecture.md", "openemr_ecs/database.py"],
     },
     "elasticache": {
         "summary": "A TLS-enabled ElastiCache Serverless Valkey cache supports OpenEMR caching.",
-        "sources": ["ARCHITECTURE.md", "openemr_ecs/database.py"],
+        "sources": ["docs/reference/architecture.md", "openemr_ecs/database.py"],
     },
     "efs": {
         "summary": "Encrypted EFS file systems persist OpenEMR sites data and shared TLS material.",
-        "sources": ["ARCHITECTURE.md", "openemr_ecs/storage.py"],
+        "sources": ["docs/reference/architecture.md", "openemr_ecs/storage.py"],
     },
     "backup": {
         "summary": "AWS Backup protects Aurora and EFS; local scripts expose explicit backup operations.",
-        "sources": ["BACKUP-RESTORE-GUIDE.md", "scripts/create-backup.sh"],
+        "sources": ["docs/guides/backup-and-restore.md", "scripts/create-backup.sh"],
     },
     "credential-rotation": {
         "summary": "A dedicated ECS task rotates credentials and updates persisted OpenEMR settings.",
-        "sources": ["docs/credential-rotation.md", "scripts/run-credential-rotation.sh"],
+        "sources": ["docs/guides/credential-rotation.md", "scripts/run-credential-rotation.sh"],
     },
     "monitoring": {
         "summary": "Optional alarms, dashboards, logs, and notifications provide operational visibility.",
-        "sources": ["DETAILS.md", "openemr_ecs/monitoring.py"],
+        "sources": ["docs/guides/optional-features.md", "openemr_ecs/monitoring.py"],
     },
     "analytics": {
         "summary": "Optional analytics and EMR Serverless resources are isolated behind context flags.",
-        "sources": ["DETAILS.md", "openemr_ecs/analytics.py"],
+        "sources": ["docs/guides/analytics.md", "openemr_ecs/analytics.py"],
     },
     "lambda": {
         "summary": "Lambda-backed custom resources support setup, cleanup, exports, and operational automation.",
@@ -178,7 +168,7 @@ _TOPICS: dict[str, dict[str, Any]] = {
     },
     "configuration": {
         "summary": "CDK context controls optional features, capacities, certificates, retention, and operations.",
-        "sources": ["DETAILS.md", "cdk.json"],
+        "sources": ["docs/guides/configuration.md", "cdk.json"],
     },
     "versions": {
         "summary": "The local inventory reports declared project, dependency, container, and runtime versions.",
@@ -193,19 +183,19 @@ _TOPICS: dict[str, dict[str, Any]] = {
     },
     "ci": {
         "summary": "GitHub Actions runs tests, synthesis, security checks, and static validation without deployment.",
-        "sources": [".github/workflows/ci.yml", "CONTRIBUTING.md"],
+        "sources": [".github/workflows/ci.yml", "docs/maintainers/ci.md"],
     },
     "local-testing": {
         "summary": "Unit, synthesis, Go, and Docker Compose checks are available without mutating AWS.",
-        "sources": ["README-TESTING.md", "MAINTAINERS.md"],
+        "sources": ["docs/guides/local-testing.md", "docs/maintainers/README.md"],
     },
     "cleanup": {
         "summary": "Cleanup is high risk and must target only intended stack resources.",
-        "sources": ["TROUBLESHOOTING.md", "scripts/cleanup-all-stacks.sh"],
+        "sources": ["docs/reference/troubleshooting.md", "scripts/cleanup-all-stacks.sh"],
     },
     "restore": {
         "summary": "Restore procedures use AWS Backup recovery points and require post-restore validation.",
-        "sources": ["BACKUP-RESTORE-GUIDE.md", "scripts/restore-from-backup.sh"],
+        "sources": ["docs/guides/backup-and-restore.md", "scripts/restore-from-backup.sh"],
     },
     "openemr-import": {
         "summary": (
@@ -213,7 +203,7 @@ _TOPICS: dict[str, dict[str, Any]] = {
             "fresh same-version target, and keeps destructive AWS execution explicit."
         ),
         "sources": [
-            "IMPORTING-OPENEMR.md",
+            "docs/guides/importing-openemr.md",
             "docs/adr/0001-guarded-openemr-import.md",
             "tools/openemr_import/cli.py",
             "tools/openemr_import/aws.py",
@@ -224,11 +214,11 @@ _TOPICS: dict[str, dict[str, Any]] = {
     },
     "live-e2e": {
         "summary": (
-            "An approval-gated local runner deploys, validates, measures, and " "cleans up an isolated real-AWS stack."
+            "An approval-gated local runner deploys, validates, measures, and cleans up an isolated real-AWS stack."
         ),
         "sources": [
-            "LIVE-E2E.md",
-            "docs/deployment-timing.md",
+            "docs/maintainers/live-e2e.md",
+            "docs/maintainers/deployment-timing.md",
             "e2e-results/history.json",
             "tools/live_e2e/runner.py",
             "tools/live_e2e/aws.py",
@@ -240,7 +230,7 @@ _TOPICS: dict[str, dict[str, Any]] = {
             "ownership, and cleanup paths locally without real AWS credentials."
         ),
         "sources": [
-            "FLOCI.md",
+            "docs/maintainers/floci.md",
             ".github/workflows/ci.yml",
             "compose/docker-compose.floci.yml",
             "tools/floci_cdk/deploy.py",
@@ -252,23 +242,23 @@ _TOPICS: dict[str, dict[str, Any]] = {
     },
     "troubleshooting": {
         "summary": "The troubleshooting guide covers deployment, health, database, DNS, and cleanup diagnostics.",
-        "sources": ["TROUBLESHOOTING.md"],
+        "sources": ["docs/reference/troubleshooting.md"],
     },
     "costs": {
         "summary": "Costs depend on database, cache, NAT, edge, backup, and optional analytics choices.",
-        "sources": ["README.md", "DETAILS.md"],
+        "sources": ["docs/reference/costs.md", "README.md"],
     },
     "destructive-commands": {
         "summary": "Deploy, destroy, restore, cleanup, and credential rotation require explicit human review.",
-        "sources": ["MAINTAINERS.md", "BACKUP-RESTORE-GUIDE.md"],
+        "sources": ["docs/maintainers/README.md", "docs/guides/backup-and-restore.md"],
     },
     "maintainer-workflows": {
         "summary": "The maintainer guide documents local MCP setup, validation, and safety boundaries.",
-        "sources": ["MAINTAINERS.md"],
+        "sources": ["docs/maintainers/README.md"],
     },
     "knowledge-mcp": {
         "summary": "The local read-only MCP exposes bounded, redacted repository knowledge over STDIO.",
-        "sources": ["KNOWLEDGE-MCP.md", "tools/knowledge_mcp/server.py"],
+        "sources": ["docs/maintainers/knowledge-mcp.md", "tools/knowledge_mcp/server.py"],
     },
 }
 
@@ -392,7 +382,7 @@ class RepositoryKnowledge:
                                 and relative.suffix.lower() in _DOCUMENTATION_EXTENSIONS
                             ):
                                 raise KnowledgeError(
-                                    "Documentation source cannot be inspected: " f"{relative.as_posix()}"
+                                    f"Documentation source cannot be inspected: {relative.as_posix()}"
                                 ) from exc
                             continue
             except OSError as exc:
@@ -474,15 +464,16 @@ class RepositoryKnowledge:
             "configuration": "cdk.json context",
             "primary_guides": [
                 "README.md",
-                "GETTING-STARTED.md",
-                "ARCHITECTURE.md",
-                "DETAILS.md",
-                "TROUBLESHOOTING.md",
-                "IMPORTING-OPENEMR.md",
-                "LIVE-E2E.md",
-                "FLOCI.md",
-                "KNOWLEDGE-MCP.md",
-                "MAINTAINERS.md",
+                "docs/README.md",
+                "docs/get-started/README.md",
+                "docs/reference/architecture.md",
+                "docs/guides/configuration.md",
+                "docs/reference/troubleshooting.md",
+                "docs/guides/importing-openemr.md",
+                "docs/maintainers/live-e2e.md",
+                "docs/maintainers/floci.md",
+                "docs/maintainers/knowledge-mcp.md",
+                "docs/maintainers/README.md",
             ],
             "safety": "This server is offline and read-only; it cannot execute operational commands.",
         }
@@ -514,7 +505,7 @@ class RepositoryKnowledge:
                 "monitoring": "openemr_ecs/monitoring.py",
                 "analytics": "openemr_ecs/analytics.py",
             },
-            "details": "ARCHITECTURE.md",
+            "details": "docs/reference/architecture.md",
         }
 
     def topic(self, topic: str) -> dict[str, Any]:
@@ -824,7 +815,7 @@ class RepositoryKnowledge:
             "entries": entries,
             "truncated": len(context) > len(entries),
             "entry_limit": MAX_CONFIGURATION_ENTRIES,
-            "reference": "DETAILS.md",
+            "reference": "docs/guides/configuration.md",
         }
 
     def operational_commands(self) -> list[dict[str, Any]]:
@@ -864,7 +855,7 @@ class RepositoryKnowledge:
             {
                 "purpose": "Execute a guarded OpenEMR import",
                 "command": "python3 -m tools.openemr_import execute --help",
-                "risk": ("destructive AWS/OpenEMR mutation and downtime; all documented " "confirmations are required"),
+                "risk": ("destructive AWS/OpenEMR mutation and downtime; all documented confirmations are required"),
             },
             {
                 "purpose": "Reconcile an uncertain import task launch",

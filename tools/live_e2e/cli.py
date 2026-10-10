@@ -196,7 +196,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.json:
                 print((root / "e2e-results" / "history.json").read_text(encoding="utf-8").rstrip())
             else:
-                print("Regenerated docs/deployment-timing.md.")
+                print("Regenerated docs/maintainers/deployment-timing.md.")
             return 0
         if args.command == "profiles":
             print(json.dumps({"profiles": profiles()}) if args.json else "\n".join(profiles()))

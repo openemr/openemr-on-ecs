@@ -1,6 +1,6 @@
 {
-  "openemr_version": "8.3.0",
-  "database_version": 541,
+  "openemr_version": "8.4.1",
+  "database_version": 543,
   "tables": {
     "automatic_notification": {"rows": 2, "sha256": "37429d32a026a2c39682ab8fe1889b7b4b35ed439aedf2e905d85b62aeaf3d78"},
     "background_services": {"rows": 5, "sha256": "ef4a86cba00a5cc8708c01be0c4bc0c446219d32c0da626f757fd6fd505a313a", "exclude_columns": ["next_run", "lock_expires_at"]},
@@ -38,7 +38,7 @@
     "gacl_aro_seq": {"rows": 1, "sha256": "25d4f2a86deb5e2574bb3210b67bb24fcc4afb19f93a7b65a057daa874a9d18e"},
     "gacl_groups_aro_map": {"rows": 2, "sha256": "c448d1307aa54c8f99f66fc26447d8b82595c47045445be3acb9bbc92d8f8258"},
     "gacl_phpgacl": {"rows": 2, "sha256": "4a6fa12deabe69847a3cc22241632748db40038aaa86aae84ceec829eb32a015"},
-    "globals": {"rows": 487, "sha256": "279f33c3138e3eea9f0b8cb9673f7454a274d1e2777c902034b51cd33bd783b1", "exclude_columns": ["gl_value"]},
+    "globals": {"rows": 489, "sha256": "d2059b3a5d259af1bc841e4afc4005578b7d9b4eab4e551674c9f47c726d57bd", "exclude_columns": ["gl_value"]},
     "groups": {"rows": 1, "sha256": null},
     "insurance_type_codes": {"rows": 26, "sha256": "1c9143e683e9d40a97519a8dce89b0d4fa9699a065a485b360e51270716263ad"},
     "issue_types": {"rows": 13, "sha256": "904cd0e314f5e21590877ad7a4f86805456cd992d553ab0e1b27c75f1fde1a0a"},
@@ -47,7 +47,7 @@
     "lang_languages": {"rows": 37, "sha256": "50ce5e12f5038a04cbb56836648a272a1173399ad99c89f82c692afcff27a823"},
     "layout_group_properties": {"rows": 27, "sha256": "49cfb937301f47a1cc7c5950dce2255ae5681d825ac12c2a5b3bfe6f3414d31e"},
     "layout_options": {"rows": 190, "sha256": "9abcba4b6742b8e9d57a0bbc283396b695288122b30ed74e580c8c68c548ac10"},
-    "list_options": {"rows": 5605, "sha256": "59bd989298bbea95479732289367024866ebe56f76b53a5a53eca31c811fd3c5", "exclude_columns": ["timestamp", "last_updated"]},
+    "list_options": {"rows": 5612, "sha256": "f35af711ad129db0ac71c1415d65b8e9436dbfdbe62170b8d068dd8c142f67c3", "exclude_columns": ["timestamp", "last_updated"]},
     "medex_icons": {"rows": 37, "sha256": "ae60a9a5ea5db8169b74ff6067cfd7e59f529555ab6043feefa9e4d71281c377"},
     "module_acl_group_settings": {"rows": 1, "sha256": "01730e102cfe4f4cd613648bac1ff3a15524890a7bbe1bd8d6fd4d4d741ea0d8"},
     "module_acl_sections": {"rows": 5, "sha256": "32af20314792d97fbe59a9390a0cd640f3c1ac1e86fe66576c5e711206141ef8"},
@@ -69,6 +69,6 @@
     "user_settings": {"rows": 19, "sha256": "afe581e3244de1c2194958e50c1a042e0c280fed8785d00da0ead460c1f8b877"},
     "users": {"rows": 4, "sha256": null},
     "users_secure": {"rows": 1, "sha256": null},
-    "version": {"rows": 1, "sha256": "d691ab19b5c6dc91563caca5403bf98c48281354a01c1832df6a220c69f2e3ab"}
+    "version": {"rows": 1, "sha256": "df9e0ec29b1cb5e217e6cf8e05d2c5bd3cb1e2104db44b17a1b41bc742e0b5f5"}
   }
 }

@@ -49,4 +49,3 @@ echo "✓ Redis SSL certificates generated successfully"
 echo "CA certificate: $SSL_DIR/ca-cert.pem"
 echo "Server certificate: $SSL_DIR/server-cert.pem"
 echo "Server key: $SSL_DIR/server-key.pem"
-

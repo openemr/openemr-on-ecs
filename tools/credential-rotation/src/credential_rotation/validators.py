@@ -44,7 +44,7 @@ def validate_openemr_health(health_url: str | None, timeout_seconds: int = 10) -
     try:
         # The internal rotation task cannot validate the ALB certificate; ECS
         # service stability remains the authoritative health signal.
-        response = requests.get(health_url, timeout=timeout_seconds, verify=False, allow_redirects=False)  # nosec B501
+        response = requests.get(health_url, timeout=timeout_seconds, verify=False, allow_redirects=False)  # noqa: S501
         if response.status_code not in (200, 301, 302):
             print(f"WARNING: OpenEMR health probe returned status {response.status_code}")
     except Exception as exc:

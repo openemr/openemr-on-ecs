@@ -20,7 +20,7 @@ if docker ps | grep -q mysql-test-ssl; then
         echo "You can manually copy it later with:"
         echo "  docker cp mysql-test-ssl:/etc/mysql/ssl/ca-cert.pem $SSL_DIR/mysql-ca.pem"
     }
-    
+
     if [ -f "$SSL_DIR/mysql-ca.pem" ]; then
         echo "CA certificate copied to $SSL_DIR/mysql-ca.pem"
         echo "This certificate should match what OpenEMR uses for SSL verification."
@@ -29,4 +29,3 @@ else
     echo "MySQL container not running. Start it first with:"
     echo "  docker-compose -f docker-compose.test-ssl.yml up -d mysql-test-ssl"
 fi
-

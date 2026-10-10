@@ -94,4 +94,3 @@ if ! "$BINARY" "$@"; then
         echo "  - Invalid AWS region specified" >&2
 	exit $EXIT_CODE
 fi
-

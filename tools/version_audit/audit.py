@@ -76,8 +76,6 @@ def _classify(
         "python-toolchain",
     }
     if tracks_release_line and _compatible_alias(current, latest):
-        if action_is_mutably_pinned:
-            return Status.MANUAL_REVIEW, "GitHub dependency is not pinned to an immutable commit SHA"
         return Status.CURRENT, "The major/minor declaration already tracks this stable release line"
 
     try:
@@ -89,8 +87,6 @@ def _classify(
         return Status.MANUAL_REVIEW, "Non-semantic declaration requires manual compatibility review"
 
     if current_version == latest_version:
-        if action_is_mutably_pinned:
-            return Status.MANUAL_REVIEW, "GitHub dependency is not pinned to an immutable commit SHA"
         return Status.CURRENT, resolution.note
     if current_version > latest_version:
         return Status.MANUAL_REVIEW, "Declared version is newer than the source's latest stable result"

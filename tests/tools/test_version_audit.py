@@ -62,7 +62,7 @@ def _declaration(**overrides: Any) -> Declaration:
 def test_python_inventory_parses_pep508_and_deduplicates(tmp_path: Path) -> None:
     root = _repository(tmp_path)
     (root / "requirements.txt").write_text(
-        "Demo_Pkg[feature]==1.2.3; python_version >= '3.12'\n" "-r extra.txt\n",
+        "Demo_Pkg[feature]==1.2.3; python_version >= '3.12'\n-r extra.txt\n",
         encoding="utf-8",
     )
     (root / "extra.txt").write_text("requests>=2.0,<3\n", encoding="utf-8")
@@ -281,11 +281,7 @@ def test_precommit_inventory_pairs_repo_and_revision(tmp_path: Path) -> None:
     root = _repository(tmp_path)
     sha = "c" * 40
     (root / ".pre-commit-config.yaml").write_text(
-        "repos:\n"
-        "  - repo: https://github.com/psf/black\n"
-        f"    rev: {sha} # 25.1.0\n"
-        "    hooks:\n"
-        "      - id: black\n",
+        f"repos:\n  - repo: https://github.com/psf/black\n    rev: {sha} # 25.1.0\n    hooks:\n      - id: black\n",
         encoding="utf-8",
     )
 

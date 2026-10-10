@@ -24,13 +24,13 @@ WARNING_COUNT=0
 # Function to print error
 error() {
     echo -e "${RED}✗ ERROR:${NC} $1"
-    ((ERROR_COUNT++))
+    ERROR_COUNT=$((ERROR_COUNT + 1))
 }
 
 # Function to print warning
 warning() {
     echo -e "${YELLOW}⚠ WARNING:${NC} $1"
-    ((WARNING_COUNT++))
+    WARNING_COUNT=$((WARNING_COUNT + 1))
 }
 
 # Function to print success

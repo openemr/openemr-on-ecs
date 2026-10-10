@@ -19,6 +19,7 @@ import secrets
 import shutil
 import subprocess
 import tarfile
+import zlib
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import IO, Any
@@ -776,7 +777,7 @@ def _validate_sql(sql_artifact: Path, output: Path) -> tuple[str, int]:
                     raise ImportFailure("unsupported-sql-stored-code")
                 security_carry = security_scan[-512:]
                 destination.write(chunk)
-    except (gzip.BadGzipFile, EOFError, OSError) as exc:
+    except (gzip.BadGzipFile, EOFError, OSError, zlib.error) as exc:
         raise ImportFailure("malformed-sql-artifact") from exc
     if compressed and sql_artifact.stat().st_size and total > (sql_artifact.stat().st_size * MAX_COMPRESSION_RATIO):
         raise ImportFailure("sql-compression-ratio")
@@ -915,7 +916,7 @@ def _seed_table_fingerprint(database: str, table: str) -> str:
     # Both identifiers are restricted to the manifest/database allowlist before interpolation.
     column_names = _run_mysql(
         "information_schema",
-        "--execute=SELECT COLUMN_NAME FROM COLUMNS "  # nosec B608
+        "--execute=SELECT COLUMN_NAME FROM COLUMNS "  # noqa: S608
         f"WHERE TABLE_SCHEMA = '{database}' AND TABLE_NAME = '{table}' "
         "ORDER BY ORDINAL_POSITION",
     ).splitlines()
@@ -934,7 +935,7 @@ def _seed_table_fingerprint(database: str, table: str) -> str:
     ordering = ",".join(f"BINARY `{column}`" for column in selected)
     content = _run_mysql_raw(
         database,
-        f"--execute=SELECT {selection} FROM `{table}` "  # nosec B608
+        f"--execute=SELECT {selection} FROM `{table}` "  # noqa: S608
         f"ORDER BY {ordering}",
     )
     return hashlib.sha256(content).hexdigest()
@@ -956,7 +957,7 @@ def _dump_target_database(output: Path) -> None:
     # The database identifier is restricted to ASCII letters, digits, and underscores above.
     stored_code_count = _run_mysql(
         "information_schema",
-        "--execute=SELECT "  # nosec B608
+        "--execute=SELECT "  # noqa: S608
         f"(SELECT COUNT(*) FROM ROUTINES WHERE ROUTINE_SCHEMA = '{database}') + "
         f"(SELECT COUNT(*) FROM EVENTS WHERE EVENT_SCHEMA = '{database}') + "
         f"(SELECT COUNT(*) FROM TRIGGERS WHERE TRIGGER_SCHEMA = '{database}')",
@@ -1044,7 +1045,7 @@ def _assert_empty_target(
             raise ImportFailure("target-schema-has-unsafe-table-name")
         value = _run_mysql(
             database,
-            f"--execute=SELECT COUNT(*) FROM `{table}`",  # nosec B608
+            f"--execute=SELECT COUNT(*) FROM `{table}`",  # noqa: S608
         )
         try:
             count = int(value.splitlines()[-1])

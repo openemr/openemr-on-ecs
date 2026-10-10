@@ -63,30 +63,30 @@ TOTAL_FAILED=0
 
 for region in "${REGIONS[@]}"; do
     echo "Checking region: $region"
-    
+
     # Get all stacks with OpenemrEcs in the name
     STACKS=$(aws cloudformation list-stacks \
         --region "$region" \
         --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE CREATE_FAILED UPDATE_FAILED ROLLBACK_COMPLETE \
         --query "StackSummaries[?contains(StackName, 'OpenemrEcs') || contains(StackName, 'TestStack')].StackName" \
         --output text 2>/dev/null || echo "")
-    
+
     if [ -z "$STACKS" ] || [ "$STACKS" == "None" ]; then
         echo "  No stacks found"
         continue
     fi
-    
+
     for stack in $STACKS; do
         echo ""
         echo -e "${YELLOW}Deleting stack: $stack in $region${NC}"
-        
+
         # Check if stack has termination protection
         TERMINATION_PROTECTION=$(aws cloudformation describe-stacks \
             --region "$region" \
             --stack-name "$stack" \
             --query "Stacks[0].EnableTerminationProtection" \
             --output text 2>/dev/null || echo "False")
-        
+
         if [ "$TERMINATION_PROTECTION" == "True" ]; then
             echo "  Disabling termination protection..."
             aws cloudformation update-termination-protection \
@@ -94,7 +94,7 @@ for region in "${REGIONS[@]}"; do
                 --stack-name "$stack" \
                 --no-enable-termination-protection 2>&1 || true
         fi
-        
+
         # Delete the stack
         if aws cloudformation delete-stack \
             --region "$region" \
@@ -129,4 +129,3 @@ fi
 
 echo ""
 echo "Done!"
-

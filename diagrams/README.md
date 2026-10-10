@@ -35,7 +35,7 @@ This produces `diagrams/architecture.png` (compact view) and `diagrams/architect
 | Dependency | Version | Install | Purpose |
 |---|---|---|---|
 | **Node.js / npm** | 24 | Already required by the project | Runs the pinned Node tools |
-| **cdk-dia** | 0.12.3 | Installed by `npm ci` | Renders the CDK cloud assembly into a diagram |
+| **cdk-dia** | 0.12.4 | Installed by `npm ci` | Renders the CDK cloud assembly into a diagram |
 | **Graphviz** | Any recent | `brew install graphviz` (macOS) / `sudo apt-get install graphviz` (Linux) | Rendering engine (`dot`) |
 | **Python** | 3.14 | Already required by the CDK stack | Runs `generate.py` and `cdk synth` |
 

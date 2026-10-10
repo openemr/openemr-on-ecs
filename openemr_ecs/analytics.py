@@ -294,8 +294,10 @@ class AnalyticsComponents:
         )
 
         # Script to sync EFS to S3
-        command_array = [f"apk add --no-cache aws-cli && \
-            aws s3 sync /var/www/localhost/htdocs/openemr/sites/ s3://{self.export_bucket_efs.bucket_name}"]
+        command_array = [
+            f"apk add --no-cache aws-cli && \
+            aws s3 sync /var/www/localhost/htdocs/openemr/sites/ s3://{self.export_bucket_efs.bucket_name}"
+        ]
 
         # Add container definition (this creates the execution role's DefaultPolicy)
         sync_efs_to_s3_container = sync_efs_to_s3_task.add_container(
@@ -746,11 +748,12 @@ class AnalyticsComponents:
             [
                 {
                     "id": "AwsSolutions-IAM5",
-                    "reason": "Wildcard permissions for EMR Serverless applications (arn:aws:emr-serverless:*:*/applications/*), ECR images (arn:aws:ecr:*:*/*), and ECS DescribeTasks are required for SageMaker Studio data science workflows. See docs/cdk-nag-suppressions.md.",
+                    "reason": "Wildcard permissions for EMR Serverless applications (arn:aws:emr-serverless:*:*/applications/*), ECR images (arn:aws:ecr:*:*/*), and ECS DescribeTasks are required for SageMaker Studio data science workflows. See docs/reference/cdk-nag-suppressions.md.",
                     "appliesTo": [
                         f"Resource::arn:aws:emr-serverless:{region}:<AWS::AccountId>:/*",
                         f"Resource::arn:aws:emr-serverless:{region}:<AWS::AccountId>:/applications/*",
                         "Resource::arn:aws:ecr:*:<AWS::AccountId>:*/*",
+                        "Resource::*",
                     ],
                 },
                 {

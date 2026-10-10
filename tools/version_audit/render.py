@@ -40,7 +40,7 @@ def render_human(report: AuditReport) -> str:
         lines.append(f"[{category}]")
         for finding in grouped[category]:
             latest = finding.latest or "unknown"
-            lines.append(f"- {finding.name}: {finding.current} -> {latest} " f"({_STATUS_LABELS[finding.status]})")
+            lines.append(f"- {finding.name}: {finding.current} -> {latest} ({_STATUS_LABELS[finding.status]})")
             if finding.error:
                 lines.append(f"  source error: {finding.error}")
             elif finding.note:

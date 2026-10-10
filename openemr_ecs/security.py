@@ -7,6 +7,7 @@ from aws_cdk import (
     Duration,
     RemovalPolicy,
     Stack,
+    triggers,
 )
 from aws_cdk import aws_certificatemanager as acm
 from aws_cdk import aws_ec2 as ec2
@@ -25,7 +26,6 @@ from aws_cdk import aws_ses as ses
 from aws_cdk import aws_ses_actions as ses_actions
 from aws_cdk import aws_ssm as ssm
 from aws_cdk import aws_wafv2 as wafv2
-from aws_cdk import triggers
 from constructs import Construct
 
 from .assets import python_lambda_code
@@ -768,7 +768,8 @@ class SecurityComponents:
         )
 
         # Script generates self-signed SSL materials using OpenSSL
-        command_array = ["mkdir -p /etc/ssl/certs/ && \
+        command_array = [
+            "mkdir -p /etc/ssl/certs/ && \
             mkdir -p /etc/ssl/private/ && \
             openssl genrsa 2048 > /etc/ssl/private/selfsigned.key.pem && \
             openssl req -new -x509 -nodes -sha256 -days 365 -key /etc/ssl/private/selfsigned.key.pem \
@@ -776,7 +777,8 @@ class SecurityComponents:
             -subj '/CN=localhost' && \
             cp /etc/ssl/private/selfsigned.key.pem /etc/ssl/private/webserver.key.pem && \
             cp /etc/ssl/certs/selfsigned.cert.pem /etc/ssl/certs/webserver.cert.pem && \
-            touch /etc/ssl/docker-selfsigned-configured"]
+            touch /etc/ssl/docker-selfsigned-configured"
+        ]
 
         # Add container definition (this creates the execution role's DefaultPolicy)
         ssl_maintenance_container = create_ssl_materials_task.add_container(

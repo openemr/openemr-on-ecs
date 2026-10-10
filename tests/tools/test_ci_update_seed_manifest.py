@@ -47,8 +47,8 @@ def _policy(
 def test_render_manifest_matches_canonical_format() -> None:
     utility = _utility()
     manifest = {
-        "openemr_version": "8.3.0",
-        "database_version": 541,
+        "openemr_version": "8.4.1",
+        "database_version": 543,
         "tables": {
             "version": {"rows": 1, "sha256": "a" * 64},
             "background_services": {
@@ -64,8 +64,8 @@ def test_render_manifest_matches_canonical_format() -> None:
 
     assert rendered == (
         "{\n"
-        '  "openemr_version": "8.3.0",\n'
-        '  "database_version": 541,\n'
+        '  "openemr_version": "8.4.1",\n'
+        '  "database_version": 543,\n'
         '  "tables": {\n'
         f'    "background_services": {{"rows": 5, "sha256": "{"b" * 64}", '
         '"exclude_columns": ["next_run", "lock_expires_at"]},\n'
@@ -80,7 +80,7 @@ def test_render_manifest_rejects_non_mapping_tables() -> None:
     utility = _utility()
 
     with pytest.raises(ValueError, match="tables must be a mapping"):
-        utility._render_manifest({"openemr_version": "8.3.0", "database_version": 541, "tables": []})
+        utility._render_manifest({"openemr_version": "8.4.1", "database_version": 543, "tables": []})
 
 
 def test_generate_collects_live_versions_rows_and_fingerprints(
@@ -133,7 +133,7 @@ def test_generate_preserves_exclude_columns_policy(
         monkeypatch,
         {"globals": {"rows": 0, "sha256": "0" * 64, "exclude_columns": ["gl_value"]}},
     )
-    monkeypatch.setattr(utility.import_worker, "_database_version_identity", lambda database: ("8.3.0", 541))
+    monkeypatch.setattr(utility.import_worker, "_database_version_identity", lambda database: ("8.4.1", 543))
     monkeypatch.setattr(utility.import_worker, "_run_mysql", lambda database, *args: "487\n")
     monkeypatch.setattr(utility.import_worker, "_seed_table_fingerprint", lambda database, table: "g" * 64)
     output = tmp_path / "fresh-seed-manifest.json"
@@ -151,7 +151,7 @@ def test_generate_writes_a_manifest_the_calling_uid_can_read(
     """The container writes as uid 1000 but the harness reads back as another uid."""
     utility = _utility()
     _policy(utility, monkeypatch, {"version": {"rows": 1, "sha256": "0" * 64}})
-    monkeypatch.setattr(utility.import_worker, "_database_version_identity", lambda database: ("8.3.0", 541))
+    monkeypatch.setattr(utility.import_worker, "_database_version_identity", lambda database: ("8.4.1", 543))
     monkeypatch.setattr(utility.import_worker, "_run_mysql", lambda database, *args: "1\n")
     monkeypatch.setattr(utility.import_worker, "_seed_table_fingerprint", lambda database, table: "v" * 64)
     output = tmp_path / "fresh-seed-manifest.json"
@@ -169,7 +169,7 @@ def test_generate_expect_version_mismatch_fails_closed(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     utility = _utility()
-    monkeypatch.setattr(utility.import_worker, "_database_version_identity", lambda database: ("8.3.0", 541))
+    monkeypatch.setattr(utility.import_worker, "_database_version_identity", lambda database: ("8.4.1", 543))
     output = tmp_path / "fresh-seed-manifest.json"
 
     assert utility.main(["--output", str(output), "--expect-version", "8.2.0"]) == 1
@@ -177,7 +177,7 @@ def test_generate_expect_version_mismatch_fails_closed(
     assert not output.exists()
     status = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert status["status"] == "failed"
-    assert "8.3.0" in status["error"]
+    assert "8.4.1" in status["error"]
 
 
 def test_generate_fails_closed_on_worker_error(
@@ -207,7 +207,7 @@ def test_verify_delegates_to_worker_fresh_target_assertion(
     monkeypatch.setattr(
         utility.import_worker,
         "_seed_manifest",
-        {"openemr_version": "8.3.0", "database_version": 541, "tables": {}},
+        {"openemr_version": "8.4.1", "database_version": 543, "tables": {}},
     )
     monkeypatch.setattr(
         utility.import_worker,
@@ -217,7 +217,7 @@ def test_verify_delegates_to_worker_fresh_target_assertion(
 
     assert utility.main(["--verify"]) == 0
 
-    assert checked == [("8.3.0", 541)]
+    assert checked == [("8.4.1", 543)]
     status = json.loads(capsys.readouterr().out.strip().splitlines()[-1])
     assert status["status"] == "passed"
     assert status["verified"] is True
@@ -231,7 +231,7 @@ def test_verify_fails_closed_on_assertion_error(
     monkeypatch.setattr(
         utility.import_worker,
         "_seed_manifest",
-        {"openemr_version": "8.3.0", "database_version": 541, "tables": {}},
+        {"openemr_version": "8.4.1", "database_version": 543, "tables": {}},
     )
 
     def raise_assertion(version: str, database_version: int) -> None:

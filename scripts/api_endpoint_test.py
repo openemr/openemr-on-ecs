@@ -57,7 +57,7 @@ payload = json.dumps(
 )
 
 # Send our payload to the server and get our response.
-response = requests.request("POST", reqUrl, data=payload, headers=headersList, verify=False)
+response = requests.request("POST", reqUrl, data=payload, headers=headersList, verify=False, timeout=30)  # noqa: S501
 
 # Get the JSON of the response
 client_app = response.json()

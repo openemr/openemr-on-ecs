@@ -80,7 +80,7 @@ def atomic_write(path: Path, content: str) -> None:
         if parent.exists():
             try:
                 # Apache needs execute permission to traverse these EFS directories.
-                os.chmod(parent, 0o755)  # nosec B103
+                os.chmod(parent, 0o755)  # noqa: S103
                 os.chown(parent, _APACHE_UID, _APACHE_GID)
             except OSError as exc:
                 # Parent ownership can race with OpenEMR startup ownership changes.

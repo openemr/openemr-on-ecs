@@ -1,26 +1,30 @@
-[tool.black]
+[tool.ruff]
 line-length = 120
-target-version = ['py314']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-  | cdk.out
-)/
-'''
+target-version = "py314"
+extend-exclude = ["cdk.out", "build", "dist", ".live-e2e", ".seed-manifest-ci"]
 
-[tool.isort]
-profile = "black"
-line_length = 120
-skip_glob = ["cdk.out/*", ".venv/*", "build/*", "dist/*"]
+[tool.ruff.lint]
+# pycodestyle, pyflakes, import sorting, and the flake8-bandit security rules.
+select = ["E", "F", "W", "I", "S"]
+ignore = [
+    "E501",  # line length is enforced by the formatter
+    # Low-severity bandit checks, matching the previous `bandit -ll` threshold.
+    "S101",  # assert
+    "S105",  # hardcoded password string
+    "S106",  # hardcoded password argument
+    "S107",  # hardcoded password default
+    "S110",  # try/except/pass
+    "S112",  # try/except/continue
+    "S311",  # non-cryptographic random
+    "S404",  # subprocess import
+    "S603",  # subprocess call without shell
+    "S607",  # partial executable path
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests were never part of the security scan; they exercise subprocesses, temp files, and fake secrets.
+"tests/**" = ["S"]
+"tools/credential-rotation/tests/**" = ["S"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -34,7 +38,8 @@ exclude = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "tools/credential-rotation/tests"]
+pythonpath = ["tools/credential-rotation/src"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -48,3 +53,32 @@ markers = [
     "floci: marks tests that require a Floci AWS emulator container",
     "unit: marks tests as unit tests",
 ]
+
+[tool.coverage.run]
+# Coverage only walks into directories with an __init__.py, so script directories are listed explicitly.
+source_dirs = [".", "diagrams", "lambda", "scripts", "tools/openemr-import-worker"]
+omit = [
+    "tests/*",
+    "*/tests/*",
+    ".venv/*",
+    "node_modules/*",
+    "cdk.out/*",
+    ".live-e2e/*",
+    ".seed-manifest-ci/*",
+    # Reviewed exclusions: these only run against real infrastructure, so unit
+    # coverage would exercise mocks rather than behavior. The two harnesses run
+    # inside the Docker MySQL CI jobs; the API scripts target a live deployment.
+    "tools/openemr-import-worker/ci_live_mysql_import.py",
+    "tools/openemr-import-worker/ci_prepare_mysql_fixtures.py",
+    "scripts/api_endpoint_test.py",
+    "scripts/test_data_api.py",
+]
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+skip_covered = true

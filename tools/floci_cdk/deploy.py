@@ -220,8 +220,7 @@ def run_lifecycle(
         )
     if not destroyed.ok:
         raise ToolError(f"Floci CDK destroy failed: {destroyed.stderr or destroyed.stdout}")
-    if deployed is None:
-        raise ToolError("Floci CDK deploy did not run")
+    assert deployed is not None  # deploy() either returned a result or raised
     return boot, deployed, destroyed
 
 

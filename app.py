@@ -35,7 +35,7 @@ def assert_live_e2e_runner_context(live_e2e_run_id: object | None) -> None:
     run_id = str(live_e2e_run_id)
     if os.environ.get(LIVE_E2E_RUNNER_ENVIRONMENT) != run_id:
         raise ValueError(
-            "live_e2e_run_id is reserved for tools.live_e2e; " f"{LIVE_E2E_RUNNER_ENVIRONMENT} must match the run ID"
+            f"live_e2e_run_id is reserved for tools.live_e2e; {LIVE_E2E_RUNNER_ENVIRONMENT} must match the run ID"
         )
 
 

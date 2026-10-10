@@ -33,20 +33,20 @@ log_error() {
 discover_backup_vault() {
     if [ -z "$BACKUP_VAULT_NAME" ]; then
         log "Discovering backup vault for stack: $STACK_NAME"
-        
+
         # Try to find vault by stack name pattern
         BACKUP_VAULT_NAME=$(aws backup list-backup-vaults \
             --region "$REGION" \
             --query "BackupVaultList[?contains(BackupVaultName, '${STACK_NAME}')].BackupVaultName" \
             --output text 2>&1 | head -1)
-        
+
         if [ -z "$BACKUP_VAULT_NAME" ] || [[ "$BACKUP_VAULT_NAME" == *"error"* ]]; then
             log_error "Could not find backup vault for stack: $STACK_NAME"
             log "Available backup vaults:"
             aws backup list-backup-vaults --region "$REGION" --query "BackupVaultList[].BackupVaultName" --output table
             exit 1
         fi
-        
+
         log_success "Found backup vault: $BACKUP_VAULT_NAME"
     fi
 }
@@ -54,23 +54,23 @@ discover_backup_vault() {
 # List recovery points by resource type
 list_recovery_points() {
     local resource_type=$1
-    
+
     log "Recovery points for $resource_type:"
     echo ""
-    
+
     aws backup list-recovery-points-by-backup-vault \
         --backup-vault-name "$BACKUP_VAULT_NAME" \
         --region "$REGION" \
         --query "RecoveryPoints[?ResourceType=='$resource_type'].[RecoveryPointArn, CreationDate, Status, BackupSizeInBytes]" \
         --output table 2>&1 | head -20
-    
+
     local count
     count=$(aws backup list-recovery-points-by-backup-vault \
         --backup-vault-name "$BACKUP_VAULT_NAME" \
         --region "$REGION" \
         --query "RecoveryPoints[?ResourceType=='$resource_type] | length(@)" \
         --output text 2>/dev/null || echo "0")
-    
+
     if [ "$count" -gt 0 ]; then
         echo ""
         log "Total $resource_type recovery points: $count"
@@ -84,15 +84,15 @@ list_recovery_points() {
 main() {
     log "Listing backups for stack: $STACK_NAME"
     echo ""
-    
+
     discover_backup_vault
-    
+
     # List RDS recovery points
     list_recovery_points "RDS"
-    
+
     # List EFS recovery points
     list_recovery_points "EFS"
-    
+
     log_success "Backup listing complete"
 }
 
@@ -153,4 +153,3 @@ while [[ $# -gt 0 ]]; do
 done
 
 main
-

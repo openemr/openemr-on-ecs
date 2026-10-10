@@ -83,7 +83,8 @@ def generate_smtp_credential(event, context):
         client = boto3.client("secretsmanager", region_name=region_name)
         # Update the secret
         response = client.update_secret(
-            SecretId=secret_name, SecretString=json.dumps(new_value)  # Ensure it's a JSON string
+            SecretId=secret_name,
+            SecretString=json.dumps(new_value),  # Ensure it's a JSON string
         )
         print(f"Secret {secret_name} updated successfully.")
         return response
@@ -129,7 +130,9 @@ def send_email(event, context):
         string_data = "Subject: " + subject + "\nTo: " + sender + "\nreply-to: " + original_sender + "\n" + string_body
         message = {"Source": sender, "Destinations": recipient, "Data": string_data}
     else:
-        body = MIMEText(mail_object.get_payload(decode=True), "UTF-8")
+        charset = mail_object.get_content_charset() or "utf-8"
+        text = mail_object.get_payload(decode=True).decode(charset, errors="replace")
+        body = MIMEText(text, "plain", "utf-8")
         msg.attach(body)
 
         # Remove all alphanumeric characters as append an ".eml" extension
@@ -142,7 +145,7 @@ def send_email(event, context):
         msg["reply-to"] = mail_object["Return-Path"]
 
         # Create a new MIME object.
-        att = MIMEApplication(file, filename)
+        att = MIMEApplication(file, Name=filename)
         att.add_header("Content-Disposition", "attachment", filename=filename)
 
         # Attach the file object to the message.

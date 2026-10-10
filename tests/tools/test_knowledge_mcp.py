@@ -37,7 +37,7 @@ def knowledge_root(tmp_path: Path) -> Path:
 
     (tmp_path / "openemr_ecs").mkdir()
     (tmp_path / "openemr_ecs" / "constants.py").write_text(
-        "class StackConstants:\n" '    OPENEMR_VERSION = "8.1.1"\n' '    EMR_SERVERLESS_RELEASE_LABEL = "emr-7.13.0"\n',
+        'class StackConstants:\n    OPENEMR_VERSION = "8.1.1"\n    EMR_SERVERLESS_RELEASE_LABEL = "emr-7.13.0"\n',
         encoding="utf-8",
     )
     (tmp_path / "tools" / "credential-rotation").mkdir(parents=True)
@@ -61,7 +61,7 @@ def knowledge_root(tmp_path: Path) -> Path:
                     "nested": {"password": {"value": "nested-secret-must-not-leak"}},
                     "@aws-cdk/core:checkSecretUsage": True,
                     "certificate_arn": (
-                        "arn:aws:acm:us-east-1:123456789012:" "certificate/00000000-0000-0000-0000-000000000000"
+                        "arn:aws:acm:us-east-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
                     ),
                 },
             }
@@ -352,14 +352,14 @@ def test_curated_sources_and_commands_match_current_scope() -> None:
 
     assert knowledge.overview()["version"] == declared_version
     assert knowledge.topic("mcp")["topic"] == "knowledge-mcp"
-    assert "KNOWLEDGE-MCP.md" in knowledge.topic("knowledge-mcp")["sources"]
-    assert "KNOWLEDGE-MCP.md" in knowledge.overview()["primary_guides"]
+    assert "docs/maintainers/knowledge-mcp.md" in knowledge.topic("knowledge-mcp")["sources"]
+    assert "docs/maintainers/knowledge-mcp.md" in knowledge.overview()["primary_guides"]
     assert knowledge.topic("import")["topic"] == "openemr-import"
-    assert "IMPORTING-OPENEMR.md" in knowledge.overview()["primary_guides"]
+    assert "docs/guides/importing-openemr.md" in knowledge.overview()["primary_guides"]
     assert knowledge.topic("live e2e")["topic"] == "live-e2e"
-    assert "LIVE-E2E.md" in knowledge.overview()["primary_guides"]
+    assert "docs/maintainers/live-e2e.md" in knowledge.overview()["primary_guides"]
     assert knowledge.topic("floci")["topic"] == "floci-emulation"
-    assert "FLOCI.md" in knowledge.overview()["primary_guides"]
+    assert "docs/maintainers/floci.md" in knowledge.overview()["primary_guides"]
     for source in knowledge.topic("floci")["sources"]:
         knowledge.read_file(source, max_lines=1)
     for source in knowledge.topic("credential-rotation")["sources"]:

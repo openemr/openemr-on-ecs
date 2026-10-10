@@ -94,9 +94,9 @@ else
             --db-instance-identifier "$instance_id" \
             --query "DBInstances[0].DBInstanceStatus" \
             --output text 2>/dev/null || echo "unknown")
-        
+
         ROLE=$([ "$is_writer" = "True" ] && echo "writer" || echo "reader")
-        
+
         if [ "$INST_STATUS" = "available" ]; then
             echo -e "${GREEN}✓ Instance $instance_id ($ROLE): $INST_STATUS${NC}"
         else
@@ -115,14 +115,14 @@ DB_SG=$(aws rds describe-db-clusters \
 
 if [ -n "$DB_SG" ]; then
     echo "  Database Security Group: $DB_SG"
-    
+
     INGRESS_RULES=$(aws ec2 describe-security-groups \
         --group-ids "$DB_SG" \
         --query "SecurityGroups[0].IpPermissions[?ToPort==\`3306\`]" \
         --output json 2>/dev/null || echo "[]")
-    
+
     RULE_COUNT=$(echo "$INGRESS_RULES" | jq 'length')
-    
+
     if [ "$RULE_COUNT" -gt 0 ]; then
         echo -e "${GREEN}✓ Found $RULE_COUNT ingress rule(s) for port 3306${NC}"
         echo "$INGRESS_RULES" | jq -r '.[] | "  From: " + (.UserIdGroupPairs[0].GroupId // .IpRanges[0].CidrIp // "unknown")'
@@ -144,14 +144,14 @@ ECS_SG=$(aws cloudformation describe-stack-resources \
 
 if [ -n "$ECS_SG" ]; then
     echo "  ECS Task Security Group: $ECS_SG"
-    
+
     EGRESS_RULES=$(aws ec2 describe-security-groups \
         --group-ids "$ECS_SG" \
         --query "SecurityGroups[0].IpPermissionsEgress[?ToPort==\`3306\`]" \
         --output json 2>/dev/null || echo "[]")
-    
+
     EGRESS_COUNT=$(echo "$EGRESS_RULES" | jq 'length')
-    
+
     if [ "$EGRESS_COUNT" -gt 0 ]; then
         echo -e "${GREEN}✓ Found $EGRESS_COUNT egress rule(s) for port 3306${NC}"
     else
@@ -174,10 +174,10 @@ if [ -n "$LOG_GROUP" ]; then
     echo "  Log Group: $LOG_GROUP"
     echo ""
     echo "  Recent database connection attempts (last 5 minutes):"
-    
+
     # Get logs from last 5 minutes
     START_TIME=$(($(date +%s) - 300))000
-    
+
     aws logs filter-log-events \
         --log-group-name "$LOG_GROUP" \
         --start-time "$START_TIME" \
@@ -222,4 +222,3 @@ else
         echo "Wait for cluster to become 'available' before testing connectivity"
     fi
 fi
-

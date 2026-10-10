@@ -63,4 +63,3 @@ echo "========================================="
 echo ""
 
 $COMPOSE_CMD -f compose/docker-compose.test.yml up --build openemr-test
-

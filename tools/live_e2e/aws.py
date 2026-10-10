@@ -924,7 +924,7 @@ class LiveE2EAws:
             elapsed = time.monotonic() - started
             minutes, seconds = divmod(int(elapsed), 60)
             self.progress.heartbeat(
-                f"Stack deletion in progress: status={status or 'unknown'} " f"(elapsed {minutes}m{seconds:02d}s)"
+                f"Stack deletion in progress: status={status or 'unknown'} (elapsed {minutes}m{seconds:02d}s)"
             )
             if status == "DELETE_COMPLETE":
                 self.progress.info("Stack deletion confirmed (DELETE_COMPLETE)")
@@ -1253,9 +1253,7 @@ class LiveE2EAws:
 
         existing = self._tagged_resource_arns(run_id)
         if existing:
-            raise ToolError(
-                "Live E2E run ID is already attached to " f"{len(existing)} resource(s); choose a new run ID"
-            )
+            raise ToolError(f"Live E2E run ID is already attached to {len(existing)} resource(s); choose a new run ID")
 
     def _tagged_resource_arns(self, run_id: str, *, require_stack_tag: bool = True) -> list[str]:
         """Collect resources carrying this run's tag.
@@ -1676,7 +1674,7 @@ class LiveE2EAws:
         assumed = 0
         for purpose in _BOOTSTRAP_ROLE_PURPOSES:
             role_arn = (
-                f"arn:{partition}:iam::{account_id}:role/" f"cdk-{qualifier}-{purpose}-role-{account_id}-{self.region}"
+                f"arn:{partition}:iam::{account_id}:role/cdk-{qualifier}-{purpose}-role-{account_id}-{self.region}"
             )
             try:
                 self.client("sts").assume_role(
@@ -1689,7 +1687,7 @@ class LiveE2EAws:
             assumed += 1
 
         execution_role_arn = (
-            f"arn:{partition}:iam::{account_id}:role/" f"cdk-{qualifier}-cfn-exec-role-{account_id}-{self.region}"
+            f"arn:{partition}:iam::{account_id}:role/cdk-{qualifier}-cfn-exec-role-{account_id}-{self.region}"
         )
         caller_principal = _iam_principal_arn(caller_arn)
         if self.emulated:
@@ -1906,7 +1904,7 @@ class LiveE2EAws:
             remaining = deadline - time.monotonic()
             try:
                 # Timeout is dynamically capped at 30 seconds by the shared deadline.
-                response = requests.get(  # nosec B113
+                response = requests.get(
                     url,
                     timeout=max(0.1, min(30.0, remaining)),
                     allow_redirects=True,

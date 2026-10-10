@@ -38,17 +38,17 @@ log_warning() {
 # Check prerequisites
 check_prerequisites() {
     log "Checking prerequisites..."
-    
+
     if ! command -v aws &> /dev/null; then
         log_error "AWS CLI not found. Please install AWS CLI."
         exit 1
     fi
-    
+
     if ! aws sts get-caller-identity &> /dev/null; then
         log_error "AWS credentials not configured or invalid."
         exit 1
     fi
-    
+
     log_success "Prerequisites check passed"
 }
 
@@ -66,20 +66,20 @@ get_stack_output() {
 discover_backup_vault() {
     if [ -z "$BACKUP_VAULT_NAME" ]; then
         log "Discovering backup vault for stack: $STACK_NAME"
-        
+
         # Try to find vault by stack name pattern
         BACKUP_VAULT_NAME=$(aws backup list-backup-vaults \
             --region "$REGION" \
             --query "BackupVaultList[?contains(BackupVaultName, '${STACK_NAME}')].BackupVaultName" \
             --output text 2>&1 | head -1)
-        
+
         if [ -z "$BACKUP_VAULT_NAME" ] || [[ "$BACKUP_VAULT_NAME" == *"error"* ]]; then
             log_error "Could not find backup vault for stack: $STACK_NAME"
             log "Available backup vaults:"
             aws backup list-backup-vaults --region "$REGION" --query "BackupVaultList[].BackupVaultName" --output table
             exit 1
         fi
-        
+
         log_success "Found backup vault: $BACKUP_VAULT_NAME"
     fi
 }
@@ -87,21 +87,21 @@ discover_backup_vault() {
 # List available recovery points
 list_recovery_points() {
     local resource_type=$1
-    
+
     log "Listing recovery points for resource type: $resource_type"
-    
+
     local recovery_points
     recovery_points=$(aws backup list-recovery-points-by-backup-vault \
         --backup-vault-name "$BACKUP_VAULT_NAME" \
         --region "$REGION" \
         --query "RecoveryPoints[?ResourceType=='$resource_type'].[RecoveryPointArn, CreationDate, Status]" \
         --output text 2>&1)
-    
+
     if [ -z "$recovery_points" ] || [[ "$recovery_points" == *"error"* ]]; then
         log_warning "No recovery points found for resource type: $resource_type"
         return 1
     fi
-    
+
     echo "$recovery_points"
     return 0
 }
@@ -112,11 +112,11 @@ restore_rds() {
     local db_cluster_identifier=$2
     local subnet_group_name=$3
     local security_group_ids=$4
-    
+
     log "Initiating RDS restore from recovery point..."
     log "  Recovery Point: $recovery_point_arn"
     log "  Target Cluster: $db_cluster_identifier"
-    
+
     # Start restore job
     local restore_job_id
     restore_job_id=$(aws backup start-restore-job \
@@ -126,15 +126,15 @@ restore_rds() {
         --region "$REGION" \
         --query "RestoreJobId" \
         --output text)
-    
+
     if [ -z "$restore_job_id" ] || [[ "$restore_job_id" == *"error"* ]]; then
         log_error "Failed to start restore job"
         return 1
     fi
-    
+
     log_success "Restore job started: $restore_job_id"
     log "Monitoring restore progress..."
-    
+
     # Monitor restore job for RDS
     while true; do
         local status
@@ -143,7 +143,7 @@ restore_rds() {
             --region "$REGION" \
             --query "Status" \
             --output text 2>/dev/null || echo "UNKNOWN")
-        
+
         case "$status" in
             "COMPLETED")
                 log_success "Restore job completed successfully"
@@ -174,11 +174,11 @@ restore_rds() {
 restore_efs() {
     local recovery_point_arn=$1
     local file_system_id=$2
-    
+
     log "Initiating EFS restore from recovery point..."
     log "  Recovery Point: $recovery_point_arn"
     log "  Target File System: $file_system_id"
-    
+
     # Start restore job
     local restore_job_id
     restore_job_id=$(aws backup start-restore-job \
@@ -188,15 +188,15 @@ restore_efs() {
         --region "$REGION" \
         --query "RestoreJobId" \
         --output text)
-    
+
     if [ -z "$restore_job_id" ] || [[ "$restore_job_id" == *"error"* ]]; then
         log_error "Failed to start restore job"
         return 1
     fi
-    
+
     log_success "Restore job started: $restore_job_id"
     log "Monitoring restore progress..."
-    
+
     # Monitor restore job for EFS
     while true; do
         local status
@@ -205,7 +205,7 @@ restore_efs() {
             --region "$REGION" \
             --query "Status" \
             --output text 2>/dev/null || echo "UNKNOWN")
-        
+
         case "$status" in
             "COMPLETED")
                 log_success "Restore job completed successfully"
@@ -236,7 +236,7 @@ restore_efs() {
 get_restore_role_arn() {
     # Try to find the IAM role from the backup plan that uses this vault
     local plan_id role_arn
-    
+
     # List all backup plans and find the one that uses our vault
     for plan_id in $(aws backup list-backup-plans --region "$REGION" --query 'BackupPlansList[].BackupPlanId' --output text 2>/dev/null); do
         local vault_name
@@ -245,7 +245,7 @@ get_restore_role_arn() {
             --region "$REGION" \
             --query 'BackupPlan.Rules[0].TargetBackupVaultName' \
             --output text 2>/dev/null)
-        
+
         if [ "$vault_name" = "$BACKUP_VAULT_NAME" ]; then
             # Found the plan that uses our vault, get its IAM role from the backup selection
             role_arn=$(aws backup list-backup-selections \
@@ -253,14 +253,14 @@ get_restore_role_arn() {
                 --region "$REGION" \
                 --query 'BackupSelectionsList[0].IamRoleArn' \
                 --output text 2>/dev/null)
-            
+
             if [ -n "$role_arn" ] && [[ ! "$role_arn" == *"error"* ]] && [[ ! "$role_arn" == "None" ]]; then
                 echo "$role_arn"
                 return 0
             fi
         fi
     done
-    
+
     # Fallback to default service role if plan role not found
     log_warning "Could not find backup plan role, using default service role"
     local account_id
@@ -272,26 +272,26 @@ get_restore_role_arn() {
 select_recovery_point() {
     local resource_type=$1
     local resource_id=$2
-    
+
     log "Selecting recovery point for $resource_type: $resource_id"
-    
+
     # List available recovery points
     local recovery_points
     if ! recovery_points=$(list_recovery_points "$resource_type"); then
         return 1
     fi
-    
+
     # Filter by resource ID if provided
     if [ -n "$resource_id" ]; then
         recovery_points=$(echo "$recovery_points" | grep "$resource_id" || echo "")
     fi
-    
+
     # Display recovery points
     echo ""
     log "Available recovery points:"
     echo "$recovery_points" | nl -w2 -s'. '
     echo ""
-    
+
     # Prompt for selection
     local count
     count=$(echo "$recovery_points" | wc -l | tr -d ' ')
@@ -302,14 +302,14 @@ select_recovery_point() {
         echo "$selected_arn"
         return 0
     fi
-    
+
     read -r -p "Enter recovery point number (1-$count): " selection
-    
+
     if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt "$count" ]; then
         log_error "Invalid selection"
         return 1
     fi
-    
+
     local selected_arn
     selected_arn=$(echo "$recovery_points" | sed -n "${selection}p" | awk '{print $1}')
     echo "$selected_arn"
@@ -320,10 +320,10 @@ main_restore() {
     local resource_type=$1
     local resource_id=$2
     local recovery_point_arn=$3
-    
+
     check_prerequisites
     discover_backup_vault
-    
+
     # Get recovery point if not provided
     if [ -z "$recovery_point_arn" ]; then
         if ! recovery_point_arn=$(select_recovery_point "$resource_type" "$resource_id"); then
@@ -342,7 +342,7 @@ main_restore() {
             exit 1
         fi
     fi
-    
+
     case "$resource_type" in
         "RDS")
             # Get RDS cluster details from stack
@@ -352,7 +352,7 @@ main_restore() {
                 log_error "Could not determine RDS cluster identifier from stack outputs"
                 exit 1
             fi
-            
+
             # Get subnet group and security groups (simplified - may need adjustment)
             local subnet_group
             subnet_group=$(aws rds describe-db-clusters \
@@ -360,14 +360,14 @@ main_restore() {
                 --region "$REGION" \
                 --query "DBClusters[0].DBSubnetGroup" \
                 --output text 2>/dev/null || echo "")
-            
+
             local security_groups
             security_groups=$(aws rds describe-db-clusters \
                 --db-cluster-identifier "$db_cluster_id" \
                 --region "$REGION" \
                 --query "DBClusters[0].VpcSecurityGroups[].VpcSecurityGroupId" \
                 --output text 2>/dev/null | tr '\t' ',' || echo "")
-            
+
             restore_rds "$recovery_point_arn" "$db_cluster_id" "$subnet_group" "$security_groups"
             ;;
         "EFS")
@@ -380,7 +380,7 @@ main_restore() {
                     exit 1
                 fi
             fi
-            
+
             restore_efs "$recovery_point_arn" "$efs_id"
             ;;
         *)
@@ -475,4 +475,3 @@ if [ -z "$RESOURCE_TYPE" ]; then
 fi
 
 main_restore "$RESOURCE_TYPE" "$RESOURCE_ID" "$RECOVERY_POINT_ARN"
-

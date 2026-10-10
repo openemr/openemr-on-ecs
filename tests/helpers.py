@@ -100,6 +100,6 @@ def assert_resource_has_property(
         current = current.get(part, {})
 
     actual_value = current.get(parts[-1])
-    assert (
-        actual_value == expected_value
-    ), f"Property {property_path} in {logical_id} has value {actual_value}, expected {expected_value}"
+    assert actual_value == expected_value, (
+        f"Property {property_path} in {logical_id} has value {actual_value}, expected {expected_value}"
+    )

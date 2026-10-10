@@ -70,16 +70,33 @@ tooling.
 
 ### Run All Tests
 
+A single `pytest` run from the project root covers both this directory and
+`tools/credential-rotation/tests/`. `pyproject.toml` sets `testpaths` to both
+directories and adds `tools/credential-rotation/src` to `pythonpath`, so no
+extra path setup is needed.
+
 ```bash
-# From project root
-pytest tests/
+# From project root: the same selection CI uses, with the 100% coverage gate
+pytest --cov -n auto -m "not integration and not floci"
+
+# With a line-by-line report of anything not covered
+pytest --cov --cov-report=term-missing -n auto -m "not integration and not floci"
+
+# With an HTML coverage report in htmlcov/
+pytest --cov --cov-report=html -n auto -m "not integration and not floci"
 
 # With verbose output
-pytest tests/ -v
-
-# With coverage report
-pytest tests/ --cov=. --cov-report=html
+pytest -v -m "not integration and not floci"
 ```
+
+`-n auto` runs tests in parallel with pytest-xdist. Tests marked `floci` need
+Docker and the Floci AWS emulator, and tests marked `integration` are excluded
+from normal runs. See the [Floci guide](../docs/maintainers/floci.md).
+
+> [!TIP]
+> Leave off `--cov` when you run a single file or test. Coverage is enforced
+> for the whole codebase, so a partial run with `--cov` always reports a
+> coverage failure.
 
 ### Run Specific Test File
 
@@ -104,6 +121,26 @@ pytest tests/ -vv
 ```
 
 ## Test Coverage
+
+### Coverage Requirement
+
+Line coverage must be **100% for all Python code**. The
+`[tool.coverage.run]` and `[tool.coverage.report]` sections of
+`pyproject.toml` measure the repository root plus `diagrams`, `lambda`,
+`scripts`, and `tools/openemr-import-worker`, and set `fail_under = 100`.
+Test files and generated or local-state directories are excluded, as is a
+short, reviewed list of files that only run against real infrastructure:
+
+- `tools/openemr-import-worker/ci_live_mysql_import.py`
+- `tools/openemr-import-worker/ci_prepare_mysql_fixtures.py`
+- `scripts/api_endpoint_test.py`
+- `scripts/test_data_api.py`
+
+Lines under `if __name__ == "__main__":` and `if TYPE_CHECKING:` are excluded.
+New code needs tests that keep the total at 100%. Add a file to the omit list
+only after review, and only when it can't run without live infrastructure.
+
+### What the Tests Cover
 
 Current test coverage includes:
 
@@ -147,11 +184,7 @@ def test_resource_created():
     """Test that a specific resource is created."""
     # Arrange
     app = cdk.App()
-    stack = OpenemrEcsStack(
-        app,
-        "TestStack",
-        env=cdk.Environment(account="111111111111", region="us-west-2")
-    )
+    stack = OpenemrEcsStack(app, "TestStack", env=cdk.Environment(account="111111111111", region="us-west-2"))
     template = assertions.Template.from_stack(stack)
 
     # Assert
@@ -160,7 +193,7 @@ def test_resource_created():
         {
             "Engine": "aurora-mysql",
             # Add expected properties
-        }
+        },
     )
 ```
 
@@ -180,20 +213,19 @@ template.has_resource_properties(
     {
         # Match any cluster name containing "cluster"
         "ClusterName": assertions.Match.string_like_regexp(".*cluster.*")
-    }
+    },
 )
 
 # Or match specific properties while ignoring others
 template.has_resource_properties(
     "AWS::ECS::Cluster",
-    assertions.Match.object_like({
-        "ClusterSettings": assertions.Match.array_with([
-            assertions.Match.object_like({
-                "Name": "containerInsights",
-                "Value": "enabled"
-            })
-        ])
-    })
+    assertions.Match.object_like(
+        {
+            "ClusterSettings": assertions.Match.array_with(
+                [assertions.Match.object_like({"Name": "containerInsights", "Value": "enabled"})]
+            )
+        }
+    ),
 )
 ```
 
@@ -202,23 +234,19 @@ template.has_resource_properties(
 # Check that an output exists with expected properties
 template.has_output(
     "LoadBalancerDNS",
-    assertions.Match.object_like({
-        "Description": assertions.Match.any_value(),
-        "Value": assertions.Match.any_value()
-    })
+    assertions.Match.object_like({"Description": assertions.Match.any_value(), "Value": assertions.Match.any_value()}),
 )
 
 # Or check for specific output value patterns
 template.has_output(
     "ClusterArn",
-    assertions.Match.object_like({
-        "Value": assertions.Match.object_like({
-            "Fn::GetAtt": assertions.Match.array_with([
-                assertions.Match.string_like_regexp(".*Cluster.*"),
-                "Arn"
-            ])
-        })
-    })
+    assertions.Match.object_like(
+        {
+            "Value": assertions.Match.object_like(
+                {"Fn::GetAtt": assertions.Match.array_with([assertions.Match.string_like_regexp(".*Cluster.*"), "Arn"])}
+            )
+        }
+    ),
 )
 ```
 
@@ -228,17 +256,19 @@ template.has_resource_properties(
     "AWS::IAM::Role",
     {
         "AssumeRolePolicyDocument": {
-            "Statement": assertions.Match.array_with([
-                assertions.Match.object_like({
-                    "Action": "sts:AssumeRole",
-                    "Effect": "Allow",
-                    "Principal": {
-                        "Service": "ecs-tasks.amazonaws.com"
-                    }
-                })
-            ])
+            "Statement": assertions.Match.array_with(
+                [
+                    assertions.Match.object_like(
+                        {
+                            "Action": "sts:AssumeRole",
+                            "Effect": "Allow",
+                            "Principal": {"Service": "ecs-tasks.amazonaws.com"},
+                        }
+                    )
+                ]
+            )
         }
-    }
+    },
 )
 ```
 
@@ -247,14 +277,10 @@ template.has_resource_properties(
 template.has_resource_properties(
     "AWS::EC2::SecurityGroup",
     {
-        "SecurityGroupIngress": assertions.Match.array_with([
-            assertions.Match.object_like({
-                "FromPort": 443,
-                "ToPort": 443,
-                "IpProtocol": "tcp"
-            })
-        ])
-    }
+        "SecurityGroupIngress": assertions.Match.array_with(
+            [assertions.Match.object_like({"FromPort": 443, "ToPort": 443, "IpProtocol": "tcp"})]
+        )
+    },
 )
 ```
 
@@ -264,12 +290,7 @@ from aws_cdk.assertions import Capture
 
 # Capture a value for later assertions
 security_group_capture = Capture()
-template.has_resource_properties(
-    "AWS::EC2::SecurityGroup",
-    {
-        "GroupDescription": security_group_capture
-    }
-)
+template.has_resource_properties("AWS::EC2::SecurityGroup", {"GroupDescription": security_group_capture})
 
 # Use the captured value
 assert "OpenEMR" in security_group_capture.as_string()
@@ -286,26 +307,37 @@ Tests run automatically in GitHub Actions. Check `.github/workflows/ci.yml` for 
 
 ### CI Test Pipeline
 
-1. **Unit Tests**: Run pytest suite
-2. **CDK Synthesis**: Validate stack synthesis
-3. **Linting**: Check code style (if configured)
+1. **Unit Tests**: One pytest run over `tests/` and
+   `tools/credential-rotation/tests/` with the 100% coverage gate
+2. **CDK Synthesis**: Validate stack synthesis and the 16-configuration matrix
+3. **Code Quality**: `ruff format --check`, `ruff check`, and `mypy`
+4. **Security Scan**: `pip-audit` (Ruff's security rules run with Code Quality)
+
+Every job is described in [CI and automation](../docs/maintainers/ci.md).
 
 ### Local Pre-commit Testing
 
-Run tests before committing:
+Run the same checks as CI before committing:
 
 ```bash
-# Run tests
-pytest tests/
+# Run tests with the coverage gate
+pytest --cov -n auto -m "not integration and not floci"
 
-# Check for linting issues (if flake8 is configured)
-flake8 openemr_ecs/ tests/
+# Check formatting and linting (including the security rules)
+ruff format --check .
+ruff check .
 
-# Type checking (if mypy is configured)
-mypy openemr_ecs/
+# Type checking (the exact path list CI uses)
+mypy app.py openemr_ecs/ diagrams/ tools/_shared.py tools/version_audit/ \
+  tools/openemr_import/ tools/openemr-import-worker/worker.py \
+  tools/credential-rotation/src/ scripts/check_npm_audit.py \
+  scripts/test-cdk-synthesis.py
 ```
 
-**Note**: Linting and type checking require additional configuration files (`.flake8`, `mypy.ini`, or `pyproject.toml`). Verify these exist before running.
+Use `ruff format .` and `ruff check --fix .` to apply fixes. Ruff and mypy are
+configured in `pyproject.toml`.
+`pre-commit run` runs the Ruff hooks and other file checks on staged changes;
+see the [maintainer guide](../docs/maintainers/README.md#pre-commit-hooks).
 
 ## Test Best Practices
 
@@ -318,20 +350,19 @@ mypy openemr_ecs/
 ```python
 import pytest
 
+
 @pytest.fixture
 def app():
     """Create a fresh CDK app for each test."""
     return cdk.App()
 
+
 @pytest.fixture
 def template(app):
     """Create a stack template for testing."""
-    stack = OpenemrEcsStack(
-        app,
-        "TestStack",
-        env=cdk.Environment(account="111111111111", region="us-west-2")
-    )
+    stack = OpenemrEcsStack(app, "TestStack", env=cdk.Environment(account="111111111111", region="us-west-2"))
     return assertions.Template.from_stack(stack)
+
 
 def test_with_fixture(template):
     """Test using the fixture."""
@@ -360,12 +391,15 @@ def test_with_fixture(template):
 ```python
 import pytest
 
+
 def test_invalid_cpu_memory_combination_raises_error():
     """Test that invalid CPU/memory combinations are rejected."""
-    app = cdk.App(context={
-        "cpu": 256,
-        "memory": 8192  # Invalid: 256 CPU doesn't support 8GB memory
-    })
+    app = cdk.App(
+        context={
+            "cpu": 256,
+            "memory": 8192,  # Invalid: 256 CPU doesn't support 8GB memory
+        }
+    )
 
     with pytest.raises(ValueError, match="Invalid CPU/memory combination"):
         OpenemrEcsStack(app, "TestStack")
@@ -406,6 +440,7 @@ pytest tests/ --lf
 
 ```python
 import json
+
 
 def test_debug_template(template):
     """Debug test to view full template."""
@@ -468,7 +503,7 @@ Planned test coverage expansions:
 
 - [scripts/stress-test.sh](../scripts/stress-test.sh) - Stress testing script
 - [scripts/test-cdk-synthesis.py](../scripts/test-cdk-synthesis.py) - Configuration matrix testing
-- [README-TESTING.md](../README-TESTING.md) - Local testing guide
+- [Local testing guide](../docs/guides/local-testing.md) - Docker Compose startup tests
 - [pytest Documentation](https://docs.pytest.org/) - Pytest framework docs
 - [CDK Assertions Module](https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.assertions.html) - CDK assertions API reference
 - [CDK Testing Guide](https://docs.aws.amazon.com/cdk/v2/guide/testing.html) - AWS CDK testing

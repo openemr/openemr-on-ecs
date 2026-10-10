@@ -312,6 +312,5 @@ vpc = network.create_vpc()
 
 - [stack.py](stack.py) - Main stack implementation
 - [README.md](../README.md) - Project overview
-- [ARCHITECTURE.md](../ARCHITECTURE.md) - Architecture details
-- [DETAILS.md](../DETAILS.md) - Configuration details
-
+- [Architecture reference](../docs/reference/architecture.md) - Architecture details
+- [Configuration guide](../docs/guides/configuration.md) - Configuration details

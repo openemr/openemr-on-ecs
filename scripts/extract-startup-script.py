@@ -41,7 +41,7 @@ def extract_startup_script():
 
     # Write to file
     try:
-        with open("/tmp/startup_script.sh", "w") as f:
+        with open("/tmp/startup_script.sh", "w") as f:  # noqa: S108
             f.write("#!/bin/sh\n")
             f.write("set -e\n")
             f.write("set -x\n")

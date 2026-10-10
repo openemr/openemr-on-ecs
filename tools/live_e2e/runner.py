@@ -103,7 +103,7 @@ class LiveE2ERunner:
         self.root = repository_root(root)
         self.local_root = self.root / ".live-e2e"
         self.history_path = self.root / "e2e-results" / "history.json"
-        self.report_path = self.root / "docs" / "deployment-timing.md"
+        self.report_path = self.root / "docs" / "maintainers" / "deployment-timing.md"
         self.aws_factory = aws_factory
         self.progress = progress or NULL_PROGRESS
 
@@ -310,7 +310,7 @@ class LiveE2ERunner:
             atomic_write_json(path, record)
             os.chmod(path, 0o600)
             self.progress.info(
-                f"Preflight complete ({len(checks)} checks, {resource_count} resources); " f"approval file ready"
+                f"Preflight complete ({len(checks)} checks, {resource_count} resources); approval file ready"
             )
             return path
 
@@ -742,8 +742,7 @@ class LiveE2ERunner:
                     cleanup_status = "failed"
                     status = "failed"
                     failure_phase = failure_phase or "cleanup"
-                    if failure is None:
-                        failure = retention_exc
+                    self.progress.info(f"Retention check failed: {type(retention_exc).__name__}")
                 phases.append(
                     PhaseTiming(
                         "cleanup-request",
@@ -1008,7 +1007,7 @@ class LiveE2ERunner:
         if not status.ok:
             raise ToolError("Cannot inspect Git worktree")
         allowed_generated = {
-            "docs/deployment-timing.md",
+            "docs/maintainers/deployment-timing.md",
             "e2e-results/history.json",
         }
         for line in status.stdout.splitlines():
@@ -1017,7 +1016,7 @@ class LiveE2ERunner:
             change, path = line[:2], line[3:]
             if change not in {" M", "M ", "MM"} or path not in allowed_generated:
                 raise ToolError(
-                    "Live E2E cleanup requires a clean worktree except for its " "generated timing history and report"
+                    "Live E2E cleanup requires a clean worktree except for its generated timing history and report"
                 )
         commit = run_command(
             ("git", "rev-parse", "HEAD"),
@@ -1603,7 +1602,7 @@ def validate_run_id(run_id: str) -> str:
 def new_run_id() -> str:
     """Create a collision-resistant, non-sensitive local run ID."""
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dt%H%M%sz").lower()
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dt%H%M%Sz").lower()
     entropy = fingerprint({"time_ns": time.time_ns(), "pid": os.getpid()}, length=8)
     return f"e2e-{stamp}-{entropy}"
 

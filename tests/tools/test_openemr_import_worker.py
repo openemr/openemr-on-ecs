@@ -19,7 +19,7 @@ from typing import Any
 import pytest
 
 _VALID_SEVEN_KEY = b"007" + base64.b64encode(b"k" * 112)
-_VERSION_PHP = b"<?php $v_major='8'; $v_minor='2'; $v_patch='0'; " b"$v_tag=''; $v_realpatch='0'; $v_database=541;"
+_VERSION_PHP = b"<?php $v_major='8'; $v_minor='2'; $v_patch='0'; $v_tag=''; $v_realpatch='0'; $v_database=541;"
 _VERSION_SQL = (
     b"CREATE TABLE `version` (`v_major` int, `v_minor` int, `v_patch` int, "
     b"`v_realpatch` int, `v_tag` varchar(31), `v_database` int, `v_acl` int);\n"
@@ -258,7 +258,7 @@ def test_fresh_target_check_rejects_rows_in_every_non_seed_table(
         if "SHOW TABLES" in command:
             return "documents\nform_encounter\npatient_data\nusers\npatient_tracker\n"
         if "FROM version" in command:
-            return "8\t3\t0\t0\t\t541\n"
+            return "8\t4\t1\t0\t\t543\n"
         if "patient_tracker" in command:
             return "1\n"
         return "0\n"
@@ -266,7 +266,7 @@ def test_fresh_target_check_rejects_rows_in_every_non_seed_table(
     monkeypatch.setattr(worker, "_run_mysql", run_mysql)
 
     with pytest.raises(worker.ImportFailure, match="target-is-not-empty"):
-        worker._assert_empty_target("8.3.0", 541)
+        worker._assert_empty_target("8.4.1", 543)
 
 
 def test_fresh_target_check_rejects_modified_seed_configuration(
@@ -279,9 +279,9 @@ def test_fresh_target_check_rejects_modified_seed_configuration(
         if "SHOW TABLES" in command:
             return "documents\nform_encounter\nglobals\npatient_data\nusers\n"
         if "FROM version" in command:
-            return "8\t3\t0\t0\t\t541\n"
+            return "8\t4\t1\t0\t\t543\n"
         if "COUNT(*) FROM `globals`" in command:
-            return "487\n"
+            return "489\n"
         return "0\n"
 
     monkeypatch.setattr(worker, "_run_mysql", run_mysql)
@@ -295,7 +295,7 @@ def test_fresh_target_check_rejects_modified_seed_configuration(
         worker.ImportFailure,
         match="target-seed-content-mismatch",
     ):
-        worker._assert_empty_target("8.3.0", 541)
+        worker._assert_empty_target("8.4.1", 543)
 
 
 def test_seed_manifest_excludes_nondeterministic_globals_values() -> None:
@@ -332,9 +332,9 @@ def test_fresh_target_check_rejects_seed_row_deletion(
         if "SHOW TABLES" in command:
             return "documents\nform_encounter\nlist_options\npatient_data\nusers\n"
         if "FROM version" in command:
-            return "8\t3\t0\t0\t\t541\n"
+            return "8\t4\t1\t0\t\t543\n"
         if "COUNT(*) FROM `list_options`" in command:
-            return "5604\n"
+            return "5611\n"
         return "0\n"
 
     monkeypatch.setattr(worker, "_run_mysql", run_mysql)
@@ -343,7 +343,7 @@ def test_fresh_target_check_rejects_seed_row_deletion(
         worker.ImportFailure,
         match="target-seed-row-count-mismatch",
     ):
-        worker._assert_empty_target("8.3.0", 541)
+        worker._assert_empty_target("8.4.1", 543)
 
 
 def test_baseline_dump_rejects_stored_code_and_skips_discovery(
@@ -829,3 +829,19 @@ def test_import_worker_apk_packages_are_not_exactly_pinned() -> None:
     assert set(packages) == {"ca-certificates", "curl", "mariadb-client"}
     pinned = [package for package in packages if any(operator in package for operator in ("=", "<", ">", "~"))]
     assert not pinned, f"apk version constraints break once Alpine mirrors drop the superseded build: {pinned}"
+
+
+def test_import_worker_rds_ca_bundle_is_fetched_over_https_only_without_a_checksum() -> None:
+    """AWS republishes the bundle in place (the September 2026 me-west-1 addition broke a pinned checksum).
+
+    Provenance comes from TLS to AWS's trust store, so the fetch must refuse
+    plain HTTP on the initial request and on any redirect.
+    """
+    fetches = [line for line in _dockerfile_instructions() if "global-bundle.pem" in line]
+
+    assert len(fetches) == 1
+    fetch = fetches[0]
+    assert "https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem" in fetch
+    for flag in ("--fail", "--proto =https", "--proto-redir =https", "--tlsv1.2"):
+        assert flag in fetch, flag
+    assert "sha256sum" not in fetch

@@ -175,7 +175,10 @@ class NetworkComponents:
         """
         # Database security group - only allows connections from ECS tasks
         self.db_sec_group = ec2.SecurityGroup(
-            self.scope, "db-sec-group", vpc=vpc, allow_all_outbound=False  # Prevent accidental data exfiltration
+            self.scope,
+            "db-sec-group",
+            vpc=vpc,
+            allow_all_outbound=False,  # Prevent accidental data exfiltration
         )
 
         # Acknowledge false positives for database port (resolved via intrinsic function)
@@ -228,7 +231,7 @@ class NetworkComponents:
                     ssl_context = ssl.create_default_context()
                     ssl_context.check_hostname = False
                     ssl_context.verify_mode = ssl.CERT_NONE
-                    with urllib.request.urlopen(ip_check_url, timeout=5, context=ssl_context) as response:  # nosec B310
+                    with urllib.request.urlopen(ip_check_url, timeout=5, context=ssl_context) as response:
                         current_ip = response.read().decode("utf-8").strip()
                     cidr_ipv4 = f"{current_ip}/32"
                 except Exception as e:

@@ -180,8 +180,8 @@ docker run --rm \
   -e MYSQL_PASSWORD=testpass \
   -e MYSQL_DATABASE=openemr \
   -e MYSQL_SSL_CA=/certs/ca-cert.pem \
-  -e TARGET_OPENEMR_VERSION=8.3.0 \
-  -e TARGET_DATABASE_VERSION=541 \
+  -e TARGET_OPENEMR_VERSION=8.4.1 \
+  -e TARGET_DATABASE_VERSION=543 \
   -e OPENEMR_SITES_MOUNT_ROOT=/mnt/openemr-sites \
   -e IMPORT_SOURCE_TAR=/fixtures/source.tar \
   -e IMPORT_FIXTURES_DIR=/fixtures \

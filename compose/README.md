@@ -215,7 +215,7 @@ Key components:
 
 ## Related Documentation
 
-- [README-TESTING.md](../README-TESTING.md) - Comprehensive local testing guide
+- [Local testing guide](../docs/guides/local-testing.md) - Step-by-step local testing guide
 - [scripts/README.md](../scripts/README.md) - Helper script documentation
 
 ## Notes

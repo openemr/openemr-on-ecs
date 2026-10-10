@@ -42,12 +42,12 @@ jobs:
 
       - name: Execute pytest suite with coverage
         run: |
-          pytest tests/ \
-            --cov=openemr_ecs \
+          # Runs tests/ and tools/credential-rotation/tests; scope and the 100% gate live in pyproject.toml.
+          pytest \
+            --cov \
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing \
-            --cov-fail-under=90 \
             --maxfail=1 \
             --disable-warnings \
             -n auto \
@@ -55,7 +55,7 @@ jobs:
             -q
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: always()
         with:
           files: ./coverage.xml
@@ -96,10 +96,8 @@ jobs:
 
       - name: Validate focused Python changes
         run: |
-          black --check tools/_shared.py tools/knowledge_mcp tests/tools/test_knowledge_mcp.py
-          flake8 tools/_shared.py tools/knowledge_mcp tests/tools/test_knowledge_mcp.py \
-            --max-line-length=120 --extend-ignore=E203,W503,E501
-          isort --check-only tools/_shared.py tools/knowledge_mcp tests/tools/test_knowledge_mcp.py
+          ruff format --check tools/_shared.py tools/knowledge_mcp tests/tools/test_knowledge_mcp.py
+          ruff check tools/_shared.py tools/knowledge_mcp tests/tools/test_knowledge_mcp.py
           mypy tools/_shared.py tools/knowledge_mcp
 
   floci-e2e:
@@ -168,12 +166,12 @@ jobs:
           docker info
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: arm64
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Install pinned dependencies
         run: |
@@ -213,49 +211,6 @@ jobs:
             .live-e2e/preflight/**
           if-no-files-found: ignore
           retention-days: 7
-
-  credential-rotation-tests:
-    name: Credential Rotation Tests
-    runs-on: ubuntu-26.04
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install "pip==${PIP_VERSION}"
-          pip install -r tools/credential-rotation/requirements.txt
-          pip install -r requirements-dev.txt
-
-      - name: Execute credential rotation tests
-        env:
-          PYTHONPATH: tools/credential-rotation/src
-        run: |
-          pytest tools/credential-rotation/tests/ \
-            --cov=credential_rotation \
-            --cov-report=xml:coverage-credential-rotation.xml \
-            --cov-report=term-missing \
-            --cov-fail-under=80 \
-            --maxfail=1 \
-            -q
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
-        if: always()
-        with:
-          files: ./coverage-credential-rotation.xml
-          flags: credential-rotation
-          name: credential-rotation
-          fail_ci_if_error: false
-          override_branch: ${{ github.ref_name }}
-          override_commit: ${{ github.event.pull_request.head.sha || github.sha }}
-          slug: ${{ github.repository }}
 
   cdk-synth:
     name: CloudFormation Template Validation
@@ -312,7 +267,7 @@ jobs:
           python3 scripts/test-cdk-synthesis.py
 
       - name: Set up ARM64 emulation
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: arm64
 
@@ -337,11 +292,11 @@ jobs:
           python -m pip install "pip==${PIP_VERSION}"
           pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Format check (black)
-        run: black --check app.py openemr_ecs/ tests/ diagrams/ tools/ scripts/check_npm_audit.py scripts/test-cdk-synthesis.py
+      - name: Format check (ruff)
+        run: ruff format --check .
 
-      - name: Lint (flake8)
-        run: flake8 app.py openemr_ecs/ tests/ diagrams/ tools/ scripts/check_npm_audit.py scripts/test-cdk-synthesis.py --max-line-length=120 --extend-ignore=E203,W503,E501
+      - name: Lint (ruff)
+        run: ruff check .
 
       - name: Type check (mypy)
         run: >-
@@ -350,9 +305,6 @@ jobs:
           tools/openemr_import/ tools/openemr-import-worker/worker.py
           tools/credential-rotation/src/ scripts/check_npm_audit.py
           scripts/test-cdk-synthesis.py
-
-      - name: Import sorting (isort)
-        run: isort --check-only app.py openemr_ecs/ tests/ diagrams/ tools/ scripts/check_npm_audit.py scripts/test-cdk-synthesis.py
 
   security-scan:
     name: Security Scan
@@ -371,9 +323,6 @@ jobs:
         run: |
           python -m pip install "pip==${PIP_VERSION}"
           pip install -r requirements.txt -r requirements-dev.txt
-
-      - name: Security scan (bandit)
-        run: bandit -r app.py openemr_ecs/ diagrams/ tools/ scripts/check_npm_audit.py scripts/test-cdk-synthesis.py -ll
 
       - name: Audit Python dependencies
         run: |
@@ -507,7 +456,7 @@ jobs:
 
       - name: Install golangci-lint
         run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
           golangci-lint --version
 
@@ -551,12 +500,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up ARM64 emulation
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: arm64
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Validate basic configuration
         run: |
@@ -730,12 +679,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up ARM64 emulation
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: arm64
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Run live TLS MySQL import-worker harness
         env:
@@ -760,12 +709,12 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up ARM64 emulation
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: arm64
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Check fresh-seed manifest against the pinned OpenEMR image
         env:

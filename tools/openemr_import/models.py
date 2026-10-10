@@ -56,7 +56,7 @@ class SourceInspection:
     unsupported_content: tuple[str, ...] = ()
     manual_review: tuple[str, ...] = ()
     checksums: dict[str, str] = field(default_factory=dict)
-    upstream_reference: str = "openemr/openemr v8_2_0 commit " "6125a2fd8089c8bcc3848071c1293c60e27a7585"
+    upstream_reference: str = "openemr/openemr v8_2_0 commit 6125a2fd8089c8bcc3848071c1293c60e27a7585"
 
     def to_dict(self) -> dict[str, Any]:
         """Return a deterministic JSON-ready representation."""

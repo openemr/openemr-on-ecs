@@ -28,7 +28,7 @@ import shlex
 import shutil
 
 # Fixed local tools are invoked without a shell.
-import subprocess  # nosec B404
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -60,7 +60,7 @@ DIAGRAMS = [
 def run(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
     print(f"  $ {' '.join(cmd)}")
     # Executables are fixed and arguments are passed without a shell.
-    return subprocess.run(  # nosec B603
+    return subprocess.run(
         cmd,
         cwd=PROJECT_ROOT,
         check=True,

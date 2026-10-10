@@ -65,8 +65,8 @@ Execution uses:
 - a dormant ARM64 Fargate task definition;
 - an OpenEMR target image pinned by both official release tag and ARM64 digest;
 - a digest-pinned worker base image (which fixes the Alpine release branch the
-  worker's packages resolve from), hash-locked Python artifacts, and a
-  checksummed RDS CA bundle;
+  worker's packages resolve from), hash-locked Python artifacts, and an RDS
+  CA bundle fetched over HTTPS-only from AWS's trust store;
 - private subnets, no public IP, and a dedicated no-ingress security group with
   only MySQL, NFS, and HTTPS egress;
 - an IAM-authorized import-only sites EFS access point, with write and

@@ -123,6 +123,31 @@ class TestEMRServerlessConfiguration:
         # Should not create EMR Serverless application
         template.resource_count_is("AWS::EMRServerless::Application", 0)
 
+    def test_emr_serverless_policy_acknowledges_its_own_wildcard_resource(self):
+        """The conditioned ecs:DescribeTasks grant needs a Resource::* acknowledgment on this policy itself."""
+        app = App()
+        app.node.set_context("route53_domain", "example.com")
+        app.node.set_context("create_serverless_analytics_environment", "true")
+
+        from aws_cdk import Validations
+
+        from openemr_ecs.stack import OpenemrEcsStack
+
+        stack = OpenemrEcsStack(
+            app,
+            "TestStack",
+            env=Environment(account="123456789012", region="us-west-2"),
+        )
+        policy = stack.node.find_child("EMRServerlessPolicy")
+        acknowledged = {
+            rule
+            for entry in policy.node.metadata
+            if entry.type == Validations.ACKNOWLEDGED_RULES_METADATA_KEY
+            for rule in entry.data
+        }
+
+        assert "AwsSolutions-IAM5[Resource::*]" in acknowledged
+
 
 class TestDataExportConfiguration:
     """Test data export S3 buckets and Lambda functions."""

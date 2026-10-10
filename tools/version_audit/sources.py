@@ -142,8 +142,7 @@ class HttpClient:
                 current_url = _validate_source_url(urljoin(current_url, location))
             else:
                 raise SourceError("Version source exceeded the redirect limit")
-            if response is None:
-                raise SourceError("Version source returned no response")
+            assert response is not None  # the loop only breaks with a live response
             response.raise_for_status()
             content_length = response.headers.get("Content-Length")
             if content_length and int(content_length) > self.max_bytes:
@@ -442,7 +441,7 @@ class VersionSources:
             raise SourceError("No ARM64 OpenEMR image matched an official stable OpenEMR release")
         expected_digest = str(declaration.metadata.get("arm64_digest", "")).strip()
         digest_url = (
-            "https://hub.docker.com/v2/repositories/openemr/openemr/tags/" f"{quote(declaration.current, safe='')}"
+            f"https://hub.docker.com/v2/repositories/openemr/openemr/tags/{quote(declaration.current, safe='')}"
         )
         if not re.fullmatch(r"sha256:[0-9a-f]{64}", expected_digest):
             return Resolution(

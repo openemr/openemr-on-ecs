@@ -23,7 +23,7 @@ def test_ci_import_worker_mysql_script_passes() -> None:
     if os.environ.get("OPENEMR_IMPORT_MYSQL_INTEGRATION") != "1":
         pytest.skip("Set OPENEMR_IMPORT_MYSQL_INTEGRATION=1 to run live MySQL import integration")
     assert SCRIPT.is_file(), "ci-import-worker-mysql.sh is missing"
-    completed = subprocess.run(  # nosec B603
+    completed = subprocess.run(
         [str(SCRIPT)],
         cwd=REPO_ROOT,
         check=False,

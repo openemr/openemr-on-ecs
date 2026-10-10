@@ -23,7 +23,7 @@ class StackConstants:
 
     # AWS Service Versions
     # Update these when new versions are released
-    EMR_SERVERLESS_RELEASE_LABEL = "emr-7.13.0"
+    EMR_SERVERLESS_RELEASE_LABEL = "emr-7.14.0"
     # Check: https://docs.aws.amazon.com/emr/latest/EMR-Serverless-UserGuide/release-versions.html
 
     AURORA_MYSQL_ENGINE_VERSION = rds.AuroraMysqlEngineVersion.VER_3_12_0
@@ -39,8 +39,8 @@ class StackConstants:
     # Base image: python:{version}-slim. Update when upgrading the rotation container.
 
     # Container Image Version
-    OPENEMR_VERSION = "8.3.0"
-    OPENEMR_ARM64_DIGEST = "sha256:761ba06db2db6fc356a978f20f16bcd805529610ec64e646019b1d9b440a3a3c"
+    OPENEMR_VERSION = "8.4.1"
+    OPENEMR_ARM64_DIGEST = "sha256:22bc7022e0fb3f88909d87a428849038a722a736634c1dbbae2f07e92ab362ad"
     # Require an ARM64 Docker tag that matches an official, non-prerelease
     # OpenEMR GitHub release and verify this immutable platform digest. The
     # version audit enforces both constraints.

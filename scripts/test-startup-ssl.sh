@@ -85,4 +85,3 @@ echo "========================================="
 echo ""
 
 $COMPOSE_CMD -f compose/docker-compose.test-ssl.yml up openemr-test-ssl
-
