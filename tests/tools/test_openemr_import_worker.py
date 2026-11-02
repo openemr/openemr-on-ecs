@@ -258,7 +258,7 @@ def test_fresh_target_check_rejects_rows_in_every_non_seed_table(
         if "SHOW TABLES" in command:
             return "documents\nform_encounter\npatient_data\nusers\npatient_tracker\n"
         if "FROM version" in command:
-            return "8\t4\t1\t0\t\t543\n"
+            return "8\t5\t0\t0\t\t555\n"
         if "patient_tracker" in command:
             return "1\n"
         return "0\n"
@@ -266,7 +266,7 @@ def test_fresh_target_check_rejects_rows_in_every_non_seed_table(
     monkeypatch.setattr(worker, "_run_mysql", run_mysql)
 
     with pytest.raises(worker.ImportFailure, match="target-is-not-empty"):
-        worker._assert_empty_target("8.4.1", 543)
+        worker._assert_empty_target("8.5.0", 555)
 
 
 def test_fresh_target_check_rejects_modified_seed_configuration(
@@ -279,9 +279,9 @@ def test_fresh_target_check_rejects_modified_seed_configuration(
         if "SHOW TABLES" in command:
             return "documents\nform_encounter\nglobals\npatient_data\nusers\n"
         if "FROM version" in command:
-            return "8\t4\t1\t0\t\t543\n"
+            return "8\t5\t0\t0\t\t555\n"
         if "COUNT(*) FROM `globals`" in command:
-            return "489\n"
+            return "493\n"
         return "0\n"
 
     monkeypatch.setattr(worker, "_run_mysql", run_mysql)
@@ -295,7 +295,7 @@ def test_fresh_target_check_rejects_modified_seed_configuration(
         worker.ImportFailure,
         match="target-seed-content-mismatch",
     ):
-        worker._assert_empty_target("8.4.1", 543)
+        worker._assert_empty_target("8.5.0", 555)
 
 
 def test_seed_manifest_excludes_nondeterministic_globals_values() -> None:
@@ -332,9 +332,9 @@ def test_fresh_target_check_rejects_seed_row_deletion(
         if "SHOW TABLES" in command:
             return "documents\nform_encounter\nlist_options\npatient_data\nusers\n"
         if "FROM version" in command:
-            return "8\t4\t1\t0\t\t543\n"
+            return "8\t5\t0\t0\t\t555\n"
         if "COUNT(*) FROM `list_options`" in command:
-            return "5611\n"
+            return "5682\n"
         return "0\n"
 
     monkeypatch.setattr(worker, "_run_mysql", run_mysql)
@@ -343,7 +343,7 @@ def test_fresh_target_check_rejects_seed_row_deletion(
         worker.ImportFailure,
         match="target-seed-row-count-mismatch",
     ):
-        worker._assert_empty_target("8.4.1", 543)
+        worker._assert_empty_target("8.5.0", 555)
 
 
 def test_baseline_dump_rejects_stored_code_and_skips_discovery(

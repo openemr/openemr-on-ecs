@@ -1,1 +1,32 @@
-{}
+{
+  "platform:lambda-python": {
+    "status": "deferred",
+    "reason": "AWS Lambda Python 3.15 is in public preview and is not exposed by aws-cdk-lib 2.275.0",
+    "prerequisite": "AWS Lambda Python 3.15 reaches GA and aws-cdk-lib exposes Runtime.PYTHON_3_15",
+    "review_date": "2026-12-05"
+  },
+  "python:python-dateutil": {
+    "status": "deferred",
+    "reason": "botocore 1.43.123 requires python-dateutil<3.0.0,>=2.1",
+    "prerequisite": "botocore widens its python-dateutil<3.0.0 upper bound",
+    "review_date": "2026-12-05"
+  },
+  "toolchain:credential-python": {
+    "status": "deferred",
+    "reason": "Repository Python runtime and tooling stay aligned on Python 3.14 until AWS Lambda and aws-cdk-lib support Python 3.15",
+    "prerequisite": "AWS Lambda Python 3.15 reaches GA and aws-cdk-lib supports Python 3.15",
+    "review_date": "2026-12-05"
+  },
+  "toolchain:node": {
+    "status": "deferred",
+    "reason": "jsii 1.142.0 bundled with aws-cdk-lib 2.275.0 only supports Node.js 22 and 24 LTS and warns that Node.js 26 is untested",
+    "prerequisite": "jsii and aws-cdk-lib add tested Node.js 26 LTS support",
+    "review_date": "2026-12-05"
+  },
+  "toolchain:python": {
+    "status": "deferred",
+    "reason": "Repository Python runtime and tooling stay aligned on Python 3.14 until AWS Lambda and aws-cdk-lib support Python 3.15",
+    "prerequisite": "AWS Lambda Python 3.15 reaches GA and aws-cdk-lib supports Python 3.15",
+    "review_date": "2026-12-05"
+  }
+}

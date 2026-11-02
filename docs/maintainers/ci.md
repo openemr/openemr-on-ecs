@@ -27,7 +27,7 @@ need to understand why a check failed or want to change the pipeline.
 Shared conventions:
 
 - All jobs run on `ubuntu-26.04` with Python 3.14, Node.js 24, and pip
-  26.2.1 where needed.
+  26.2.2 where needed.
 - Every third-party action is pinned to a full commit SHA with a version
   comment.
 - Workflows that synthesize the CDK app use fake AWS credentials
@@ -143,7 +143,7 @@ All three run in `scripts/backup-tui` with Go 1.27:
 | Job | Checks |
 |---|---|
 | Build Go TUI | `go mod download`, `go mod verify`, `make build`, and confirms `bin/backup-tui` exists |
-| Lint Go TUI | `go vet ./...`, `gofmt -s -l .` must report nothing, and `golangci-lint run` (v2.14.0) |
+| Lint Go TUI | `go vet ./...`, `gofmt -s -l .` must report nothing, and `golangci-lint run` (v2.15.0) |
 | Test Go TUI | `go test ./... -v` with atomic coverage, then prints a coverage summary |
 
 ### Docker Compose Tests (`docker-compose-tests`)

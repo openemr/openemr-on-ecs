@@ -19,7 +19,7 @@ You need:
   (`interface/main/backup.php`, under **Admin** > **System** > **Backup** in most versions), as a
   single `.tar` file.
 - **The same OpenEMR version on both sides.** The source must be exactly the version this stack
-  deploys (currently **8.4.1**). Upgrade the source first with OpenEMR's normal upgrade process
+  deploys (currently **8.5.0**). Upgrade the source first with OpenEMR's normal upgrade process
   if it's older.
 - **A brand-new, non-production target stack** deployed in import mode (step 3), less than 24
   hours old and never updated.
@@ -238,7 +238,7 @@ The import task then:
    configuration set must be empty, and row counts and content fingerprints must exactly match the
    checked-in baseline for the deployed version
    ([`fresh-seed-manifest.json`](../../tools/openemr-import-worker/fresh-seed-manifest.json),
-   currently for 8.4.1). Runtime timestamps aren't fingerprinted, nor is `globals.gl_value`,
+   currently for 8.5.0). Runtime timestamps aren't fingerprinted, nor is `globals.gl_value`,
    because first boot writes a generated `unique_installation_id` and other non-repeatable
    settings. The five bootstrap identity tables that depend on the generated administrator
    account are checked by row count only. Fingerprint queries sort by binary column order using

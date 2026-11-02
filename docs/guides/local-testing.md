@@ -24,7 +24,7 @@ OpenEMR version.
 ## What this tests
 
 The Compose files run the official OpenEMR image, pinned to the same tag and reviewed ARM64 digest
-as the stack (`openemr/openemr:8.4.1@sha256:22bc7022e0fb3f88909d87a428849038a722a736634c1dbbae2f07e92ab362ad`),
+as the stack (`openemr/openemr:8.5.0@sha256:d25ca204e79d4db3f6c7d14af162300ef049432f632d11db3b54a31de131444b`),
 with the same startup command the stack uses on ECS. That startup command:
 
 1. **Makes sure the site structure exists.** If `sites/default` is missing (as on a brand-new EFS
@@ -169,7 +169,7 @@ To test changes to OpenEMR's own `openemr.sh`, clone
 [`openemr/openemr`](https://github.com/openemr/openemr), and uncomment the `volumes` example in
 `compose/docker-compose.test.yml` that mounts `docker/release/openemr.sh` into the container. Check
 out the tag matching the image version. (The comments in the Compose file and older docs mention
-`v8_2_0`, but the image is now 8.4.1.)
+`v8_2_0`, but the image is now 8.5.0.)
 
 ## How leadership works
 

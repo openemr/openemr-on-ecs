@@ -16,9 +16,9 @@ from pathlib import Path
 import worker as import_worker
 
 _VALID_SEVEN_KEY = b"007" + base64.b64encode(b"k" * 112)
-_EXPECTED_OPENEMR_VERSION = "8.4.1"
-_EXPECTED_DATABASE_VERSION = 543
-_VERSION_PHP = b"<?php $v_major='8'; $v_minor='4'; $v_patch='1'; $v_tag=''; $v_realpatch='0'; $v_database='543';\n"
+_EXPECTED_OPENEMR_VERSION = "8.5.0"
+_EXPECTED_DATABASE_VERSION = 555
+_VERSION_PHP = b"<?php $v_major='8'; $v_minor='5'; $v_patch='0'; $v_tag=''; $v_realpatch='0'; $v_database='555';\n"
 _MARKER = b"ci-import-marker-document"
 
 
