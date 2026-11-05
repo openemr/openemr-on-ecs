@@ -67,6 +67,16 @@ def test_exact_bundled_advisories_are_temporarily_deferred(tmp_path: Path) -> No
     assert validate_report(_allowed_report(), tmp_path, today=BEFORE_REVIEW) == []
 
 
+def test_reindexed_npm_source_id_for_same_ghsa_url_is_accepted(tmp_path: Path) -> None:
+    report = _allowed_report()
+    report["vulnerabilities"][ALLOWED_NAME]["via"] = [
+        {"source": source + 1000, "url": url} for source, url in ALLOWED_ADVISORIES.items()
+    ]
+    _install_deferred_package(tmp_path)
+
+    assert validate_report(report, tmp_path, today=BEFORE_REVIEW) == []
+
+
 def test_other_vulnerabilities_fail_closed(tmp_path: Path) -> None:
     report = _allowed_report()
     report["vulnerabilities"]["other-package"] = {

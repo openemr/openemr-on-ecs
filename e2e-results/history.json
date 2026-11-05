@@ -530,6 +530,537 @@
       "started_at": "2026-10-03T14:29:54Z",
       "status": "passed",
       "test_runner_version": "1.0.0"
+    },
+    {
+      "account_hash": "sha256:62d95428b7b2",
+      "aurora_version": "8.0.mysql_aurora.3.12.0",
+      "bootstrap_state": "ready-v30",
+      "branch": "main",
+      "cdk_assets_version": "4.8.0",
+      "cdk_cli_version": "2.1147.0 (build 21b5c6f)",
+      "cdk_library_version": "2.275.0",
+      "checks": [
+        {
+          "detail": "preflight check completed",
+          "name": "local-git",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "local-aws-cli",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "local-node",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "local-docker",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "local-cdk",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "local-cdk-assets",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "aws-identity",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "dedicated-public-hosted-zone",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "dedicated-zone-records",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "cdk-bootstrap",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "cloudformation-read",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "ec2-read",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "ecs-read",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "rds-read",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "efs-read",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "kms-read",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "backup-read",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "wafv2-read",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "availability-zones",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "cdk-bootstrap-role-assumption",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "deployment-write-permissions",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "local-cleanup-permissions",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "quota-vpc-count",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "quota-elastic-ip-count",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "quota-fargate-vcpu",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "quota-rds-clusters",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "stack-name-available",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "cdk-synthesis",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "synthesized-safety-policy",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "synthesized-resource-plan",
+          "status": "pass"
+        },
+        {
+          "detail": "preflight check completed",
+          "name": "cdk-diff",
+          "status": "pass"
+        },
+        {
+          "detail": "CREATE_COMPLETE",
+          "name": "cloudformation-stack",
+          "status": "pass"
+        },
+        {
+          "detail": "132 stack resources healthy",
+          "name": "expected-resources",
+          "status": "pass"
+        },
+        {
+          "detail": "HTTPS returned an OpenEMR response",
+          "name": "application-https",
+          "status": "pass"
+        },
+        {
+          "detail": "service stable at desired count",
+          "name": "ecs-service",
+          "status": "pass"
+        },
+        {
+          "detail": "1 running healthy tasks with no crash-loop events",
+          "name": "ecs-task-health",
+          "status": "pass"
+        },
+        {
+          "detail": "1 healthy targets",
+          "name": "load-balancer-targets",
+          "status": "pass"
+        },
+        {
+          "detail": "sites and SSL file systems available",
+          "name": "efs-file-systems",
+          "status": "pass"
+        },
+        {
+          "detail": "cluster available",
+          "name": "aurora-cluster",
+          "status": "pass"
+        },
+        {
+          "detail": "cache available",
+          "name": "elasticache-serverless",
+          "status": "pass"
+        },
+        {
+          "detail": "web ACL associated",
+          "name": "waf-association",
+          "status": "pass"
+        },
+        {
+          "detail": "profile has no CloudWatch alarm resources",
+          "name": "monitoring-resources",
+          "status": "pass"
+        },
+        {
+          "detail": "no known fatal startup patterns in bounded log scan",
+          "name": "startup-logs",
+          "status": "pass"
+        },
+        {
+          "detail": "login page responded",
+          "name": "application-smoke",
+          "status": "pass"
+        }
+      ],
+      "cleanup_status": "stack-deleted-with-expected-residuals",
+      "configuration_fingerprint": "sha256:73c9cdeaa5682817",
+      "failure_phase": null,
+      "finished_at": "2026-11-02T13:43:43Z",
+      "git_commit": "1a473a1d8060622193a164efd6476f2bcad6caea",
+      "metadata": {
+        "timing_schema": "openemr-live-e2e-v1"
+      },
+      "node_version": "v24.19.0",
+      "notes": [],
+      "openemr_version": "8.5.0",
+      "phases": [
+        {
+          "duration_seconds": 0.997,
+          "finished_at": null,
+          "name": "tool-validation",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 2.365,
+          "finished_at": null,
+          "name": "cdk-synthesis",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.993,
+          "finished_at": null,
+          "name": "cdk-diff",
+          "source": "local-monotonic-clock-no-change-set",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 8.497,
+          "finished_at": null,
+          "name": "preflight",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 8.652,
+          "finished_at": null,
+          "name": "asset-build",
+          "source": "docker-proxy-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 19.853,
+          "finished_at": null,
+          "name": "asset-publication",
+          "source": "cdk-asset-pipeline-minus-docker-build",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 28.505,
+          "finished_at": null,
+          "name": "asset-pipeline",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 1589.069,
+          "finished_at": null,
+          "name": "cdk-deploy",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 1617.587,
+          "finished_at": null,
+          "name": "deployment-with-assets",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 1574.12,
+          "finished_at": "2026-11-02T13:03:36.434000Z",
+          "name": "cloudformation-deployment",
+          "source": "cloudformation-events-api",
+          "started_at": "2026-11-02T12:37:22.314000Z"
+        },
+        {
+          "duration_seconds": 1097.644,
+          "finished_at": "2026-11-02T12:56:07.820000Z",
+          "name": "aurora-provisioning",
+          "source": "cloudformation-events-api",
+          "started_at": "2026-11-02T12:37:50.176000Z"
+        },
+        {
+          "duration_seconds": 123.917,
+          "finished_at": "2026-11-02T12:39:49.037000Z",
+          "name": "elasticache-provisioning",
+          "source": "cloudformation-events-api",
+          "started_at": "2026-11-02T12:37:45.120000Z"
+        },
+        {
+          "duration_seconds": 8.35,
+          "finished_at": "2026-11-02T12:37:34.264000Z",
+          "name": "efs-provisioning",
+          "source": "cloudformation-events-api",
+          "started_at": "2026-11-02T12:37:25.914000Z"
+        },
+        {
+          "duration_seconds": 263.278,
+          "finished_at": "2026-11-02T13:03:17.435000Z",
+          "name": "ecs-service-creation",
+          "source": "cloudformation-events-api",
+          "started_at": "2026-11-02T12:58:54.157000Z"
+        },
+        {
+          "duration_seconds": 0.957,
+          "finished_at": null,
+          "name": "post-deploy-https-wait",
+          "source": "local-monotonic-clock-with-https-probes",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.744,
+          "finished_at": null,
+          "name": "http-readiness",
+          "source": "http-client-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 1588.985,
+          "finished_at": "2026-11-02T13:03:39.247636Z",
+          "name": "application-https-ready",
+          "source": "cloudformation-stack-creation-and-local-https-probe",
+          "started_at": "2026-11-02T12:37:10.263000Z"
+        },
+        {
+          "duration_seconds": 0.484,
+          "finished_at": null,
+          "name": "ecs-steady-state-validation",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.189,
+          "finished_at": null,
+          "name": "alb-target-health-validation",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.324,
+          "finished_at": null,
+          "name": "efs-availability-validation",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.317,
+          "finished_at": null,
+          "name": "aurora-availability-validation",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.196,
+          "finished_at": null,
+          "name": "elasticache-availability-validation",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.233,
+          "finished_at": null,
+          "name": "waf-association",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 1.026,
+          "finished_at": null,
+          "name": "startup-log-validation",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.333,
+          "finished_at": null,
+          "name": "application-smoke-test",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 4.365,
+          "finished_at": null,
+          "name": "deployment-validation",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 0.475,
+          "finished_at": null,
+          "name": "cleanup-request",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 1475.832,
+          "finished_at": "2026-11-02T13:28:18.999000Z",
+          "name": "cloudformation-deletion",
+          "source": "cloudformation-events-api",
+          "started_at": "2026-11-02T13:03:43.167000Z"
+        },
+        {
+          "duration_seconds": 904.421,
+          "finished_at": null,
+          "name": "tagged-resource-cleanup",
+          "source": "passes=43",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 2.308,
+          "finished_at": null,
+          "name": "residual-resource-verification",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 2400.89,
+          "finished_at": null,
+          "name": "cleanup",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        },
+        {
+          "duration_seconds": 4023.503,
+          "finished_at": null,
+          "name": "total",
+          "source": "local-monotonic-clock",
+          "started_at": null
+        }
+      ],
+      "profile": "default",
+      "python_version": "3.14.6",
+      "region": "us-east-1",
+      "repository": "Jmevorach/openemr-on-ecs",
+      "residuals": [
+        {
+          "disposition": "shared-content-addressed-asset",
+          "identifier_hash": "sha256:8c88300de0d0",
+          "resource_type": "cdk-bootstrap-ecr-asset"
+        },
+        {
+          "disposition": "shared-content-addressed-asset",
+          "identifier_hash": "sha256:2db1f0b29c05",
+          "resource_type": "cdk-bootstrap-s3-asset"
+        },
+        {
+          "disposition": "shared-content-addressed-asset",
+          "identifier_hash": "sha256:5d8cb5e3ceb9",
+          "resource_type": "cdk-bootstrap-s3-asset"
+        },
+        {
+          "disposition": "shared-content-addressed-asset",
+          "identifier_hash": "sha256:997abdf264aa",
+          "resource_type": "cdk-bootstrap-s3-asset"
+        },
+        {
+          "disposition": "shared-content-addressed-asset",
+          "identifier_hash": "sha256:d44d7dc24c24",
+          "resource_type": "cdk-bootstrap-s3-asset"
+        },
+        {
+          "disposition": "scheduled-deletion-expected",
+          "identifier_hash": "sha256:b8fbb93617c0",
+          "resource_type": "ecs"
+        },
+        {
+          "disposition": "scheduled-deletion-expected",
+          "identifier_hash": "sha256:c4b080447f90",
+          "resource_type": "ecs"
+        },
+        {
+          "disposition": "scheduled-deletion-expected",
+          "identifier_hash": "sha256:cf02a170ca90",
+          "resource_type": "ecs"
+        },
+        {
+          "disposition": "scheduled-deletion-expected",
+          "identifier_hash": "sha256:a20cf36636a4",
+          "resource_type": "kms"
+        },
+        {
+          "disposition": "scheduled-deletion-expected",
+          "identifier_hash": "sha256:fbde0d3f03bd",
+          "resource_type": "kms"
+        }
+      ],
+      "run_id": "e2e-20261102t123544z-6f4296b7",
+      "safe_stack_id": "sha256:3ff0a9824fb7",
+      "schema_version": 1,
+      "stack_status": "CREATE_COMPLETE",
+      "started_at": "2026-11-02T12:36:39Z",
+      "status": "passed",
+      "test_runner_version": "1.0.0"
     }
   ],
   "schema_version": 1
