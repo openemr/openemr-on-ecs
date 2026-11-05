@@ -5,23 +5,23 @@ Durations are measurements, not estimates. Account IDs, resource ARNs, hostnames
 
 ## Summary
 
-- Recorded runs: 1
-- Successful runs: 1
+- Recorded runs: 2
+- Successful runs: 2
 - Failed or interrupted runs: 0
-- Latest recorded run: 2026-10-03T14:29:54Z (`2422e248bf93`)
+- Latest recorded run: 2026-11-02T12:36:39Z (`1a473a1d8060`)
 
 ## Latest successful measurement
 
-- Run: `e2e-20261003t142832z-b00799f8` at 2026-10-03T14:29:54Z
-- Source: `Jmevorach/openemr-on-ecs` branch `main` commit `2422e248bf93962255228721218360d018f391ef`
-- Configuration: `default` in `us-east-1` (`sha256:2db0c2e0f905342b`)
-- Safe stack identifier: `sha256:772a3f4e64ee`; bootstrap: `ready-v30`
-- Total E2E time: 68m 05s
-- Total deployment time (including assets): 26m 02s
-- ECS service creation time: 3m 23s
-- Time to application readiness: 25m 28s
-- Cleanup time: 41m 57s (stack-deleted-with-expected-residuals)
-- Versions: Python `3.14.6`, Node.js `v24.19.0`, CDK CLI `2.1143.0 (build 9c6bd0e)`, CDK library `2.272.0`, CDK assets `4.7.3`, OpenEMR `8.4.1`, Aurora `8.0.mysql_aurora.3.12.0`, runner `1.0.0`
+- Run: `e2e-20261102t123544z-6f4296b7` at 2026-11-02T12:36:39Z
+- Source: `Jmevorach/openemr-on-ecs` branch `main` commit `1a473a1d8060622193a164efd6476f2bcad6caea`
+- Configuration: `default` in `us-east-1` (`sha256:73c9cdeaa5682817`)
+- Safe stack identifier: `sha256:3ff0a9824fb7`; bootstrap: `ready-v30`
+- Total E2E time: 67m 04s
+- Total deployment time (including assets): 26m 58s
+- ECS service creation time: 4m 23s
+- Time to application readiness: 26m 29s
+- Cleanup time: 40m 01s (stack-deleted-with-expected-residuals)
+- Versions: Python `3.14.6`, Node.js `v24.19.0`, CDK CLI `2.1147.0 (build 21b5c6f)`, CDK library `2.275.0`, CDK assets `4.8.0`, OpenEMR `8.5.0`, Aurora `8.0.mysql_aurora.3.12.0`, runner `1.0.0`
 - Residual resources: 10
 
 ## Profile statistics
@@ -30,12 +30,13 @@ Successful end-to-end totals are aggregated only within the same configuration p
 
 | Profile | Successful | Failed/interrupted | Minimum | Maximum | Median | Recent successful trend |
 |---|---:|---:|---:|---:|---:|---|
-| default | 1 | 0 | 68m 05s | 68m 05s | 68m 05s | 68m 05s |
+| default | 2 | 0 | 67m 04s | 68m 05s | 67m 34s | 68m 05s → 67m 04s |
 
 ## Historical runs
 
 | Run | Started (UTC) | Commit | Region | Profile | Result | Total | Deploy incl. assets | ECS steady | HTTPS ready | Cleanup time | Cleanup result | Residuals |
 |---|---|---|---|---|---|---:|---:|---:|---:|---:|---|---:|
+| e2e-20261102t123544z-6f4296b7 | 2026-11-02T12:36:39Z | `1a473a1d8060` | us-east-1 | default | passed | 67m 04s | 26m 58s | 4m 23s | 26m 29s | 40m 01s | stack-deleted-with-expected-residuals | 10 |
 | e2e-20261003t142832z-b00799f8 | 2026-10-03T14:29:54Z | `2422e248bf93` | us-east-1 | default | passed | 68m 05s | 26m 02s | 3m 23s | 25m 28s | 41m 57s | stack-deleted-with-expected-residuals | 10 |
 
 ## Methodology

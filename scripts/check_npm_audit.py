@@ -17,7 +17,7 @@ ALLOWED_SEVERITY = "moderate"
 # aws-cdk-lib bundles minimatch, so neither npm overrides nor
 # `npm audit fix` can replace it; only an aws-cdk-lib release can.
 ALLOWED_ADVISORIES = {
-    1244012: "https://github.com/advisories/GHSA-g3hv-75wg-m249",
+    1244623: "https://github.com/advisories/GHSA-g3hv-75wg-m249",
 }
 ALLOWED_PARENTS = {
     "aws-cdk-lib": {
@@ -57,12 +57,23 @@ def _package_versions(root: Path, failures: list[str]) -> tuple[str | None, str 
     return installed, locked
 
 
-def _advisory_identities(via: Any) -> dict[Any, Any] | None:
-    """Map advisory source IDs to URLs, or return None for a malformed list."""
+def _advisory_identities(via: Any) -> list[str] | None:
+    """Extract canonical advisory URLs, or return None for a malformed list."""
 
-    if not isinstance(via, list) or not via or not all(isinstance(item, dict) for item in via):
+    if (
+        not isinstance(via, list)
+        or not via
+        or not all(
+            isinstance(item, dict)
+            and isinstance(item.get("source"), int)
+            and not isinstance(item.get("source"), bool)
+            and isinstance(item.get("url"), str)
+            and bool(item.get("url"))
+            for item in via
+        )
+    ):
         return None
-    return {item.get("source"): item.get("url") for item in via}
+    return [item["url"] for item in via]
 
 
 def validate_report(report: dict[str, Any], root: Path, *, today: date) -> list[str]:
@@ -89,9 +100,9 @@ def validate_report(report: dict[str, Any], root: Path, *, today: date) -> list[
         if value.get("nodes") != [ALLOWED_NODE]:
             failures.append(f"{ALLOWED_NAME} affected path changed")
         identities = _advisory_identities(value.get("via"))
-        if identities is None or len(identities) != len(value["via"]):
+        if identities is None or len(set(identities)) != len(identities):
             failures.append(f"{ALLOWED_NAME} advisory set changed")
-        elif identities != ALLOWED_ADVISORIES:
+        elif set(identities) != set(ALLOWED_ADVISORIES.values()):
             failures.append(f"{ALLOWED_NAME} advisory identity changed")
 
     installed, locked = _package_versions(root, failures)
