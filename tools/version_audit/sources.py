@@ -93,7 +93,7 @@ class HttpClient:
     def __init__(
         self,
         timeout_seconds: float = 12.0,
-        max_bytes: int = 5_000_000,
+        max_bytes: int = 15_000_000,
         github_token: str | None = None,
     ):
         if timeout_seconds <= 0:
@@ -390,7 +390,7 @@ class VersionSources:
         prerelease: list[str] = []
         current_arm64_digests: set[str] = set()
         pages = 0
-        while url and pages < 20:
+        while url and pages < 10:
             data = self.client.get_json(_validate_source_url(url))
             pages += 1
             for entry in data.get("results", []):

@@ -62,17 +62,28 @@ def floci_container() -> Iterator[Any]:
             pytest.fail(f"testcontainers-floci is required in the Floci CI job: {exc}")
         pytest.skip(f"testcontainers-floci is not installed: {exc}")
 
+    namespace = ""
     try:
-        with (
-            FlociContainer(image=FLOCI_IMAGE)
-            .with_account_id(DEFAULT_ACCOUNT_ID)
-            .with_region(DEFAULT_REGION) as container
-        ):
+        container_builder = (
+            FlociContainer(image=FLOCI_IMAGE).with_account_id(DEFAULT_ACCOUNT_ID).with_region(DEFAULT_REGION)
+        )
+        namespace = container_builder.get_resource_namespace()
+        with container_builder as container:
             yield container
     except Exception as exc:  # pragma: no cover - CI/docker environment gaps
         if _floci_required():
             pytest.fail(f"Floci container failed to start in the required lifecycle job: {exc}")
         pytest.skip(f"Floci container could not start: {exc}")
+    finally:
+        if namespace:
+            import docker
+
+            client = docker.from_env()
+            try:
+                for sibling in client.containers.list(all=True, filters={"name": f"floci-{namespace}-"}):
+                    sibling.remove(force=True, v=True)
+            finally:
+                client.close()
 
 
 @pytest.fixture(scope="module")

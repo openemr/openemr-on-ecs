@@ -12,14 +12,21 @@ from typing import Any
 import pytest
 
 from scripts import check_npm_audit
-from scripts.check_npm_audit import ALLOWED_ADVISORIES, ALLOWED_NODE, ALLOWED_VERSION, validate_report
+from scripts.check_npm_audit import (
+    ALLOWED_ADVISORIES,
+    ALLOWED_NAME,
+    ALLOWED_NODE,
+    ALLOWED_SEVERITY,
+    ALLOWED_VERSION,
+    validate_report,
+)
 
-BEFORE_REVIEW = date(2026, 10, 3)
+BEFORE_REVIEW = date(2026, 11, 2)
 
 
 def _allowed_entry() -> dict[str, Any]:
     return {
-        "severity": "high",
+        "severity": ALLOWED_SEVERITY,
         "isDirect": False,
         "nodes": [ALLOWED_NODE],
         "via": [{"source": source, "url": url} for source, url in ALLOWED_ADVISORIES.items()],
@@ -45,21 +52,21 @@ def test_missing_installed_and_locked_package_fails_closed(tmp_path: Path) -> No
 
 
 def test_lock_without_deferred_entry_fails_closed(tmp_path: Path) -> None:
-    _install(tmp_path, version="5.0.12")
+    _install(tmp_path, version="11.0.1")
     (tmp_path / "package-lock.json").write_text(json.dumps({"packages": {}}), encoding="utf-8")
 
     failures = validate_report({"vulnerabilities": {}}, tmp_path, today=BEFORE_REVIEW)
 
     assert failures[0].startswith("cannot verify locked deferred package:")
-    assert "install/lock mismatch: installed 5.0.12, locked None" in failures[1]
+    assert "install/lock mismatch: installed 11.0.1, locked None" in failures[1]
 
 
 def test_non_object_advisory_fails_closed(tmp_path: Path) -> None:
     _install(tmp_path)
 
-    failures = validate_report({"vulnerabilities": {"brace-expansion": "high"}}, tmp_path, today=BEFORE_REVIEW)
+    failures = validate_report({"vulnerabilities": {ALLOWED_NAME: "high"}}, tmp_path, today=BEFORE_REVIEW)
 
-    assert failures == ["brace-expansion advisory is not an object"]
+    assert failures == [f"{ALLOWED_NAME} advisory is not an object"]
 
 
 def test_changed_severity_or_directness_fails_closed(tmp_path: Path) -> None:
@@ -67,9 +74,9 @@ def test_changed_severity_or_directness_fails_closed(tmp_path: Path) -> None:
     entry = _allowed_entry()
     entry["isDirect"] = True
 
-    failures = validate_report({"vulnerabilities": {"brace-expansion": entry}}, tmp_path, today=BEFORE_REVIEW)
+    failures = validate_report({"vulnerabilities": {ALLOWED_NAME: entry}}, tmp_path, today=BEFORE_REVIEW)
 
-    assert failures == ["brace-expansion severity/directness changed"]
+    assert failures == [f"{ALLOWED_NAME} severity/directness changed"]
 
 
 def _run_main(
@@ -86,7 +93,7 @@ def _run_main(
     class FixedDatetime:
         @staticmethod
         def now(tz: timezone) -> datetime:
-            return datetime(2026, 10, 3, tzinfo=tz)
+            return datetime(2026, 11, 2, tzinfo=tz)
 
     script = tmp_path / "scripts" / "check_npm_audit.py"
     monkeypatch.setattr(check_npm_audit, "__file__", str(script))
@@ -104,7 +111,7 @@ def test_main_reports_clean_audit(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    _install(tmp_path, version="5.0.12")
+    _install(tmp_path, version="11.0.1")
 
     exit_code, calls = _run_main(monkeypatch, tmp_path, _completed(json.dumps({"vulnerabilities": {}})))
 
@@ -127,7 +134,7 @@ def test_main_reports_active_deferral(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     _install(tmp_path)
-    report = {"vulnerabilities": {"brace-expansion": _allowed_entry()}}
+    report = {"vulnerabilities": {ALLOWED_NAME: _allowed_entry()}}
 
     exit_code, _ = _run_main(monkeypatch, tmp_path, _completed(json.dumps(report), returncode=1))
 
@@ -135,7 +142,7 @@ def test_main_reports_active_deferral(
     assert exit_code == 0
     assert output.startswith("npm audit: temporarily deferred ")
     assert ALLOWED_NODE in output
-    assert "review by 2026-11-05" in output
+    assert "review by 2026-12-05" in output
 
 
 def test_main_lists_failures(
@@ -143,7 +150,7 @@ def test_main_lists_failures(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
-    _install(tmp_path, version="5.0.12")
+    _install(tmp_path, version="11.0.1")
     report = {"vulnerabilities": {"left-pad": {}}}
 
     exit_code, _ = _run_main(monkeypatch, tmp_path, _completed(json.dumps(report), returncode=1))

@@ -39,8 +39,8 @@ class StackConstants:
     # Base image: python:{version}-slim. Update when upgrading the rotation container.
 
     # Container Image Version
-    OPENEMR_VERSION = "8.4.1"
-    OPENEMR_ARM64_DIGEST = "sha256:22bc7022e0fb3f88909d87a428849038a722a736634c1dbbae2f07e92ab362ad"
+    OPENEMR_VERSION = "8.5.0"
+    OPENEMR_ARM64_DIGEST = "sha256:d25ca204e79d4db3f6c7d14af162300ef049432f632d11db3b54a31de131444b"
     # Require an ARM64 Docker tag that matches an official, non-prerelease
     # OpenEMR GitHub release and verify this immutable platform digest. The
     # version audit enforces both constraints.

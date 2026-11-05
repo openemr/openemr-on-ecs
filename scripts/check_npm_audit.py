@@ -10,17 +10,30 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
-ALLOWED_NAME = "brace-expansion"
-ALLOWED_VERSION = "5.0.9"
-ALLOWED_NODE = "node_modules/aws-cdk-lib/node_modules/brace-expansion"
-# aws-cdk-lib bundles brace-expansion, so neither npm overrides nor
+ALLOWED_NAME = "minimatch"
+ALLOWED_VERSION = "10.2.6"
+ALLOWED_NODE = "node_modules/aws-cdk-lib/node_modules/minimatch"
+ALLOWED_SEVERITY = "moderate"
+# aws-cdk-lib bundles minimatch, so neither npm overrides nor
 # `npm audit fix` can replace it; only an aws-cdk-lib release can.
 ALLOWED_ADVISORIES = {
-    1240103: "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
-    1240107: "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
-    1240111: "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+    1244012: "https://github.com/advisories/GHSA-g3hv-75wg-m249",
 }
-REVIEW_DATE = date(2026, 11, 5)
+ALLOWED_PARENTS = {
+    "aws-cdk-lib": {
+        "severity": ALLOWED_SEVERITY,
+        "isDirect": True,
+        "nodes": ["node_modules/aws-cdk-lib"],
+        "via": ["minimatch"],
+    },
+    "cdk-dia": {
+        "severity": ALLOWED_SEVERITY,
+        "isDirect": True,
+        "nodes": ["node_modules/cdk-dia"],
+        "via": ["aws-cdk-lib"],
+    },
+}
+REVIEW_DATE = date(2026, 12, 5)
 
 
 def _package_versions(root: Path, failures: list[str]) -> tuple[str | None, str | None]:
@@ -60,13 +73,18 @@ def validate_report(report: dict[str, Any], root: Path, *, today: date) -> list[
         return ["npm audit report has no vulnerabilities object"]
     failures: list[str] = []
     for name, value in vulnerabilities.items():
+        if name in ALLOWED_PARENTS and ALLOWED_NAME in vulnerabilities:
+            expected = ALLOWED_PARENTS[name]
+            if not isinstance(value, dict) or any(value.get(key) != val for key, val in expected.items()):
+                failures.append(f"{name} parent chain changed")
+            continue
         if name != ALLOWED_NAME:
             failures.append(f"unexpected vulnerable package: {name}")
             continue
         if not isinstance(value, dict):
             failures.append(f"{ALLOWED_NAME} advisory is not an object")
             continue
-        if value.get("severity") != "high" or value.get("isDirect") is not False:
+        if value.get("severity") != ALLOWED_SEVERITY or value.get("isDirect") is not False:
             failures.append(f"{ALLOWED_NAME} severity/directness changed")
         if value.get("nodes") != [ALLOWED_NODE]:
             failures.append(f"{ALLOWED_NAME} affected path changed")

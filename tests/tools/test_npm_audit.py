@@ -8,24 +8,28 @@ from pathlib import Path
 
 from scripts.check_npm_audit import (
     ALLOWED_ADVISORIES,
+    ALLOWED_NAME,
     ALLOWED_NODE,
+    ALLOWED_PARENTS,
+    ALLOWED_SEVERITY,
     ALLOWED_VERSION,
     REVIEW_DATE,
     validate_report,
 )
 
-BEFORE_REVIEW = date(2026, 10, 3)
+BEFORE_REVIEW = date(2026, 11, 2)
 
 
 def _allowed_report() -> dict:
     return {
         "vulnerabilities": {
-            "brace-expansion": {
-                "severity": "high",
+            ALLOWED_NAME: {
+                "severity": ALLOWED_SEVERITY,
                 "isDirect": False,
                 "nodes": [ALLOWED_NODE],
                 "via": [{"source": source, "url": url} for source, url in ALLOWED_ADVISORIES.items()],
-            }
+            },
+            **{name: dict(expected) for name, expected in ALLOWED_PARENTS.items()},
         }
     }
 
@@ -48,7 +52,7 @@ def _install_deferred_package(
 
 
 def test_clean_audit_passes_with_fixed_installed_version(tmp_path: Path) -> None:
-    _install_deferred_package(tmp_path, version="5.0.12")
+    _install_deferred_package(tmp_path, version="11.0.1")
 
     assert validate_report({"vulnerabilities": {}}, tmp_path, today=BEFORE_REVIEW) == []
 
@@ -78,36 +82,46 @@ def test_other_vulnerabilities_fail_closed(tmp_path: Path) -> None:
     assert failures == ["unexpected vulnerable package: other-package"]
 
 
+def test_changed_parent_chain_fails_closed(tmp_path: Path) -> None:
+    report = _allowed_report()
+    report["vulnerabilities"]["aws-cdk-lib"]["via"] = ["something-else"]
+    _install_deferred_package(tmp_path)
+
+    failures = validate_report(report, tmp_path, today=BEFORE_REVIEW)
+
+    assert failures == ["aws-cdk-lib parent chain changed"]
+
+
 def test_new_advisory_fails_closed(tmp_path: Path) -> None:
     report = _allowed_report()
-    report["vulnerabilities"]["brace-expansion"]["via"].append(
+    report["vulnerabilities"][ALLOWED_NAME]["via"].append(
         {"source": 9999999, "url": "https://github.com/advisories/GHSA-xxxx-xxxx-xxxx"}
     )
     _install_deferred_package(tmp_path)
 
     failures = validate_report(report, tmp_path, today=BEFORE_REVIEW)
 
-    assert failures == ["brace-expansion advisory identity changed"]
+    assert failures == [f"{ALLOWED_NAME} advisory identity changed"]
 
 
 def test_malformed_advisory_list_fails_closed(tmp_path: Path) -> None:
     report = _allowed_report()
-    report["vulnerabilities"]["brace-expansion"]["via"] = ["brace-expansion"]
+    report["vulnerabilities"][ALLOWED_NAME]["via"] = [ALLOWED_NAME]
     _install_deferred_package(tmp_path)
 
     failures = validate_report(report, tmp_path, today=BEFORE_REVIEW)
 
-    assert failures == ["brace-expansion advisory set changed"]
+    assert failures == [f"{ALLOWED_NAME} advisory set changed"]
 
 
 def test_changed_path_or_version_fails_closed(tmp_path: Path) -> None:
     report = _allowed_report()
-    report["vulnerabilities"]["brace-expansion"]["nodes"] = ["node_modules/brace-expansion"]
-    _install_deferred_package(tmp_path, version="5.0.8")
+    report["vulnerabilities"][ALLOWED_NAME]["nodes"] = [f"node_modules/{ALLOWED_NAME}"]
+    _install_deferred_package(tmp_path, version="10.2.5")
 
     failures = validate_report(report, tmp_path, today=BEFORE_REVIEW)
 
-    assert "brace-expansion affected path changed" in failures
+    assert f"{ALLOWED_NAME} affected path changed" in failures
     assert any("unsupported installed version" in failure for failure in failures)
 
 
@@ -116,11 +130,11 @@ def test_clean_report_with_vulnerable_install_fails_closed(tmp_path: Path) -> No
 
     failures = validate_report({"vulnerabilities": {}}, tmp_path, today=BEFORE_REVIEW)
 
-    assert failures == [f"brace-expansion {ALLOWED_VERSION} is installed but npm audit did not report it"]
+    assert failures == [f"{ALLOWED_NAME} {ALLOWED_VERSION} is installed but npm audit did not report it"]
 
 
 def test_install_and_lock_mismatch_fails_closed(tmp_path: Path) -> None:
-    _install_deferred_package(tmp_path, locked_version="5.0.12")
+    _install_deferred_package(tmp_path, locked_version="11.0.1")
 
     failures = validate_report(_allowed_report(), tmp_path, today=BEFORE_REVIEW)
 
@@ -132,4 +146,4 @@ def test_deferral_expires_on_review_date(tmp_path: Path) -> None:
 
     failures = validate_report(_allowed_report(), tmp_path, today=REVIEW_DATE)
 
-    assert failures == [f"brace-expansion deferral expired on {REVIEW_DATE.isoformat()}"]
+    assert failures == [f"{ALLOWED_NAME} deferral expired on {REVIEW_DATE.isoformat()}"]

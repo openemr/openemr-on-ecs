@@ -375,7 +375,7 @@ def test_database_version_identity_rejects_ambiguous_or_malformed_rows(
         worker._database_version_identity("openemr")
 
 
-def _fresh_target(worker: ModuleType, tables: dict[str, str], version: str = "8\t4\t1\t0\t\t543"):
+def _fresh_target(worker: ModuleType, tables: dict[str, str], version: str = "8\t5\t0\t0\t\t555"):
     def run_mysql(*args: str, **kwargs: Any) -> str:
         command = " ".join(args)
         if "SHOW TABLES" in command:
@@ -406,7 +406,7 @@ def test_empty_target_check_accepts_pristine_seeded_target(
     monkeypatch.setattr(worker, "_run_mysql", _fresh_target(worker, tables))
     monkeypatch.setattr(worker, "_seed_table_fingerprint", fingerprint)
 
-    worker._assert_empty_target("8.4.1", 543)
+    worker._assert_empty_target("8.5.0", 555)
 
     assert fingerprinted == [("openemr", "globals"), ("openemr", "version")]
 
@@ -418,9 +418,9 @@ def test_empty_target_check_refuses_manifest_for_other_release(
     monkeypatch.setattr(worker, "_run_mysql", lambda *args, **kwargs: pytest.fail("must not query"))
 
     with pytest.raises(worker.ImportFailure, match="target-seed-manifest-version-mismatch"):
-        worker._assert_empty_target("8.2.0", 543)
+        worker._assert_empty_target("8.2.0", 555)
     with pytest.raises(worker.ImportFailure, match="target-seed-manifest-version-mismatch"):
-        worker._assert_empty_target("8.4.1", 541)
+        worker._assert_empty_target("8.5.0", 541)
 
 
 @pytest.mark.parametrize(
@@ -447,7 +447,7 @@ def test_empty_target_check_rejects_uninitialized_or_unsafe_schema(
     monkeypatch.setattr(worker, "_run_mysql", _fresh_target(worker, tables))
 
     with pytest.raises(worker.ImportFailure, match=error):
-        worker._assert_empty_target("8.4.1", 543)
+        worker._assert_empty_target("8.5.0", 555)
 
 
 def test_empty_target_check_rejects_schema_version_mismatch(
@@ -455,23 +455,23 @@ def test_empty_target_check_rejects_schema_version_mismatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     tables = {"documents": "0", "form_encounter": "0", "patient_data": "0", "users": "4"}
-    monkeypatch.setattr(worker, "_run_mysql", _fresh_target(worker, tables, version="8\t4\t0\t0\t\t543"))
+    monkeypatch.setattr(worker, "_run_mysql", _fresh_target(worker, tables, version="8\t4\t0\t0\t\t555"))
 
     with pytest.raises(worker.ImportFailure, match="target-schema-version-mismatch"):
-        worker._assert_empty_target("8.4.1", 543)
+        worker._assert_empty_target("8.5.0", 555)
 
 
 def test_empty_target_check_rejects_malformed_manifest_fingerprint(
     worker: ModuleType,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    tables = {"documents": "0", "form_encounter": "0", "globals": "489", "patient_data": "0", "users": "4"}
-    monkeypatch.setitem(worker.FRESH_SEED_BASELINE, "globals", {"rows": 489, "sha256": "NOT-HEX"})
+    tables = {"documents": "0", "form_encounter": "0", "globals": "493", "patient_data": "0", "users": "4"}
+    monkeypatch.setitem(worker.FRESH_SEED_BASELINE, "globals", {"rows": 493, "sha256": "NOT-HEX"})
     monkeypatch.setattr(worker, "_run_mysql", _fresh_target(worker, tables))
     monkeypatch.setattr(worker, "_seed_table_fingerprint", lambda *args: pytest.fail("must not fingerprint"))
 
     with pytest.raises(worker.ImportFailure, match="target-seed-content-mismatch:globals"):
-        worker._assert_empty_target("8.4.1", 543)
+        worker._assert_empty_target("8.5.0", 555)
 
 
 # EFS target checks

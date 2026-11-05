@@ -47,7 +47,7 @@ local validation commands on this page do not deploy infrastructure.
 
 ```bash
 python3.14 -m venv .venv
-.venv/bin/python -m pip install "pip==26.2.1"
+.venv/bin/python -m pip install "pip==26.2.2"
 .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
 npm ci
 ```
@@ -182,7 +182,7 @@ test -z "$(gofmt -s -l .)"
 ```
 
 CI also builds the binary with `make build` and runs
-`golangci-lint run` (v2.14.0).
+`golangci-lint run` (v2.15.0).
 
 ### CDK synthesis
 
